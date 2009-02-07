@@ -1,0 +1,86 @@
+#!/usr/bin/env python
+
+import eups
+import os
+from lsst.pex.policy import Policy
+from lsst.daf.persistence import DbStorage, LogicalLocation, DateTime
+
+class Provenance:
+    """Class to maintain provenance for LSST pipelines."""
+
+    def __init__(self, username, runId, dbHost):
+        """Initialize the Provenance controller."""
+        self.username = username
+        self.runId = runId
+        self.policyFileId = 1
+        self.policyKeyId = 1
+        loc = LogicalLocation("mysql://%s:3306/provenance" % (dbHost))
+        self.db = DbStorage()
+        self.db.setPersistLocation(loc)
+
+    def recordEnvironment(self):
+        """Record the software environment of the pipeline."""
+
+        self.db.startTransaction()
+        
+        id = 1
+        for pkg, ver in eups.setup():
+            self.db.setTableForInsert("prv_SoftwarePackage")
+            self.db.setColumnString("runId", self.runId)
+            self.db.setColumnInt("packageId", id)
+            self.db.setColumnString("packageName", pkg)
+            self.db.insertRow()
+
+            self.db.setTableForInsert("prv_cnf_SoftwarePackage")
+            self.db.setColumnString("runId", self.runId)
+            self.db.setColumnInt("packageId", id)
+            self.db.setColumnString("version", ver)
+            self.db.setColumnString("directory", eups.directory(pkg, ver))
+            self.db.insertRow() 
+
+            id += 1
+
+        self.db.endTransaction()
+
+    def recordPolicy(self, policyFile):
+        """Record the contents of the given Policy as part of provenance."""
+        md5 = hashlib.md5()
+        f = open(policyFile, 'r')
+        for line in f:
+            md5.update(line)
+        f.close()
+
+        self.db.startTransaction()
+
+        self.db.setTableForInsert("prv_PolicyFile")
+        self.db.setColumnString("runId", self.runId)
+        self.db.setColumnInt("policyFileId", policyFileId)
+        self.db.setColumnString("pathname", policyFile)
+        self.db.setColumnString("hashValue", md5.hexdigest())
+        self.db.SetColumnDateTime("modifiedDate",
+                DateTime(os.stat(policyFile)[8] * 1000000000L))
+        self.db.insertRow()
+
+        p = Policy.createPolicy(policyFile)
+        for key in p.paramNames():
+            val = p.str(key)
+            val = re.sub(r'\0', r'', val)
+
+            self.db = setTableForInsert("prv_PolicyKey")
+            self.db.setColumnString("runId", self.runId)
+            self.db.setColumnInt("policyKeyId", policyKeyId)
+            self.db.setColumnInt("policyFileId", policyFileId)
+            self.db.setColumnString("keyName", key)
+            self.db.insertRow()
+
+            self.db.setTableForInsert("prv_cnf_PolicyKey")
+            self.db.setColumnString("runId", self.runId)
+            self.db.setColumnInt("policyKeyId", policyKeyId)
+            self.db.setColumnString("value", val)
+            self.db.insertRow()
+
+            policyKeyId += 1
+
+        policyFileId += 1
+
+        self.db.endTransaction()
