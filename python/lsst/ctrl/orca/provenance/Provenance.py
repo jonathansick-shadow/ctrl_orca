@@ -3,7 +3,8 @@
 import eups
 import os
 from lsst.pex.policy import Policy
-from lsst.daf.persistence import DbStorage, LogicalLocation, DateTime
+from lsst.daf.persistence import DbStorage, LogicalLocation
+from lsst.daf.base import DateTime
 
 class Provenance:
     """Class to maintain provenance for LSST pipelines."""
@@ -24,7 +25,8 @@ class Provenance:
         self.db.startTransaction()
         
         id = 1
-        for pkg, ver in eups.setup():
+        setupList = eups.Eups().listProducts(setup=True)
+        for pkg, ver, db, productDir, isCurrent, isSetup in setupList:
             self.db.setTableForInsert("prv_SoftwarePackage")
             self.db.setColumnString("runId", self.runId)
             self.db.setColumnInt("packageId", id)
@@ -35,7 +37,7 @@ class Provenance:
             self.db.setColumnString("runId", self.runId)
             self.db.setColumnInt("packageId", id)
             self.db.setColumnString("version", ver)
-            self.db.setColumnString("directory", eups.directory(pkg, ver))
+            self.db.setColumnString("directory", productDir)
             self.db.insertRow() 
 
             id += 1
