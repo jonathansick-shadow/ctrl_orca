@@ -91,6 +91,7 @@ class ProvenanceTestCase(unittest.TestCase):
             mod = os.stat(p)[8] * 1000000000L
 
             pol = pexPolicy.Policy(p)
+            names = pol.paramNames()
 
             db.startTransaction()
 
@@ -100,6 +101,7 @@ class ProvenanceTestCase(unittest.TestCase):
             db.outColumn("hashValue")
             db.outColumn("modifiedDate")
             db.outColumn("keyName")
+            db.outColumn("keyType")
             db.outColumn("value")
             db.setQueryWhere(
                 """prv_PolicyFile.runId = '%s'
@@ -117,17 +119,25 @@ class ProvenanceTestCase(unittest.TestCase):
                 self.assert_(not db.columnIsNull(2))
                 self.assert_(not db.columnIsNull(3))
                 self.assert_(not db.columnIsNull(4))
+                self.assert_(not db.columnIsNull(5))
                 self.assertEqual(db.getColumnByPosString(0), self.runId)
                 self.assertEqual(db.getColumnByPosString(1), hash)
                 self.assertEqual(db.getColumnByPosInt64(2), mod)
-                self.assert_(pol.exists(db.getColumnByPosString(3)))
-                correct = pol.str(db.getColumnByPosString(3))
+                key = db.getColumnByPosString(3)
+                self.assert_(pol.exists(key))
+                self.assert_(key in names)
+                names.remove(key)
+                self.assertEqual(db.getColumnByPosString(4),
+                        pol.getTypeName(key))
+                correct = pol.str(key)
                 correct = re.sub(r'\0', r'', correct)
-                self.assertEqual(db.getColumnByPosString(4), correct)
+                self.assertEqual(db.getColumnByPosString(5), correct)
 
             db.finishQuery()
 
             db.endTransaction()
+
+            self.assertEqual(len(names), 0)
 
 if __name__ == '__main__':
     unittest.main()

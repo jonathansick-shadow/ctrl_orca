@@ -75,6 +75,7 @@ class Provenance:
             self.db.setColumnInt("policyKeyId", self.policyKeyId)
             self.db.setColumnInt("policyFileId", self.policyFileId)
             self.db.setColumnString("keyName", key)
+            self.db.setColumnString("keyType", p.getTypeName(key))
             self.db.insertRow()
 
             self.db.setTableForInsert("prv_cnf_PolicyKey")
