@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
 import eups
+import hashlib
 import os
+import re
 from lsst.pex.policy import Policy
 from lsst.daf.persistence import DbStorage, LogicalLocation
 from lsst.daf.base import DateTime
@@ -56,33 +58,33 @@ class Provenance:
 
         self.db.setTableForInsert("prv_PolicyFile")
         self.db.setColumnString("runId", self.runId)
-        self.db.setColumnInt("policyFileId", policyFileId)
+        self.db.setColumnInt("policyFileId", self.policyFileId)
         self.db.setColumnString("pathname", policyFile)
         self.db.setColumnString("hashValue", md5.hexdigest())
-        self.db.SetColumnDateTime("modifiedDate",
-                DateTime(os.stat(policyFile)[8] * 1000000000L))
+        self.db.setColumnInt64("modifiedDate",
+                DateTime(os.stat(policyFile)[8] * 1000000000L).nsecs())
         self.db.insertRow()
 
         p = Policy.createPolicy(policyFile)
         for key in p.paramNames():
-            val = p.str(key)
-            val = re.sub(r'\0', r'', val)
+            val = p.str(key) # works for arrays, too
+            val = re.sub(r'\0', r'', val) # extra nulls get included
 
-            self.db = setTableForInsert("prv_PolicyKey")
+            self.db.setTableForInsert("prv_PolicyKey")
             self.db.setColumnString("runId", self.runId)
-            self.db.setColumnInt("policyKeyId", policyKeyId)
-            self.db.setColumnInt("policyFileId", policyFileId)
+            self.db.setColumnInt("policyKeyId", self.policyKeyId)
+            self.db.setColumnInt("policyFileId", self.policyFileId)
             self.db.setColumnString("keyName", key)
             self.db.insertRow()
 
             self.db.setTableForInsert("prv_cnf_PolicyKey")
             self.db.setColumnString("runId", self.runId)
-            self.db.setColumnInt("policyKeyId", policyKeyId)
+            self.db.setColumnInt("policyKeyId", self.policyKeyId)
             self.db.setColumnString("value", val)
             self.db.insertRow()
 
-            policyKeyId += 1
+            self.policyKeyId += 1
 
-        policyFileId += 1
+        self.policyFileId += 1
 
         self.db.endTransaction()

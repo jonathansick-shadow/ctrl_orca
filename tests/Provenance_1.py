@@ -66,5 +66,10 @@ class ProvenanceTestCase(unittest.TestCase):
 
         db.endTransaction()
 
+    def testPolicies(self):
+        ps = orcaProv.Provenance(self.user, self.runId, self.host)
+        ps.recordPolicy("tests/policy/dc2pipe.paf")
+        ps.recordPolicy("tests/policy/imageSubtractionDetection.paf")
+
 if __name__ == '__main__':
     unittest.main()
