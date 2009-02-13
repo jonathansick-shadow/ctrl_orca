@@ -1,10 +1,14 @@
 import EventMonitor
-from NamedClassFactory import NamedClassFactory
-import pipelines
-import dbservers
+from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
+import lsst.ctrl.orca.pipelines
+import lsst.ctrl.orca.dbservers
+from lsst.pex.logging import Log
+
 
 class ProductionRunManager:
     def __init__(self, policy):
+        self.logger = Log(Log.getDefaultLog(), "d3pipe")
+
         self.policy = policy
 
         self.eventMonitor = None
@@ -12,7 +16,7 @@ class ProductionRunManager:
         self.pipelineManagers = []
 
     def configure(self, runId):
-        print "ProductionRunManager:configure"
+        self.logger.log(Log.DEBUG, "ProductionRunManager:configure")
 
         classFactory = NamedClassFactory()
 
@@ -20,7 +24,7 @@ class ProductionRunManager:
         pipelines = pipePolicy.policyNames(True)
 
         for pipeline in pipelines:
-            print "pipeline ---> ",pipeline
+            self.logger.log(Log.DEBUG, "pipeline ---> "+pipeline)
             pipelinePolicy = pipePolicy.get(pipeline)
             if pipelinePolicy.get("launch",1) != 0:
 
@@ -38,33 +42,33 @@ class ProductionRunManager:
 
 
     def launch(self):
-        print "ProductionRunManager:launchPipelines"
+        self.logger.log(Log.DEBUG, "ProductionRunManager:launchPipelines")
         for pipelineMgr in self.pipelineManagers:
             pipelineMgr.launchPipeline()
 
     def startEventMonitor(self):
-        print "ProductionRunManager:startEventMonitor"
+        self.logger.log(Log.DEBUG, "ProductionRunManager:startEventMonitor")
         monitorFile = self.policy.get("eventMonitorConfig")
         self.eventMonitor = EventMonitor.EventMonitor(monitorFile)
 
     def stopEventMonitor(self):
-        print "ProductionRunManager:stopEventMonitor"
+        self.logger.log(Log.DEBUG, "ProductionRunManager:stopEventMonitor")
         self.eventMonitor.stop()
 
     def runPostLaunchProcess(self):
-        print "ProductionRunManager:runPostLaunchProcess"
+        self.logger.log(Log.DEBUG, "ProductionRunManager:runPostLaunchProcess")
         # launch event generator (or whatever) at this point
 
     def stop(self):
-        print "ProductionRunManager:stop"
+        self.logger.log(Log.DEBUG, "ProductionRunManager:stop")
         self.stopEventMonitor()
         self.cleanup()
 
     def cleanup(self):
-        print "ProductionRunManager:cleanup"
+        self.logger.log(Log.DEBUG, "ProductionRunManager:cleanup")
 
     def handleEvent(self):
-        print "ProductionRunManager:handleEvent"
+        self.logger.log(Log.DEBUG, "ProductionRunManager:handleEvent")
 
     def handleFailure(self):
-        print "ProductionRunManager:handleFailure"
+        self.logger.log(Log.DEBUG, "ProductionRunManager:handleFailure")

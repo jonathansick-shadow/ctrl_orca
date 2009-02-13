@@ -1,5 +1,7 @@
 import os
-from NamedClassFactory import NamedClassFactory
+from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
+from lsst.pex.logging import Log
+
 class PipelineManager:
 
     def __init__(self):
@@ -10,16 +12,19 @@ class PipelineManager:
         self.policy = None
         self.runId = ""
 
+        self.logger = Log(Log.getDefaultLog(), "dc3pipe")
+
+        self.masterNode = ""
 
     def configure(self, pipeline, policy, runId):
-        print "PipelineManager:configure"
+        self.logger.log(Log.DEBUG, "PipelineManager:configure")
 
         self.pipeline = pipeline
         self.policy = policy
         self.runId = runId
 
         self.defaultDomain = policy.get("defaultDomain")
-        print "defaultDomain = ",self.defaultDomain
+        self.logger.log(Log.DEBUG, "defaultDomain = "+self.defaultDomain)
         self.rootDir = policy.get("defRootDir")
 
         self.createDirectories()
@@ -30,13 +35,13 @@ class PipelineManager:
     def createDatabase(self):
         classFactory = NamedClassFactory()
         databaseConfigName = self.policy.get("databaseConfigurator")
-        print "databaseConfigName = ",databaseConfigName
+        self.logger.log(Log.DEBUG, "databaseConfigName = " + databaseConfigName)
         databaseConfiguratorClass = classFactory.createClass(databaseConfigName)
         databaseConfigurator = databaseConfiguratorClass()
         databaseConfigurator.configureDatabase(self.policy, self.runId)
 
     def createNodeList(self):
-        print "PipelineManager:createNodeList"
+        self.logger.log(Log.DEBUG, "PipelineManager:createNodeList")
         nodeArray = self.policy.getPolicy("nodelist")
 
         node = nodeArray.getArray("node")
@@ -60,23 +65,23 @@ class PipelineManager:
                 node = nodeentry[0:colon]
                 if len(node) < 3:
                     #logger.log(Log.WARN, "Suspiciously short node name: " + node)
-                    print "Suspiciously short node name: " + node
-                print "-> nodeentry  =",nodeentry
-                print "-> node  =",node
+                    self.logger.log(Log.DEBUG, "Suspiciously short node name: " + node)
+                self.logger.log(Log.DEBUG, "-> nodeentry  =" + nodeentry)
+                self.logger.log(Log.DEBUG, "-> node  =" + node)
                 node += self.defaultDomain
                 nodeentry = "%s:%s" % (node, nodeentry[colon+1:])
             else:
                 nodeentry = "%s%s:1" % (node, self.defaultDomain)
 
-        print "returning nodeentry = ",nodeentry
+        self.logger.log(Log.DEBUG, "returning nodeentry = " + nodeentry)
         return nodeentry
 
 
     def createDirectories(self):
-        print "PipelineManager:createDirectories"
+        self.logger.log(Log.DEBUG, "PipelineManager:createDirectories")
 
     def createDirectoryList(self):
-        print "PipelineManager:createDirectoryList"
+        self.logger.log(Log.DEBUG, "PipelineManager:createDirectoryList")
 
         names = self.policy.get("directoryNames")
         dirs = []
@@ -100,7 +105,7 @@ class PipelineManager:
         return dirs
 
     def deploySetup(self):
-        print "PipelineManager:deploySetup"
+        self.logger.log(Log.DEBUG, "PipelineManager:deploySetup")
 
     def launchPipeline(self):
-        print "PipelineManager:launchPipeline"
+        self.logger.log(Log.DEBUG, "PipelineManager:launchPipeline")

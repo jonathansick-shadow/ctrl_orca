@@ -1,13 +1,13 @@
 from __future__ import with_statement
-from lsst.ctrl.orca.dbservers.DatabaseConfigurator import DatabaseConfigurator
-
 import os
+from lsst.ctrl.orca.dbservers.DatabaseConfigurator import DatabaseConfigurator
+from lsst.pex.logging import Log
+
 
 class MySQLConfigurator(DatabaseConfigurator):
 
-
     def configureDatabase(self, policy, runId):
-        print "StdDatabaseConfigurator:configure called"
+        self.logger.log(Log.DEBUG, "StdDatabaseConfigurator:configure called")
 
         command = "mysql -h %s -u%s -p%s "
         
@@ -40,12 +40,12 @@ class MySQLConfigurator(DatabaseConfigurator):
         for sqlCmdFile in dbCommandFiles:
             cmd = dbCommand + runId
 
-            print "cmd = ",cmd
-            print "sqldir = ",sqldir
-            print "sqlCmdFile = ",sqlCmdFile
+            self.logger.log(Log.DEBUG, "cmd = " + cmd)
+            self.logger.log(Log.DEBUG, "sqldir = " + sqldir)
+            self.logger.log(Log.DEBUG, "sqlCmdFile = " + sqlCmdFile)
             with file(os.path.join(sqldir, sqlCmdFile)) as sqlFile:
-                 print "would execute -> ",cmd.split
-                 print "using stdin of = ", sqlFile
+                print "will execute ",cmd.split()
+                print "using ", sqlFile
 # TODO: execute this properly when "dryrun" in implemented
 #                if subprocess.call(cmd.split(), stdin=sqlFile) != 0:
 #                    raise RuntimeError("Failed to create execute " + sqlCmdFile)

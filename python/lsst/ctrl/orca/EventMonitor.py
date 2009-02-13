@@ -1,11 +1,15 @@
+from lsst.pex.logging import Log
+
 class EventMonitor:
 
     def __init__(self, monitorFile):
-       print "EventMonitor:init" 
-       # create and initialize Event Monitor
+        self.logger = Log(Log.getDefaultLog(), "d3pipe")
+
+        self.logger.log(Log.DEBUG,"EventMonitor:init")
+        # create and initialize Event Monitor
 
     def start(self):
-        print "EventMonitor:start"
+        self.logger.log(Log.DEBUG, "EventMonitor:start")
 
     def stop(self):
-        print "EventMonitor:stop"
+        self.logger.log(Log.DEBUG, "EventMonitor:stop")

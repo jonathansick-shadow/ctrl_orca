@@ -6,29 +6,46 @@ import optparse, traceback, time
 from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
 from ProductionRunManager import ProductionRunManager 
+from lsst.ctrl.orca.DryRun import DryRun
+from lsst.ctrl.orca.Verbosity import Verbosity
 
 usage = """usage: %%prog [-n] pipelinePolicyFile runId"""
 
 
-opts = {}
-args = []
 
 parser = optparse.OptionParser(usage)
 # TODO: handle "--dryrun"
-parser.add_option("-n", "--dryrun", type="string", action="store", dest="dryrun", default=None, help="print messages, but don't execute anything")
+parser.add_option("-n", "--dryrun", action="store_true", dest="dryrun", default=False, help="print messages, but don't execute anything")
+parser.add_option("-V", "--verbosity", type="int", action="store", dest="verbosity", default=0, metavar="int", help="verbosity level (0=normal, 1=debug, -1=quiet, -3=silent)")
+
+
+parser.opts = {}
+parser.args = []
 
 # parse and check command line arguments
-(opts, args) = parser.parse_args()
-if len(args) < 2:
+(parser.opts, parser.args) = parser.parse_args()
+if len(parser.args) < 2:
     print usage
     raise RuntimeError("Missing args: pipelinePolicyFile runId")
 
-pipelinePolicyFile = args[0]
-runId = args[1]
+pipelinePolicyFile = parser.args[0]
+runId = parser.args[1]
 
-# TODO: add log messages for these
-print "pipelinePolicyFile = "+pipelinePolicyFile
-print "runId = "+runId
+dryrun = parser.opts.dryrun
+
+logger = Log(Log.getDefaultLog(), "d3pipe")
+singleton = Verbosity()
+singleton.value = parser.opts.verbosity
+logger.setThreshold(-10 * parser.opts.verbosity)
+
+# set the dryrun singleton to the value set on the command line.
+# we reference this in other classes
+singleton = DryRun()
+singleton.value = parser.opts.dryrun
+
+
+logger.log(Log.DEBUG,"pipelinePolicyFile = "+pipelinePolicyFile)
+logger.log(Log.DEBUG, "runId = "+runId)
 
 policy = Policy.createPolicy(pipelinePolicyFile)
 
