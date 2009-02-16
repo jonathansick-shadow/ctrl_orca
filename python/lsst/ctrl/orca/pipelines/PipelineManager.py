@@ -28,7 +28,7 @@ class PipelineManager:
         self.rootDir = policy.get("defRootDir")
 
         self.createDirectories()
-        self.createNodeList()
+        self.nodes = self.createNodeList()
         self.createDatabase()
         self.deploySetup()
 
@@ -51,6 +51,8 @@ class PipelineManager:
         for node in nodes:
             print >> nodelist, node
         nodelist.close()
+
+        return nodes
 
 
     def expandNodeHost(self, nodeentry):

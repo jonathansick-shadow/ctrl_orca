@@ -3,6 +3,7 @@ import re, sys, os, os.path, shutil, subprocess
 import traceback, time
 from lsst.pex.logging import Log
 from lsst.ctrl.orca.DryRun import DryRun
+from lsst.ctrl.orca.Verbosity import Verbosity
 
 from pipelines.PipelineManager import PipelineManager
 
@@ -52,6 +53,7 @@ class SimplePipelineManager(PipelineManager):
         self.logger.log(Log.DEBUG, "SimplePipelineManager:deploySetup")
 
         # copy /bin/sh script responsible for environment setting
+        self.script = "script_goes_here.sh"
 
         # copy the policies to the working directory
 
@@ -65,17 +67,19 @@ class SimplePipelineManager(PipelineManager):
 
         if singleton.value == True:
             print "dryrun: would execute"
-            cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -V %s" % (self.workingDirectory, script, launchcmd, self.pipeline+".paf", runid, Verbosity().value) ]
+            cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -V %s" % (self.workingDirectory, self.script, launchcmd, self.pipeline+".paf", self.runId, Verbosity().value) ]
             print cmd
         else:
             self.logger.log(Log.DEBUG, "launching pipeline")
 
             launchcmd = os.path.join(os.environ["DC3PIPE_DIR"], "bin", "launchPipeline.sh")
-            cmd = ["ssh", node, "cd %s; source %s; %s %s %s -V %s" % (wdir, script, launchcmd, pname+".paf", runid, cl.opts.verbosity) ]
+
+            # by convention the first node in the list is the "master" node
+            node = self.nodes[0]
+            cmd = ["ssh", node, "cd %s; source %s; %s %s %s -V %s" % (self.workingDirectory, self.script, launchcmd, self.pipeline+".paf", self.runId, Verbosity().value) ]
                        
-            logger.log(Log.INFO, "launching %s on %s" % (pname, node) )
-            logger.log(Log.DEBUG, "executing: " + " ".join(cmd))
+            self.logger.log(Log.INFO, "launching %s on %s" % (self.pipeline, node) )
+            self.logger.log(Log.DEBUG, "executing: " + " ".join(cmd))
 
             if subprocess.call(cmd) != 0:
-                raise RuntimeError("Failed to launch " + pname)
-
+                raise RuntimeError("Failed to launch " + self.pipeline)
