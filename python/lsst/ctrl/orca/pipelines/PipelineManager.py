@@ -27,10 +27,18 @@ class PipelineManager:
         self.logger.log(Log.DEBUG, "defaultDomain = "+self.defaultDomain)
         self.rootDir = policy.get("defRootDir")
 
+        repository = os.path.join(os.environ["DC3PIPE_DIR"], "pipeline")
+
+        if not os.path.exists(repository):
+            raise RuntimeError(repository + ": directory not found");
+
+        if not os.path.isdir(repository):
+            raise RuntimeError(repository + ": not a directory");
+
         self.createDirectories()
         self.nodes = self.createNodeList()
         self.createDatabase()
-        self.deploySetup()
+        self.deploySetup(repository)
 
     def createDatabase(self):
         classFactory = NamedClassFactory()
@@ -106,7 +114,7 @@ class PipelineManager:
         # return the list of directories
         return dirs
 
-    def deploySetup(self):
+    def deploySetup(self, repository):
         self.logger.log(Log.DEBUG, "PipelineManager:deploySetup")
 
     def launchPipeline(self):

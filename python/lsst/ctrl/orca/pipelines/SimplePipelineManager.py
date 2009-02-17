@@ -49,13 +49,30 @@ class SimplePipelineManager(PipelineManager):
         return dir
 
 
-    def deploySetup(self):
+    def deploySetup(self, repository):
         self.logger.log(Log.DEBUG, "SimplePipelineManager:deploySetup")
 
         # copy /bin/sh script responsible for environment setting
-        self.script = "script_goes_here.sh"
-
+        self.script = "setup.sh"
+        self.script = os.path.join(os.environ["DC3PIPE_DIR"], "etc", self.script)
+        shutil.copy(self.script, self.workingDirectory)
+        
         # copy the policies to the working directory
+        polfile = os.path.join(repository, self.pipeline+".paf")
+        polbasefile = os.path.basename(polfile)
+        if os.path.exists(os.path.join(self.workingDirectory, self.pipeline+".paf")):
+            self.logger.log(Log.WARN, 
+                       "Working directory already contains %s; won't overwrite" % \
+                           polbasefile)
+        else:
+            shutil.copy(polfile, self.workingDirectory)
+        
+        if os.path.exists(os.path.join(wdir, pname)):
+            self.logger.log(Log.WARN, 
+              "Working directory already contains %s directory; won't overwrite" % \
+                           self.pipeline)
+        else:
+            shutil.copytree(os.path.join(repository, self.pipeline), os.path.join(wdir,self.pipeline))
 
     def launchPipeline(self):
 
