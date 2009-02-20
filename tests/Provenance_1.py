@@ -20,36 +20,35 @@ class ProvenanceTestCase(unittest.TestCase):
         global runId
         self.user = "test"
         self.runId = runId
-        self.host = "lsst10.ncsa.uiuc.edu"
+        self.dbLoc = "mysql://lsst10.ncsa.uiuc.edu:3306/provenance"
+        db = DbStorage()
+        db.setPersistLocation(LogicalLocation(self.dbLoc))
+        for table in ("prv_SoftwarePackage", "prv_cnf_SoftwarePackage",
+                "prv_PolicyFile", "prv_PolicyKey", "prv_cnf_PolicyKey"):
+            db.truncateTable(table)
 
     def testConstruct(self):
-        ps = orcaProv.Provenance(self.user, self.runId, self.host)
+        ps = orcaProv.Provenance(self.user, self.runId, self.dbLoc)
         self.assert_(ps is not None)
         self.assert_(ps.db is not None)
 
     def testEnvironment(self):
-        ps = orcaProv.Provenance(self.user, self.runId, self.host)
+        ps = orcaProv.Provenance(self.user, self.runId, self.dbLoc)
         ps.recordEnvironment()
 
         db = DbStorage()
-        db.setRetrieveLocation(
-                LogicalLocation("mysql://%s:3306/provenance" % (self.host)))
+        db.setRetrieveLocation(LogicalLocation(self.dbLoc))
 
         db.startTransaction()
 
         db.setTableListForQuery(
                 ("prv_SoftwarePackage", "prv_cnf_SoftwarePackage"))
-        db.outColumn("prv_SoftwarePackage.runId")
         db.outColumn("prv_SoftwarePackage.packageId")
         db.outColumn("packageName")
         db.outColumn("version")
         db.outColumn("directory")
         db.orderBy("packageName")
-        db.setQueryWhere(
-                """prv_SoftwarePackage.runId = '%s'
-                AND prv_SoftwarePackage.runId = prv_cnf_SoftwarePackage.runId
-                AND prv_SoftwarePackage.packageId =
-                prv_cnf_SoftwarePackage.packageId""" % (self.runId))
+        db.setQueryWhere("prv_SoftwarePackage.packageId = prv_cnf_SoftwarePackage.packageId")
         db.query()
 
         i = 1
@@ -59,27 +58,24 @@ class ProvenanceTestCase(unittest.TestCase):
             self.assert_(not db.columnIsNull(1))
             self.assert_(not db.columnIsNull(2))
             self.assert_(not db.columnIsNull(3))
-            self.assert_(not db.columnIsNull(4))
-            self.assertEqual(db.getColumnByPosString(0), self.runId)
-            self.assertEqual(db.getColumnByPosInt(1), i)
-            self.assertEqual(db.getColumnByPosString(2), pkgs[i - 1][0])
-            self.assertEqual(db.getColumnByPosString(3), pkgs[i - 1][1])
-            self.assertEqual(db.getColumnByPosString(4), pkgs[i - 1][3])
+            self.assertEqual(db.getColumnByPosInt(0), i)
+            self.assertEqual(db.getColumnByPosString(1), pkgs[i - 1][0])
+            self.assertEqual(db.getColumnByPosString(2), pkgs[i - 1][1])
+            self.assertEqual(db.getColumnByPosString(3), pkgs[i - 1][3])
             i += 1
         db.finishQuery()
 
         db.endTransaction()
 
     def testPolicies(self):
-        ps = orcaProv.Provenance(self.user, self.runId, self.host)
+        ps = orcaProv.Provenance(self.user, self.runId, self.dbLoc)
         paths = ("tests/policy/dc2pipe.paf",
                 "tests/policy/imageSubtractionDetection.paf")
         for p in paths:
             ps.recordPolicy(p)
 
         db = DbStorage()
-        db.setRetrieveLocation(
-                LogicalLocation("mysql://%s:3306/provenance" % (self.host)))
+        db.setRetrieveLocation(LogicalLocation(self.dbLoc))
 
         for p in paths:
             md5 = hashlib.md5()
@@ -97,20 +93,16 @@ class ProvenanceTestCase(unittest.TestCase):
 
             db.setTableListForQuery(
                     ("prv_PolicyFile", "prv_PolicyKey", "prv_cnf_PolicyKey"))
-            db.outColumn("prv_PolicyFile.runId")
             db.outColumn("hashValue")
             db.outColumn("modifiedDate")
             db.outColumn("keyName")
             db.outColumn("keyType")
             db.outColumn("value")
             db.setQueryWhere(
-                """prv_PolicyFile.runId = '%s'
-                AND pathname = '%s'
-                AND prv_PolicyFile.runId = prv_PolicyKey.runId
+                """pathname = '%s'
                 AND prv_PolicyFile.policyFileId = prv_PolicyKey.policyFileId
-                AND prv_PolicyFile.runId = prv_cnf_PolicyKey.runId
                 AND prv_PolicyKey.policyKeyId = prv_cnf_PolicyKey.policyKeyId
-                """ % (self.runId, p))
+                """ % (p))
             db.query()
 
             while db.next():
@@ -119,19 +111,17 @@ class ProvenanceTestCase(unittest.TestCase):
                 self.assert_(not db.columnIsNull(2))
                 self.assert_(not db.columnIsNull(3))
                 self.assert_(not db.columnIsNull(4))
-                self.assert_(not db.columnIsNull(5))
-                self.assertEqual(db.getColumnByPosString(0), self.runId)
-                self.assertEqual(db.getColumnByPosString(1), hash)
-                self.assertEqual(db.getColumnByPosInt64(2), mod)
-                key = db.getColumnByPosString(3)
+                self.assertEqual(db.getColumnByPosString(0), hash)
+                self.assertEqual(db.getColumnByPosInt64(1), mod)
+                key = db.getColumnByPosString(2)
                 self.assert_(pol.exists(key))
                 self.assert_(key in names)
                 names.remove(key)
-                self.assertEqual(db.getColumnByPosString(4),
+                self.assertEqual(db.getColumnByPosString(3),
                         pol.getTypeName(key))
                 correct = pol.str(key)
                 correct = re.sub(r'\0', r'', correct)
-                self.assertEqual(db.getColumnByPosString(5), correct)
+                self.assertEqual(db.getColumnByPosString(4), correct)
 
             db.finishQuery()
 
