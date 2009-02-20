@@ -11,13 +11,13 @@ from lsst.daf.base import DateTime
 class Provenance:
     """Class to maintain provenance for LSST pipelines."""
 
-    def __init__(self, username, runId, dbHost):
+    def __init__(self, username, runId, dbLoc):
         """Initialize the Provenance controller."""
         self.username = username
         self.runId = runId
         self.policyFileId = 1
         self.policyKeyId = 1
-        loc = LogicalLocation("mysql://%s:3306/provenance" % (dbHost))
+        loc = LogicalLocation(dbLoc)
         self.db = DbStorage()
         self.db.setPersistLocation(loc)
 
@@ -30,13 +30,11 @@ class Provenance:
         setupList = eups.Eups().listProducts(setup=True)
         for pkg, ver, db, productDir, isCurrent, isSetup in setupList:
             self.db.setTableForInsert("prv_SoftwarePackage")
-            self.db.setColumnString("runId", self.runId)
             self.db.setColumnInt("packageId", id)
             self.db.setColumnString("packageName", pkg)
             self.db.insertRow()
 
             self.db.setTableForInsert("prv_cnf_SoftwarePackage")
-            self.db.setColumnString("runId", self.runId)
             self.db.setColumnInt("packageId", id)
             self.db.setColumnString("version", ver)
             self.db.setColumnString("directory", productDir)
@@ -57,7 +55,6 @@ class Provenance:
         self.db.startTransaction()
 
         self.db.setTableForInsert("prv_PolicyFile")
-        self.db.setColumnString("runId", self.runId)
         self.db.setColumnInt("policyFileId", self.policyFileId)
         self.db.setColumnString("pathname", policyFile)
         self.db.setColumnString("hashValue", md5.hexdigest())
@@ -71,7 +68,6 @@ class Provenance:
             val = re.sub(r'\0', r'', val) # extra nulls get included
 
             self.db.setTableForInsert("prv_PolicyKey")
-            self.db.setColumnString("runId", self.runId)
             self.db.setColumnInt("policyKeyId", self.policyKeyId)
             self.db.setColumnInt("policyFileId", self.policyFileId)
             self.db.setColumnString("keyName", key)
@@ -79,7 +75,6 @@ class Provenance:
             self.db.insertRow()
 
             self.db.setTableForInsert("prv_cnf_PolicyKey")
-            self.db.setColumnString("runId", self.runId)
             self.db.setColumnInt("policyKeyId", self.policyKeyId)
             self.db.setColumnString("value", val)
             self.db.insertRow()
