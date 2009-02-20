@@ -9,7 +9,7 @@
 # BEGIN - This is really part of the platform policy
 #
 
-packageDirectoryEnv: "DC3PIPE_DIR"
+packageDirectoryEnv: "DC2PIPE_DIR"
 eventBrokerHost: "lsst8"
 pipelineManager: "lsst.ctrl.orca.pipelines.SimplePipelineManager"
 
@@ -32,7 +32,7 @@ pipelines: {
     }
 
     # this will be part of the platform.paf file
-    packageDirectoryEnv: "DC3PIPE_DIR"
+    packageDirectoryEnv: "DC2PIPE_DIR"
 
     # this will be part of the platform.paf file
     dbHost: lsst10.ncsa.uiuc.edu

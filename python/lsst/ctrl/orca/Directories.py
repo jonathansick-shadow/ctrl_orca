@@ -116,7 +116,8 @@ class Directories:
     def getDirs(self):
         out = {}
         for name in "work input output update scratch".split():
-            out[name] = self.getNamedDirectory(self, name)
+            #out[name] = self.getNamedDirectory(self, name)
+            out[name] = self.getNamedDirectory(name)
 
         return out
 

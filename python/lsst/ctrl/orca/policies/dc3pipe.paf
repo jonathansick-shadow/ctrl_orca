@@ -4,6 +4,7 @@
 #
 
 eventBrokerHost:  lsst8
+packageDirectoryEnv: DC2PIPE_DIR
 
 pipelines: {
    imageSubtractionDetection: {

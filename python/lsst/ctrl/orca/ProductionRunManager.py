@@ -30,7 +30,7 @@ class ProductionRunManager:
 
                 # create the pipelineManager object that will actually do
                 # the work.
-                pipelineManagerName = self.policy.get("pipelineManager")
+                pipelineManagerName = pipelinePolicy.get("platform.deploy.managerClass")
             
                 pipelineManagerClass = classFactory.createClass(pipelineManagerName)
            

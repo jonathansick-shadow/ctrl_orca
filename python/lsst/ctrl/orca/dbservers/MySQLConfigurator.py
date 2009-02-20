@@ -1,7 +1,8 @@
 from __future__ import with_statement
-import os
+import os, subprocess
 from lsst.ctrl.orca.dbservers.DatabaseConfigurator import DatabaseConfigurator
 from lsst.pex.logging import Log
+from lsst.ctrl.orca.DryRun import DryRun
 
 
 class MySQLConfigurator(DatabaseConfigurator):
@@ -15,15 +16,16 @@ class MySQLConfigurator(DatabaseConfigurator):
 
         # TODO: These next two line lines are placeholders, to
         # be replaced with reading from a .mysql/creds file
-        dbUser = policy.get("dbUser")
-        dbPassword = policy.get("dbPassword")
-        dbCommandFilePolicy = policy.get("dbCommandFiles")
-        dbCommandFiles = dbCommandFilePolicy.getArray("file")
+        dbHost = policy.get("database.host")
+        dbUser = policy.get("database.user")
+        dbPassword = policy.get("database.password")
+        dbCommandFiles = policy.getArray("configuration.setup.database.script")
 
+       
         dbCommand = command % (dbHost, dbUser, dbPassword)
 
         packageDirEnv = policy.get("packageDirectoryEnv")
-        sqldir = os.path.join(os.environ[packageDirEnv], "etc")
+        sqldir = os.path.join(os.environ["CAT_DIR"], "sql")
 
         cmd = '%s-e' % dbCommand
         createcmd = 'create database "%s"' % runId
@@ -31,12 +33,14 @@ class MySQLConfigurator(DatabaseConfigurator):
         cmd = cmd.split()
         cmd.append(createcmd)
 
-        print "would execute: ",cmd
-        # TODO: execute this properly when "dryrun" in implemented
-        # if (subprocess.call(cmd) != 0):
-        #     raise RuntimeError("Failed to create database for run " + runId)
+        if self.dryrun.value == True:
+            print "would execute: ",cmd
+        else :
+            if (subprocess.call(cmd) != 0):
+                raise RuntimeError("Failed to create database for run " + runId)
 
 
+        print "dbCommandFiles :",dbCommandFiles
         for sqlCmdFile in dbCommandFiles:
             cmd = dbCommand + runId
 
@@ -44,8 +48,9 @@ class MySQLConfigurator(DatabaseConfigurator):
             self.logger.log(Log.DEBUG, "sqldir = " + sqldir)
             self.logger.log(Log.DEBUG, "sqlCmdFile = " + sqlCmdFile)
             with file(os.path.join(sqldir, sqlCmdFile)) as sqlFile:
-                print "will execute ",cmd.split()
-                print "using ", sqlFile
-# TODO: execute this properly when "dryrun" in implemented
-#                if subprocess.call(cmd.split(), stdin=sqlFile) != 0:
-#                    raise RuntimeError("Failed to create execute " + sqlCmdFile)
+                if self.dryrun.value == True:
+                    print "will execute ",cmd.split()
+                    print "using ", sqlFile
+                else:
+                    if subprocess.call(cmd.split(), stdin=sqlFile) != 0:
+                        raise RuntimeError("Failed to create execute " + sqlCmdFile)

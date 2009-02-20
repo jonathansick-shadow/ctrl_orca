@@ -1,5 +1,6 @@
 class NamedClassFactory:
     def createClass(self, name):
+        print "---->",name
         dot = name.rindex('.')
         pack = name[0:dot]
         modname = name[dot+1:]

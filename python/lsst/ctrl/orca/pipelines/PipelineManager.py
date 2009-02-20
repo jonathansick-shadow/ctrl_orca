@@ -1,4 +1,5 @@
 import os
+from lsst.ctrl.orca.DryRun import DryRun
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.pex.logging import Log
 
@@ -15,6 +16,7 @@ class PipelineManager:
         self.logger = Log(Log.getDefaultLog(), "dc3pipe")
 
         self.masterNode = ""
+        self.dryrun = DryRun()
 
     def configure(self, pipeline, policy, runId):
         self.logger.log(Log.DEBUG, "PipelineManager:configure")
@@ -23,11 +25,11 @@ class PipelineManager:
         self.policy = policy
         self.runId = runId
 
-        self.defaultDomain = policy.get("defaultDomain")
+        self.defaultDomain = policy.get("platform.deploy.defaultDomain")
         self.logger.log(Log.DEBUG, "defaultDomain = "+self.defaultDomain)
         self.rootDir = policy.get("defRootDir")
 
-        repository = os.path.join(os.environ["DC3PIPE_DIR"], "pipeline")
+        repository = os.path.join(os.environ["DC2PIPE_DIR"], "pipeline")
 
         if not os.path.exists(repository):
             raise RuntimeError(repository + ": directory not found");
@@ -36,13 +38,14 @@ class PipelineManager:
             raise RuntimeError(repository + ": not a directory");
 
         self.createDirectories()
+        print "in superclass: self.dirs['work']: ",self.dirs["work"]
         self.nodes = self.createNodeList()
         self.createDatabase()
         self.deploySetup(repository)
 
     def createDatabase(self):
         classFactory = NamedClassFactory()
-        databaseConfigName = self.policy.get("databaseConfigurator")
+        databaseConfigName = self.policy.get("database.configuratorClass")
         self.logger.log(Log.DEBUG, "databaseConfigName = " + databaseConfigName)
         databaseConfiguratorClass = classFactory.createClass(databaseConfigName)
         databaseConfigurator = databaseConfiguratorClass()
@@ -50,15 +53,21 @@ class PipelineManager:
 
     def createNodeList(self):
         self.logger.log(Log.DEBUG, "PipelineManager:createNodeList")
-        nodeArray = self.policy.getPolicy("nodelist")
 
-        node = nodeArray.getArray("node")
+        node = self.policy.getArray("platform.deploy.nodes")
 
         nodes = map(self.expandNodeHost, node)
-        nodelist = open(os.path.join(self.workingDirectory, "nodelist.scr"), 'w')
-        for node in nodes:
-            print >> nodelist, node
-        nodelist.close()
+        # by convention, the master node is the first node in the list
+        # we use this later to launch things, so strip out the info past ":", if it's there.
+        self.masterNode = nodes[0]
+        colon = self.masterNode.find(':')
+        if colon > 1:
+            self.masterNode = self.masterNode[0:colon]
+        if self.dryrun.value == False:
+            nodelist = open(os.path.join(self.dirs["work"], "nodelist.scr"), 'w')
+            for node in nodes:
+                print >> nodelist, node
+            nodelist.close()
 
         return nodes
 
@@ -78,7 +87,7 @@ class PipelineManager:
                     self.logger.log(Log.DEBUG, "Suspiciously short node name: " + node)
                 self.logger.log(Log.DEBUG, "-> nodeentry  =" + nodeentry)
                 self.logger.log(Log.DEBUG, "-> node  =" + node)
-                node += self.defaultDomain
+                node += "."+self.defaultDomain
                 nodeentry = "%s:%s" % (node, nodeentry[colon+1:])
             else:
                 nodeentry = "%s%s:1" % (node, self.defaultDomain)

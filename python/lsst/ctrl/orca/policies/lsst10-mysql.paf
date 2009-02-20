@@ -7,5 +7,5 @@ configuratorClass:  lsst.ctrl.orca.dbservers.MySQLConfigurator
 
 host:  lsst10.ncsa.uiuc.edu
 user:  test
-password:  funky.stuff
+password:  globular.test
 
