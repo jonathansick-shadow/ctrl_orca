@@ -37,7 +37,7 @@ for efile in exposureFiles:
 
     print "Pausing for 15s, waiting for setup..."
     logger.log(Log.DEBUG, "Pausing for 15s, waiting for setup...")
-    # time.sleep(15)
+    time.sleep(15)
 
     logger.log(Log.INFO, "Sending exposure data from " + efile)
     logger.log(Log.DEBUG,
