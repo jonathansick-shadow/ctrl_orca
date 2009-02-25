@@ -5,7 +5,7 @@ import re, sys, os, os.path, shutil, subprocess
 import optparse, traceback, time
 from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
-from ProductionRunManager import ProductionRunManager 
+from lsst.ctrl.orca.ProductionRunManager import ProductionRunManager 
 from lsst.ctrl.orca.DryRun import DryRun
 from lsst.ctrl.orca.Verbosity import Verbosity
 

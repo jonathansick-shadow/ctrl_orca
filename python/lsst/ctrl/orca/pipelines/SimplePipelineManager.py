@@ -5,7 +5,7 @@ from lsst.pex.logging import Log
 from lsst.ctrl.orca.DryRun import DryRun
 from lsst.ctrl.orca.Verbosity import Verbosity
 
-from pipelines.PipelineManager import PipelineManager
+from lsst.ctrl.orca.pipelines.PipelineManager import PipelineManager
 
 from lsst.ctrl.orca.Directories import Directories
 
