@@ -6,3 +6,5 @@ type: MySQL
 configuratorClass:  lsst.ctrl.orca.dbservers.MySQLConfigurator
 
 # database host, user and password are kept in $HOME/.mysql/lsst-db-auth.conf
+host: lsst10.ncsa.uiuc.edu
+port: 3306

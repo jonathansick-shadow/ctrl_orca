@@ -1,5 +1,5 @@
 import os
-from lsst.ctrl.orca.DryRun import DryRun
+import lsst.ctrl.orca as orca
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.pex.logging import Log
 
@@ -16,7 +16,6 @@ class PipelineManager:
         self.logger = Log(Log.getDefaultLog(), "dc3pipe")
 
         self.masterNode = ""
-        self.dryrun = DryRun()
 
     def configure(self, pipeline, policy, runId):
         self.logger.log(Log.DEBUG, "PipelineManager:configure")
@@ -63,7 +62,7 @@ class PipelineManager:
         colon = self.masterNode.find(':')
         if colon > 1:
             self.masterNode = self.masterNode[0:colon]
-        if self.dryrun.value == False:
+        if orca.dryrun == False:
             nodelist = open(os.path.join(self.dirs["work"], "nodelist.scr"), 'w')
             for node in nodes:
                 print >> nodelist, node

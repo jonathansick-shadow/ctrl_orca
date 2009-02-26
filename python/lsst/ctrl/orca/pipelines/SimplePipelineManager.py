@@ -2,7 +2,7 @@ from __future__ import with_statement
 import re, sys, os, os.path, shutil, subprocess
 import traceback, time
 from lsst.pex.logging import Log
-from lsst.ctrl.orca.DryRun import DryRun
+import lsst.ctrl.orca as orca
 from lsst.ctrl.orca.Verbosity import Verbosity
 
 from lsst.ctrl.orca.pipelines.PipelineManager import PipelineManager
@@ -38,7 +38,7 @@ class SimplePipelineManager(PipelineManager):
         self.dirs = directories.getDirs()
         print "createDirectories: self.dirs['work']",self.dirs["work"]
         for name in self.dirs:
-            if self.dryrun.value == True:
+            if orca.dryrun == True:
                 print "would create ",self.dirs[name]
             else:
                 if not os.path.exists(self.dirs[name]): os.makedirs(self.dirs[name])
@@ -91,10 +91,9 @@ class SimplePipelineManager(PipelineManager):
         self.logger.log(Log.DEBUG, "SimplePipelineManager:launchPipeline")
 
         # kick off the run
-        singleton = DryRun()
         launchcmd = os.path.join(os.environ["DC2PIPE_DIR"], "bin", "launchPipeline.sh")
 
-        if singleton.value == True:
+        if orca.dryrun == True:
             print "dryrun: would execute"
             cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -V %s" % (self.dirs["work"], self.script, launchcmd, self.pipeline+".paf", self.runId, Verbosity().value) ]
             print cmd

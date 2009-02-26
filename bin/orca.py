@@ -3,11 +3,10 @@
 from __future__ import with_statement
 import re, sys, os, os.path, shutil, subprocess
 import optparse, traceback, time
+import lsst.ctrl.orca as orca
 from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
 from lsst.ctrl.orca.ProductionRunManager import ProductionRunManager 
-from lsst.ctrl.orca.DryRun import DryRun
-from lsst.ctrl.orca.Verbosity import Verbosity
 
 usage = """usage: %%prog [-n] pipelinePolicyFile runId"""
 
@@ -31,17 +30,15 @@ if len(parser.args) < 2:
 pipelinePolicyFile = parser.args[0]
 runId = parser.args[1]
 
-dryrun = parser.opts.dryrun
+orca.dryrun = parser.opts.dryrun
 
 logger = Log(Log.getDefaultLog(), "d3pipe")
-singleton = Verbosity()
-singleton.value = parser.opts.verbosity
+orca.verbosity = parser.opts.verbosity
 logger.setThreshold(-10 * parser.opts.verbosity)
 
 # set the dryrun singleton to the value set on the command line.
 # we reference this in other classes
-singleton = DryRun()
-singleton.value = parser.opts.dryrun
+orca.dryrun = parser.opts.dryrun
 
 
 logger.log(Log.DEBUG,"pipelinePolicyFile = "+pipelinePolicyFile)

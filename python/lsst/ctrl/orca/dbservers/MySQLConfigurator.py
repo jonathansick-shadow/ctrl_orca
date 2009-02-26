@@ -1,8 +1,8 @@
 from __future__ import with_statement
 import os, subprocess
+import lsst.ctrl.orca as orca
 from lsst.ctrl.orca.dbservers.DatabaseConfigurator import DatabaseConfigurator
 from lsst.pex.logging import Log
-from lsst.ctrl.orca.DryRun import DryRun
 
 
 class MySQLConfigurator(DatabaseConfigurator):
@@ -10,19 +10,16 @@ class MySQLConfigurator(DatabaseConfigurator):
     def configureDatabase(self, policy, runId):
         self.logger.log(Log.DEBUG, "StdDatabaseConfigurator:configure called")
 
+        self.initAuthInfo(policy)
+
         command = "mysql -h %s -u%s -p%s "
         
-        dbHost = self.dbPolicy.get("dbHost")
-
         # TODO: These next two line lines are placeholders, to
         # be replaced with reading from a .mysql/creds file
-        dbHost = self.dbPolicy.get("database.host")
-        dbUser = self.dbPolicy.get("database.user")
-        dbPassword = self.dbPolicy.get("database.password")
         dbCommandFiles = policy.getArray("configuration.setup.database.script")
 
        
-        dbCommand = command % (dbHost, dbUser, dbPassword)
+        dbCommand = command % (self.dbHost, self.dbUser, self.dbPassword)
 
         packageDirEnv = policy.get("packageDirectoryEnv")
         sqldir = os.path.join(os.environ["CAT_DIR"], "sql")
@@ -34,7 +31,7 @@ class MySQLConfigurator(DatabaseConfigurator):
         cmd.append(createcmd)
 
         print "would execute: ",cmd
-        if self.dryrun.value == True:
+        if orca.dryrun == True:
             print "would execute: ",cmd
         else :
             if (subprocess.call(cmd) != 0):
@@ -49,7 +46,7 @@ class MySQLConfigurator(DatabaseConfigurator):
             self.logger.log(Log.DEBUG, "sqldir = " + sqldir)
             self.logger.log(Log.DEBUG, "sqlCmdFile = " + sqlCmdFile)
             with file(os.path.join(sqldir, sqlCmdFile)) as sqlFile:
-                if self.dryrun.value == True:
+                if orca.dryrun == True:
                     print "will execute ",cmd.split()
                     print "using ", sqlFile
                 else:

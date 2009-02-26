@@ -1,4 +1,5 @@
 import EventMonitor
+import lsst.ctrl.orca as orca
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 import lsst.ctrl.orca.pipelines
 import lsst.ctrl.orca.dbservers
