@@ -16,6 +16,11 @@ class ProductionRunManager:
 
         self.pipelineManagers = []
 
+
+    def checkConfiguration(self):
+        for pipelineMgr in self.pipelineManagers:
+            pipelineMgr.checkConfiguration()
+
     def configure(self, runId):
         self.logger.log(Log.DEBUG, "ProductionRunManager:configure")
 

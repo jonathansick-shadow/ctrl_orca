@@ -1,10 +1,31 @@
 import os
+import stat
 from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
 
 class DatabaseConfigurator:
     def __init__(self):
         self.logger = Log(Log.getDefaultLog(), "dc3pipe")
+
+    def checkConfiguration(self):
+        dbPolicyDir = os.path.join(os.environ["HOME"], ".lsst")
+        self.checkUserOnlyPermissions(dbPolicyDir)
+
+        dbPolicyFile = os.path.join(os.environ["HOME"], ".lsst/lsst-db-auth.paf")
+        self.checkUserOnlyPermissions(dbPolicyFile)
+        print "Was OK"
+
+    def checkUserOnlyPermissions(self, checkFile):
+        mode = os.stat(checkFile)[stat.ST_MODE]
+
+        permissions = stat.S_IMODE(mode)
+
+        errorText = "File permissions on "+checkFile+" should not be readable by 'group' or 'other'.  Use chmod to fix this."
+
+        if (mode & getattr(stat, "S_IRWXG")) != 0:
+            raise RuntimeError(errorText)
+        if (mode & getattr(stat, "S_IRWXO")) != 0:
+            raise RuntimeError(errorText)
 
     def configureDatabase(self, policy, runId):
         self.logger.log(Log.DEBUG, "DatabaseConfigurator:configure called")
@@ -35,24 +56,21 @@ class DatabaseConfigurator:
     #
     #
     #
-    # This routine has the following behavior:
+    # Terms "database.host" and "database.port" must be specified, 
+    # and will match against the first "database.authinfo.host" and 
+    # "database.authinfo.port"  in the credentials policy.
     #
-    # 1) If only "database.host" is specified, it will match against the first
-    # "database.authinfo.host" that matches it in the credentials policy, regardless
-    # of the "database.authinfo.port".
-    #
-    # 2) If "database.host" and "database.port" are specified, it will match
-    # against the first "database.authinfo.host" and "database.authinfo.port"
-    # in the credentials policy.
-    #
-    # 3) If there is no match, an exception is thrown.
+    # If there is no match, an exception is thrown.
     # 
     def initAuthInfo(self, policy):
         host = policy.get("database.host")
         if host == None:
-            raise RuntimeError("database host not specified in policy")
+            raise RuntimeError("database host must be specified in policy")
         port = policy.get("database.port")
+        if port == None:
+            raise RuntimeError("database port must be specified in policy")
         dbPolicyFile = os.path.join(os.environ["HOME"], ".lsst/lsst-db-auth.paf")
+        
         dbPolicy = Policy.createPolicy(dbPolicyFile)
 
         authArray = dbPolicy.getArray("database.authinfo")
@@ -62,14 +80,7 @@ class DatabaseConfigurator:
             self.dbPort = auth.get("port")
             self.dbUser = auth.get("user")
             self.dbPassword = auth.get("password")
-            if self.dbHost == host:
-                if port == None:
-                    self.logger.log(Log.DEBUG, "using host %s at default port" % host)
-                    return
-                elif self.dbPort == port:
+            if (self.dbHost == host) and (self.dbPort == port):
                     self.logger.log(Log.DEBUG, "using host %s at port %d" % (host, port))
                     return
-        if port == None:
-            raise RuntimeError("couldn't find any matching authorization for "+host)
-        else:
             raise RuntimeError("couldn't find any matching authorization for host %s and port %d " % (host, port))

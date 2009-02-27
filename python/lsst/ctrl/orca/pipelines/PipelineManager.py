@@ -17,6 +17,9 @@ class PipelineManager:
 
         self.masterNode = ""
 
+    def checkConfiguration(self):
+        self.logger.log(Log.DEBUG, "PipelineManager:checkConfiguration")
+
     def configure(self, pipeline, policy, runId):
         self.logger.log(Log.DEBUG, "PipelineManager:configure")
 
@@ -48,6 +51,7 @@ class PipelineManager:
         self.logger.log(Log.DEBUG, "databaseConfigName = " + databaseConfigName)
         databaseConfiguratorClass = classFactory.createClass(databaseConfigName)
         databaseConfigurator = databaseConfiguratorClass()
+        databaseConfigurator.checkConfiguration()
         databaseConfigurator.configureDatabase(self.policy, self.runId)
 
     def createNodeList(self):

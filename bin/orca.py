@@ -55,6 +55,7 @@ if not os.environ.has_key(packageDirEnv):
 # create the ProductionRunManager, configure it, and launch it
 productionRunManager = ProductionRunManager(policy)
 productionRunManager.configure(runId)
+productionRunManager.checkConfiguration()
 productionRunManager.launch()
 
 #
