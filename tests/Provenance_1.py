@@ -21,6 +21,7 @@ class ProvenanceTestCase(unittest.TestCase):
         self.user = "test"
         self.runId = runId
         self.dbLoc = "mysql://lsst10.ncsa.uiuc.edu:3306/provenance"
+        self.globalDbLoc = "mysql://lsst10.ncsa.uiuc.edu:3306/provglobal"
         db = DbStorage()
         db.setPersistLocation(LogicalLocation(self.dbLoc))
         for table in ("prv_SoftwarePackage", "prv_cnf_SoftwarePackage",
@@ -28,12 +29,14 @@ class ProvenanceTestCase(unittest.TestCase):
             db.truncateTable(table)
 
     def testConstruct(self):
-        ps = orcaProv.Provenance(self.user, self.runId, self.dbLoc)
+        ps = orcaProv.Provenance(self.user, self.runId, self.dbLoc,
+                self.globalDbLoc)
         self.assert_(ps is not None)
         self.assert_(ps.db is not None)
 
     def testEnvironment(self):
-        ps = orcaProv.Provenance(self.user, self.runId, self.dbLoc)
+        ps = orcaProv.Provenance(self.user, self.runId, self.dbLoc,
+                self.globalDbLoc)
         ps.recordEnvironment()
 
         db = DbStorage()
@@ -68,7 +71,8 @@ class ProvenanceTestCase(unittest.TestCase):
         db.endTransaction()
 
     def testPolicies(self):
-        ps = orcaProv.Provenance(self.user, self.runId, self.dbLoc)
+        ps = orcaProv.Provenance(self.user, self.runId, self.dbLoc,
+                self.globalDbLoc)
         paths = ("tests/policy/dc2pipe.paf",
                 "tests/policy/imageSubtractionDetection.paf")
         for p in paths:
