@@ -1,0 +1,20 @@
+#<?cfg paf policy ?>
+#
+# Orchestration Layer Policy
+#
+
+eventBrokerHost:  lsst8
+packageDirectoryEnv: DC2PIPE_DIR
+
+pipelines: {
+   imageSubtractionDetection: {
+
+      shortname:     ipd
+      configuration: @imageSubtractionDetection.paf
+      platform:      @lsstcluster.paf
+      database:      @lsst10-mysql.paf
+
+      launch: true
+   }
+
+}
