@@ -3,7 +3,6 @@ import re, sys, os, os.path, shutil, subprocess
 import traceback, time
 from lsst.pex.logging import Log
 import lsst.ctrl.orca as orca
-from lsst.ctrl.orca.Verbosity import Verbosity
 
 from lsst.ctrl.orca.pipelines.PipelineManager import PipelineManager
 
@@ -95,7 +94,7 @@ class SimplePipelineManager(PipelineManager):
 
         if orca.dryrun == True:
             print "dryrun: would execute"
-            cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -V %s" % (self.dirs["work"], self.script, launchcmd, self.pipeline+".paf", self.runId, Verbosity().value) ]
+            cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -V %s" % (self.dirs["work"], self.script, launchcmd, self.pipeline+".paf", self.runId, orca.verbosity) ]
             print cmd
         else:
             self.logger.log(Log.DEBUG, "launching pipeline")
@@ -103,7 +102,7 @@ class SimplePipelineManager(PipelineManager):
             launchcmd = os.path.join(os.environ["DC2PIPE_DIR"], "bin", "launchPipeline.sh")
 
             # by convention the first node in the list is the "master" node
-            cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -V %s" % (self.dirs["work"], self.script, launchcmd, self.pipeline+".paf", self.runId, Verbosity().value) ]
+            cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -V %s" % (self.dirs["work"], self.script, launchcmd, self.pipeline+".paf", self.runId, orca.verbosity) ]
             print "launching %s on %s" % (self.pipeline, self.masterNode) 
             print "executing: ",cmd
                        

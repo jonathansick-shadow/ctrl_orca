@@ -1,5 +1,6 @@
-setupRequired(utils >= 3.4.1)
-setupRequired(pex_policy >= 3.2.1)
-setupRequired(daf_persistence >= 3.3.1+svn7332)
+# commented out just for 3.0 - (DC2 compatible) release
+#setupRequired(utils >= 3.4.1)
+#setupRequired(pex_policy >= 3.2.1)
+#setupRequired(daf_persistence >= 3.3.1+svn7332)
 
 envAppend(PYTHONPATH, ${PRODUCT_DIR}/python)
