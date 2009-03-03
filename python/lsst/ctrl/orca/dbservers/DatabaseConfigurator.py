@@ -4,16 +4,28 @@ from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
 
 class DatabaseConfigurator:
-    def __init__(self):
+    def __init__(self, type, dbHostName, portNo, globalDbName, dcVersion, minPrecDiskSpaceReq, userRunLife):
         self.logger = Log(Log.getDefaultLog(), "dc3pipe")
+        self.delegate = None
 
-    def checkConfiguration(self):
+        # TODO: change this to instantiate class given the name, without
+        # having to resort to checking types as below
+        if type == "MySQL":
+            self.delegate = MySQLConfigurator(dbHostName, portNo, globalDbName, dcVersion, minPrecSpaceReq, userRunLife)
+        raise RuntimeError("Couldn't find Configurator for "+type)
+
+        
+
+    ##
+    # TODO: check in that we pass in database policy
+    def checkConfiguration(self, policy):
         dbPolicyDir = os.path.join(os.environ["HOME"], ".lsst")
         self.checkUserOnlyPermissions(dbPolicyDir)
 
         dbPolicyFile = os.path.join(os.environ["HOME"], ".lsst/lsst-db-auth.paf")
         self.checkUserOnlyPermissions(dbPolicyFile)
-        print "Was OK"
+        self.initAuthinfo(policy)
+        delegate.checkStatus(self, self.dbUser, self.dbPassword, os.uname()[1])
 
     def checkUserOnlyPermissions(self, checkFile):
         mode = os.stat(checkFile)[stat.ST_MODE]
@@ -26,6 +38,12 @@ class DatabaseConfigurator:
             raise RuntimeError(errorText)
         if (mode & getattr(stat, "S_IRWXO")) != 0:
             raise RuntimeError(errorText)
+
+    def prepareForNewRun(self, runName, userName, userPassword, runType='u'):
+        return self.delegate(runName, userName, userPassword, runType)
+
+    def runFinished(self, dbName):
+        self.delegate(dbName)
 
     def configureDatabase(self, policy, runId):
         self.logger.log(Log.DEBUG, "DatabaseConfigurator:configure called")
