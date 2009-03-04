@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 
-from lsst.cat.administerRuns import AdminRuns
+from lsst.ctrl.orca.dbservers.MySQLConfigurator import MySQLConfigurator
 from lsst.cat.MySQLBase import MySQLBase
 from lsst.cat.policyReader import PolicyReader
 
 import getpass
+import os
+import subprocess
 
+catDir = os.environ["CAT_DIR"]
+policyF = os.path.join(catDir, 'policy/defaultTestCatPolicy.paf')
 
-r = PolicyReader()
+r = PolicyReader(policyF)
 (host, port) = r.readAuthInfo()
 (globalDbName, dcVersion, dcDb, \
  minPercDiskSpaceReq, userRunLife) = r.readGlobalSetup()
@@ -17,14 +21,23 @@ usr = raw_input("Enter mysql account name: ")
 pwd = getpass.getpass()
 
 
+def resetGlobalDb():
+    x = os.path.join(catDir, 'bin/destroyGlobal.py')
+    cmd = '%s -f %s' % (x, policyF)
+    subprocess.call(cmd.split())
+
+    x = os.path.join(catDir, 'bin/setupGlobal.py')
+    cmd = '%s -f %s' % (x, policyF)
+    subprocess.call(cmd.split())
+
+                            
 def dropDB():
-    
     admin = MySQLBase(host, port)
     admin.connect(usr, pwd)
     admin.dropDb('%s_%s_u_myFirstRun' % (usr, dcVersion))
     admin.dropDb('%s_%s_u_mySecondRun' % (usr, dcVersion))
     admin.dropDb('%s_%s_p_prodRunA' % (usr, dcVersion))
-
+    
 def markRunFinished(dbName):
     admin = MySQLBase(host, port)
     admin.connect(usr, pwd, globalDbName)
@@ -32,8 +45,8 @@ def markRunFinished(dbName):
     print r
 
 def startSomeRuns():
-    x = AdminRuns(host, port, globalDbName, dcVersion,
-                  dcDb, minPercDiskSpaceReq, userRunLife)
+    x = MySQLConfigurator(host, port, globalDbName, dcVersion,
+                          dcDb, minPercDiskSpaceReq, userRunLife)
 
     x.checkStatus(usr, pwd, host)
 
@@ -48,9 +61,6 @@ def startSomeRuns():
 
 ####################################################
 
-# need to call destroyGlobal.py
-# need to call setupGlobal.py
-
+resetGlobalDb()
 dropDB()
-
 startSomeRuns()

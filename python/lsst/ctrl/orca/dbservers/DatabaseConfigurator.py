@@ -4,14 +4,14 @@ from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
 
 class DatabaseConfigurator:
-    def __init__(self, type, dbHostName, portNo, globalDbName, dcVersion, minPrecDiskSpaceReq, userRunLife):
+    def __init__(self, type, dbHostName, portNo, globalDbName, dcVersion, dcDb, minPrecDiskSpaceReq, userRunLife):
         self.logger = Log(Log.getDefaultLog(), "dc3pipe")
         self.delegate = None
 
         # TODO: change this to instantiate class given the name, without
         # having to resort to checking types as below
         if type == "MySQL":
-            self.delegate = MySQLConfigurator(dbHostName, portNo, globalDbName, dcVersion, minPrecSpaceReq, userRunLife)
+            self.delegate = MySQLConfigurator(dbHostName, portNo, globalDbName, dcVersion, dcDb, minPrecSpaceReq, userRunLife)
         raise RuntimeError("Couldn't find Configurator for "+type)
 
         
