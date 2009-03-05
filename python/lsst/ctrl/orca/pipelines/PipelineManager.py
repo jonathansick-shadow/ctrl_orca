@@ -1,6 +1,7 @@
 import os
 import lsst.ctrl.orca as orca
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
+from lsst.ctrl.orca.dbservers.DatabaseConfigurator import DatabaseConfigurator
 from lsst.pex.logging import Log
 
 class PipelineManager:
@@ -16,7 +17,7 @@ class PipelineManager:
         self.logger = Log(Log.getDefaultLog(), "dc3pipe")
 
         self.masterNode = ""
-        self.databaseConfigurator = None
+        self.dbConfigurator = None
 
     def checkConfiguration(self):
         self.logger.log(Log.DEBUG, "PipelineManager:checkConfiguration")
@@ -32,7 +33,7 @@ class PipelineManager:
         self.logger.log(Log.DEBUG, "defaultDomain = "+self.defaultDomain)
         self.rootDir = policy.get("defRootDir")
 
-        repository = os.path.join(os.environ["DC2PIPE_DIR"], "pipeline")
+        repository = os.path.join(os.environ["DC3PIPE_DIR"], "pipeline")
 
         if not os.path.exists(repository):
             raise RuntimeError(repository + ": directory not found");
@@ -54,11 +55,12 @@ class PipelineManager:
         dbType = self.policy.get("databaseConfig.type")
 
         self.logger.log(Log.DEBUG, "databaseConfigName = " + databaseConfigName)
-        databaseConfiguratorClass = classFactory.createClass(databaseConfigName)
+        #databaseConfiguratorClass = classFactory.createClass(databaseConfigName)
 
-        self.databaseConfigurator = databaseConfiguratorClass(dbType, dbPolicy)
-        self.databaseConfigurator.checkStatus(dbPolicy)
-        dbNames = self.databaseConfigurator.prepareForNewRun(self.runId)
+        #self.databaseConfigurator = databaseConfiguratorClass(dbType, dbPolicy)
+        self.dbConfigurator = DatabaseConfigurator(dbType, dbPolicy)
+        self.dbConfigurator.checkConfiguration(dbPolicy)
+        dbNames = self.dbConfigurator.prepareForNewRun(self.runId)
         return dbNames
 
     def createNodeList(self):

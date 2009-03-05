@@ -2,6 +2,8 @@ import os
 import stat
 from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
+# TODO: remove this next line when we get named plugin instantiation
+from lsst.ctrl.orca.dbservers.MySQLConfigurator import MySQLConfigurator
 
 class DatabaseConfigurator:
     def __init__(self, type, policy):
@@ -13,12 +15,12 @@ class DatabaseConfigurator:
         # extract the databaseConfig.database policy to get required
         # parameters from it.
 
-        dbHostName = policy.get("authinfo.host");
-        portNo = policy.get("authinfo.port");
+        dbHostName = policy.get("authInfo.host");
+        portNo = policy.get("authInfo.port");
         globalDbName = policy.get("globalSetup.globalDbName")
         dcVersion = policy.get("globalSetup.dcVersion")
         dcDbName = policy.get("globalSetup.dcDbName")
-        minPercDiskSpaceReq = policy.get("globalSetup.minPerDiskSpaceReq")
+        minPercDiskSpaceReq = policy.get("globalSetup.minPercDiskSpaceReq")
         userRunLife = policy.get("globalSetup.userRunLife")
 
         self.dbPolicy = policy
@@ -27,8 +29,9 @@ class DatabaseConfigurator:
         # TODO: change this to instantiate class given the name, without
         # having to resort to checking types as below
         if type == "MySQL":
-            self.delegate = MySQLConfigurator(dbHostName, portNo, globalDbName, dcVersion, dcDbName, minPercSpaceReq, userRunLife)
-        raise RuntimeError("Couldn't find Configurator for "+type)
+            self.delegate = MySQLConfigurator(dbHostName, portNo, globalDbName, dcVersion, dcDbName, minPercDiskSpaceReq, userRunLife)
+        else:
+            raise RuntimeError("Couldn't find Configurator for "+type)
 
 
     def checkConfiguration(self, policy):
@@ -47,16 +50,16 @@ class DatabaseConfigurator:
         #
         # now, look up, and initialize the authorization information for host and port
         #
-        self.initAuthinfo(policy)
+        self.initAuthInfo(policy)
 
         # 
         # Now that everything looks sane, execute the delegate's checkStatus method 
         #
-        delegate.checkStatus(self, self.dbUser, self.dbPassword, os.uname()[1])
+        self.delegate.checkStatus(self.dbUser, self.dbPassword, os.uname()[1])
 
-    def getDatabaseHostURL(self):
+    def getHostURL(self):
         schema = self.type.lower()
-        retVal = schema+"://"+self.dbHost+":"+self.dbPort+"/"
+        retVal = schema+"://"+self.dbHost+":"+str(self.dbPort)+"/"
         print retVal
         return retVal
 
@@ -73,7 +76,7 @@ class DatabaseConfigurator:
             raise RuntimeError(errorText)
 
     def prepareForNewRun(self, runName, runType='u'):
-        return self.delegate(runName, self.dbUser, self.dbPassword, runType)
+        return self.delegate.prepareForNewRun(runName, self.dbUser, self.dbPassword, runType)
 
     def runFinished(self, dbName):
         self.delegate(dbName)
@@ -86,14 +89,14 @@ class DatabaseConfigurator:
     # The credential policy has the following format:
     #
     # database: {
-    #     authinfo: {
+    #     authInfo: {
     #         host:  lsst10.ncsa.uiuc.edu
     #         user:  moose
     #         password:  squirrel
     #         port: 3306
     #     }
     # 
-    #     authinfo: {
+    #     authInfo: {
     #         host:  lsst10.ncsa.uiuc.edu
     #         user:  boris
     #         password:  natasha
@@ -104,23 +107,24 @@ class DatabaseConfigurator:
     #
     #
     # Terms "database.host" and "database.port" must be specified, 
-    # and will match against the first "database.authinfo.host" and 
-    # "database.authinfo.port"  in the credentials policy.
+    # and will match against the first "database.authInfo.host" and 
+    # "database.authInfo.port"  in the credentials policy.
     #
     # If there is no match, an exception is thrown.
     # 
     def initAuthInfo(self, policy):
-        host = policy.get("database.authinfo.host")
+        print policy.toString()
+        host = policy.get("authInfo.host")
         if host == None:
             raise RuntimeError("database host must be specified in policy")
-        port = policy.get("database.authinfo.port")
+        port = policy.get("authInfo.port")
         if port == None:
             raise RuntimeError("database port must be specified in policy")
         dbPolicyCredentialsFile = os.path.join(os.environ["HOME"], ".lsst/lsst-db-auth.paf")
         
         dbPolicyCredentials = Policy.createPolicy(dbPolicyCredentialsFile)
 
-        authArray = dbPolicyCredentials.getArray("database.authinfo")
+        authArray = dbPolicyCredentials.getArray("database.authInfo")
 
         for auth in authArray:
             self.dbHost = auth.get("host")

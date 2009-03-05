@@ -2,6 +2,7 @@ from __future__ import with_statement
 import re, sys, os, os.path, shutil, subprocess
 import traceback, time
 from lsst.pex.logging import Log
+import lsst.pex.policy as pol
 import lsst.ctrl.orca as orca
 
 from lsst.ctrl.orca.pipelines.PipelineManager import PipelineManager
@@ -65,7 +66,7 @@ class SimplePipelineManager(PipelineManager):
 
         # copy /bin/sh script responsible for environment setting
         self.script = "setup.sh"
-        self.script = os.path.join(os.environ["DC2PIPE_DIR"], "etc", self.script)
+        self.script = os.path.join(os.environ["DC3PIPE_DIR"], "etc", self.script)
         shutil.copy(self.script, self.dirs["work"])
         
         # 
@@ -78,18 +79,37 @@ class SimplePipelineManager(PipelineManager):
         #     construct proper database url
         #     set: execute.database.url
         #  write new policy file with overridden values
-        #  copy file to self.dirs["work"]
+        #  write file to self.dirs["work"]
         #  call provenance.recordPolicy()
         # 
         # copy the policies to the working directory
         polfile = os.path.join(repository, self.pipeline+".paf")
+
+        newPolicy = pol.Policy.createPolicy(polfile)
+
+        eventBrokerHost = self.policy.get("configuration.execute.eventBrokerHost")
+        newPolicy.set("configuration.execute.eventBrokerHost", eventBrokerHost)
+
+        executeDir = self.policy.get("configuration.execute.dir")
+        newPolicy.set("configuration.execute.dir", executeDir)
+
+        baseURL = self.dbConfigurator.getHostURL()
+
+        fullURL = baseURL+"/"+ dbNames[0]
+        newPolicy.set("configuration.execute.database.url",fullURL)
+
+
         polbasefile = os.path.basename(polfile)
-        if os.path.exists(os.path.join(self.dirs["work"], self.pipeline+".paf")):
+        filePath = os.path.join(self.dirs["work"], self.pipeline+".paf")
+        if os.path.exists(filePath):
             self.logger.log(Log.WARN, 
                        "Working directory already contains %s; won't overwrite" % \
                            polbasefile)
         else:
-            shutil.copy(polfile, self.dirs["work"])
+            newPolicyFile = open(filePath, 'w')
+            newPolicyFile.write(newPolicy.toString())
+            newPolicyFile.close()
+            # shutil.copy(polfile, self.dirs["work"])
         
         if os.path.exists(os.path.join(self.dirs["work"], self.pipeline)):
             self.logger.log(Log.WARN, 
@@ -103,7 +123,7 @@ class SimplePipelineManager(PipelineManager):
         self.logger.log(Log.DEBUG, "SimplePipelineManager:launchPipeline")
 
         # kick off the run
-        launchcmd = os.path.join(os.environ["DC2PIPE_DIR"], "bin", "launchPipeline.sh")
+        launchcmd = os.path.join(os.environ["DC3PIPE_DIR"], "bin", "launchPipeline.sh")
 
         if orca.dryrun == True:
             print "dryrun: would execute"
@@ -112,7 +132,7 @@ class SimplePipelineManager(PipelineManager):
         else:
             self.logger.log(Log.DEBUG, "launching pipeline")
 
-            launchcmd = os.path.join(os.environ["DC2PIPE_DIR"], "bin", "launchPipeline.sh")
+            launchcmd = os.path.join(os.environ["DC3PIPE_DIR"], "bin", "launchPipeline.sh")
 
             # by convention the first node in the list is the "master" node
             cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -V %s" % (self.dirs["work"], self.script, launchcmd, self.pipeline+".paf", self.runId, orca.verbosity) ]

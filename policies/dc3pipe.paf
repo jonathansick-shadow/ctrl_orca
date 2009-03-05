@@ -3,8 +3,8 @@
 # Orchestration Layer Policy
 #
 
-eventBrokerHost:  lsst8
-packageDirectoryEnv: DC2PIPE_DIR
+eventBrokerHost:  lsst8.ncsa.uiuc.edu
+packageDirectoryEnv: DC3PIPE_DIR
 
 pipelines: {
    imageSubtractionDetection: {
