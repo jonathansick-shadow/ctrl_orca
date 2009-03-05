@@ -12,7 +12,7 @@ pipelines: {
       shortname:     ipd
       configuration: @imageSubtractionDetection.paf
       platform:      @lsstcluster.paf
-      database:      @lsst10-mysql.paf
+      databaseConfig:      @lsst10-mysql.paf
 
       launch: true
    }

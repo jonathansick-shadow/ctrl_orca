@@ -16,6 +16,7 @@ class PipelineManager:
         self.logger = Log(Log.getDefaultLog(), "dc3pipe")
 
         self.masterNode = ""
+        self.databaseConfigurator = None
 
     def checkConfiguration(self):
         self.logger.log(Log.DEBUG, "PipelineManager:checkConfiguration")
@@ -42,17 +43,23 @@ class PipelineManager:
         self.createDirectories()
         print "in superclass: self.dirs['work']: ",self.dirs["work"]
         self.nodes = self.createNodeList()
-        self.createDatabase()
-        self.deploySetup(repository)
+        dbNames = self.createDatabase()
+        self.deploySetup(dbNames, repository)
 
     def createDatabase(self):
         classFactory = NamedClassFactory()
-        databaseConfigName = self.policy.get("database.configuratorClass")
+        databaseConfigName = self.policy.get("databaseConfig.configuratorClass")
+
+        dbPolicy = self.policy.getPolicy("databaseConfig.database")
+        dbType = self.policy.get("databaseConfig.type")
+
         self.logger.log(Log.DEBUG, "databaseConfigName = " + databaseConfigName)
         databaseConfiguratorClass = classFactory.createClass(databaseConfigName)
-        databaseConfigurator = databaseConfiguratorClass()
-        databaseConfigurator.checkConfiguration()
-        databaseConfigurator.configureDatabase(self.policy, self.runId)
+
+        self.databaseConfigurator = databaseConfiguratorClass(dbType, dbPolicy)
+        self.databaseConfigurator.checkStatus(dbPolicy)
+        dbNames = self.databaseConfigurator.prepareForNewRun(self.runId)
+        return dbNames
 
     def createNodeList(self):
         self.logger.log(Log.DEBUG, "PipelineManager:createNodeList")
@@ -126,7 +133,7 @@ class PipelineManager:
         # return the list of directories
         return dirs
 
-    def deploySetup(self, repository):
+    def deploySetup(self, dbNames, repository):
         self.logger.log(Log.DEBUG, "PipelineManager:deploySetup")
 
     def launchPipeline(self):

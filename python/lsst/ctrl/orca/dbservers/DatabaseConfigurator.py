@@ -4,28 +4,61 @@ from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
 
 class DatabaseConfigurator:
-    def __init__(self, type, dbHostName, portNo, globalDbName, dcVersion, dcDb, minPrecDiskSpaceReq, userRunLife):
+    def __init__(self, type, policy):
         self.logger = Log(Log.getDefaultLog(), "dc3pipe")
+        self.type = type
         self.delegate = None
+
+        #
+        # extract the databaseConfig.database policy to get required
+        # parameters from it.
+
+        dbHostName = policy.get("authinfo.host");
+        portNo = policy.get("authinfo.port");
+        globalDbName = policy.get("globalSetup.globalDbName")
+        dcVersion = policy.get("globalSetup.dcVersion")
+        dcDbName = policy.get("globalSetup.dcDbName")
+        minPercDiskSpaceReq = policy.get("globalSetup.minPerDiskSpaceReq")
+        userRunLife = policy.get("globalSetup.userRunLife")
+
+        self.dbPolicy = policy
+
 
         # TODO: change this to instantiate class given the name, without
         # having to resort to checking types as below
         if type == "MySQL":
-            self.delegate = MySQLConfigurator(dbHostName, portNo, globalDbName, dcVersion, dcDb, minPrecSpaceReq, userRunLife)
+            self.delegate = MySQLConfigurator(dbHostName, portNo, globalDbName, dcVersion, dcDbName, minPercSpaceReq, userRunLife)
         raise RuntimeError("Couldn't find Configurator for "+type)
 
-        
 
-    ##
-    # TODO: check in that we pass in database policy
     def checkConfiguration(self, policy):
+        #
+        # first, check that the $HOME/.lsst directory is protected
+        #
         dbPolicyDir = os.path.join(os.environ["HOME"], ".lsst")
         self.checkUserOnlyPermissions(dbPolicyDir)
 
-        dbPolicyFile = os.path.join(os.environ["HOME"], ".lsst/lsst-db-auth.paf")
-        self.checkUserOnlyPermissions(dbPolicyFile)
+        #
+        # next, check that the $HOME/.lsst/lsst-db-auth.paf file is protected
+        #
+        dbPolicyCredentialsFile = os.path.join(os.environ["HOME"], ".lsst/lsst-db-auth.paf")
+        self.checkUserOnlyPermissions(dbPolicyCredentialsFile)
+
+        #
+        # now, look up, and initialize the authorization information for host and port
+        #
         self.initAuthinfo(policy)
+
+        # 
+        # Now that everything looks sane, execute the delegate's checkStatus method 
+        #
         delegate.checkStatus(self, self.dbUser, self.dbPassword, os.uname()[1])
+
+    def getDatabaseHostURL(self):
+        schema = self.type.lower()
+        retVal = schema+"://"+self.dbHost+":"+self.dbPort+"/"
+        print retVal
+        return retVal
 
     def checkUserOnlyPermissions(self, checkFile):
         mode = os.stat(checkFile)[stat.ST_MODE]
@@ -39,15 +72,11 @@ class DatabaseConfigurator:
         if (mode & getattr(stat, "S_IRWXO")) != 0:
             raise RuntimeError(errorText)
 
-    def prepareForNewRun(self, runName, userName, userPassword, runType='u'):
-        return self.delegate(runName, userName, userPassword, runType)
+    def prepareForNewRun(self, runName, runType='u'):
+        return self.delegate(runName, self.dbUser, self.dbPassword, runType)
 
     def runFinished(self, dbName):
         self.delegate(dbName)
-
-    def configureDatabase(self, policy, runId):
-        self.logger.log(Log.DEBUG, "DatabaseConfigurator:configure called")
-
 
     ##
     # initAuthInfo - given a policy object with specifies "database.host" and
@@ -81,17 +110,17 @@ class DatabaseConfigurator:
     # If there is no match, an exception is thrown.
     # 
     def initAuthInfo(self, policy):
-        host = policy.get("database.host")
+        host = policy.get("database.authinfo.host")
         if host == None:
             raise RuntimeError("database host must be specified in policy")
-        port = policy.get("database.port")
+        port = policy.get("database.authinfo.port")
         if port == None:
             raise RuntimeError("database port must be specified in policy")
-        dbPolicyFile = os.path.join(os.environ["HOME"], ".lsst/lsst-db-auth.paf")
+        dbPolicyCredentialsFile = os.path.join(os.environ["HOME"], ".lsst/lsst-db-auth.paf")
         
-        dbPolicy = Policy.createPolicy(dbPolicyFile)
+        dbPolicyCredentials = Policy.createPolicy(dbPolicyCredentialsFile)
 
-        authArray = dbPolicy.getArray("database.authinfo")
+        authArray = dbPolicyCredentials.getArray("database.authinfo")
 
         for auth in authArray:
             self.dbHost = auth.get("host")

@@ -60,7 +60,7 @@ class SimplePipelineManager(PipelineManager):
         return dir
 
 
-    def deploySetup(self, repository):
+    def deploySetup(self, dbNames, repository):
         self.logger.log(Log.DEBUG, "SimplePipelineManager:deploySetup")
 
         # copy /bin/sh script responsible for environment setting
@@ -68,6 +68,19 @@ class SimplePipelineManager(PipelineManager):
         self.script = os.path.join(os.environ["DC2PIPE_DIR"], "etc", self.script)
         shutil.copy(self.script, self.dirs["work"])
         
+        # 
+        # TODO: 
+        #  read in default policy
+        #  read in given policy
+        #  in given policy:
+        #     set: execute.eventBrokerHost
+        #     set: execute.dir
+        #     construct proper database url
+        #     set: execute.database.url
+        #  write new policy file with overridden values
+        #  copy file to self.dirs["work"]
+        #  call provenance.recordPolicy()
+        # 
         # copy the policies to the working directory
         polfile = os.path.join(repository, self.pipeline+".paf")
         polbasefile = os.path.basename(polfile)
