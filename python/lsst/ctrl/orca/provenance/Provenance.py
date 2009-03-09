@@ -57,7 +57,7 @@ class Provenance:
         self._realRecordEnvironment(self.db, setupList)
         self._realRecordEnvironment(self.globalDb, setupList)
 
-    def _realRecordEnvironment(self, db, setupList)
+    def _realRecordEnvironment(self, db, setupList):
         db.startTransaction()
         
         id = self.offset + 1

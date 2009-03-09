@@ -2,9 +2,6 @@
 #
 # database server description:  MySQL on lsst10
 #
-type: MySQL
-configuratorClass:  lsst.ctrl.orca.dbservers.MySQLConfigurator
-
 database: {
     authInfo: {
         host: lsst10.ncsa.uiuc.edu

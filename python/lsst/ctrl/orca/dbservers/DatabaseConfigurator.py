@@ -15,13 +15,13 @@ class DatabaseConfigurator:
         # extract the databaseConfig.database policy to get required
         # parameters from it.
 
-        dbHostName = policy.get("authInfo.host");
-        portNo = policy.get("authInfo.port");
-        globalDbName = policy.get("globalSetup.globalDbName")
-        dcVersion = policy.get("globalSetup.dcVersion")
-        dcDbName = policy.get("globalSetup.dcDbName")
-        minPercDiskSpaceReq = policy.get("globalSetup.minPercDiskSpaceReq")
-        userRunLife = policy.get("globalSetup.userRunLife")
+        dbHostName = policy.get("database.authInfo.host");
+        portNo = policy.get("database.authInfo.port");
+        globalDbName = policy.get("database.globalSetup.globalDbName")
+        dcVersion = policy.get("database.globalSetup.dcVersion")
+        dcDbName = policy.get("database.globalSetup.dcDbName")
+        minPercDiskSpaceReq = policy.get("database.globalSetup.minPercDiskSpaceReq")
+        userRunLife = policy.get("database.globalSetup.userRunLife")
 
         self.dbPolicy = policy
 
@@ -59,9 +59,12 @@ class DatabaseConfigurator:
 
     def getHostURL(self):
         schema = self.type.lower()
-        retVal = schema+"://"+self.dbHost+":"+str(self.dbPort)+"/"
+        retVal = schema+"://"+self.dbHost+":"+str(self.dbPort)
         print retVal
         return retVal
+
+    def getUser(self):
+        return self.dbUser;
 
     def checkUserOnlyPermissions(self, checkFile):
         mode = os.stat(checkFile)[stat.ST_MODE]
@@ -114,10 +117,10 @@ class DatabaseConfigurator:
     # 
     def initAuthInfo(self, policy):
         print policy.toString()
-        host = policy.get("authInfo.host")
+        host = policy.get("database.authInfo.host")
         if host == None:
             raise RuntimeError("database host must be specified in policy")
-        port = policy.get("authInfo.port")
+        port = policy.get("database.authInfo.port")
         if port == None:
             raise RuntimeError("database port must be specified in policy")
         dbPolicyCredentialsFile = os.path.join(os.environ["HOME"], ".lsst/lsst-db-auth.paf")

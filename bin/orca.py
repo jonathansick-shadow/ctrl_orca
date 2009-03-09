@@ -46,12 +46,6 @@ logger.log(Log.DEBUG, "runId = "+runId)
 
 policy = Policy.createPolicy(pipelinePolicyFile)
 
-# check environment to make sure we're ready to go
-packageDirEnv = policy.get("packageDirectoryEnv")
-if not os.environ.has_key(packageDirEnv):
-    raise RuntimeError(packageDirEnv+" environment variable not set")
-
-
 # create the ProductionRunManager, configure it, and launch it
 productionRunManager = ProductionRunManager(policy)
 productionRunManager.configure(runId)

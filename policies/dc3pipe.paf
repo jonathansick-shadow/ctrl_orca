@@ -4,7 +4,13 @@
 #
 
 eventBrokerHost:  lsst8.ncsa.uiuc.edu
-packageDirectoryEnv: DC3PIPE_DIR
+repositoryDirectory: $DC3PIPE_DIR/pipeline
+
+databaseConfig: {
+    type: MySQL
+    configuratorClass: lsst.ctrl.orca.dbservers.MySQLConfigurator
+    database: @lsst10-mysql.paf
+}
 
 pipelines: {
    imageSubtractionDetection: {
@@ -12,7 +18,6 @@ pipelines: {
       shortname:     ipd
       configuration: @imageSubtractionDetection.paf
       platform:      @lsstcluster.paf
-      databaseConfig:      @lsst10-mysql.paf
 
       launch: true
    }

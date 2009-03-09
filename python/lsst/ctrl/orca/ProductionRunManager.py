@@ -1,9 +1,13 @@
+import os, os.path
 import EventMonitor
 import lsst.ctrl.orca as orca
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 import lsst.ctrl.orca.pipelines
 import lsst.ctrl.orca.dbservers
 from lsst.pex.logging import Log
+from lsst.ctrl.orca.dbservers.DatabaseConfigurator import DatabaseConfigurator
+from lsst.ctrl.orca.provenance.Provenance import Provenance
+from lsst.ctrl.orca.EnvString import EnvString
 
 
 class ProductionRunManager:
@@ -21,13 +25,56 @@ class ProductionRunManager:
         for pipelineMgr in self.pipelineManagers:
             pipelineMgr.checkConfiguration()
 
+    def createDatabase(self, runId):
+        #classFactory = NamedClassFactory()
+        #databaseConfigName = self.policy.get("databaseConfig.configuratorClass")
+
+        dbPolicy = self.policy.getPolicy("databaseConfig.database")
+        print dbPolicy.toString()
+        dbType = self.policy.get("databaseConfig.type")
+
+        #self.logger.log(Log.DEBUG, "databaseConfigName = " + databaseConfigName)
+        #databaseConfiguratorClass = classFactory.createClass(databaseConfigName)
+        #self.databaseConfigurator = databaseConfiguratorClass(dbType, dbPolicy)        
+        self.dbConfigurator = DatabaseConfigurator(dbType, dbPolicy)
+        self.dbConfigurator.checkConfiguration(dbPolicy)
+        dbNames = self.dbConfigurator.prepareForNewRun(runId)
+        print "dbNames"
+        print dbNames
+        return dbNames
+
+
     def configure(self, runId):
         self.logger.log(Log.DEBUG, "ProductionRunManager:configure")
+
+
+        dbNames = self.createDatabase(runId)
+        dbBaseURL = self.dbConfigurator.getHostURL()
+        dbRun = dbBaseURL+"/"+dbNames[0];
+        dbGlobal = dbBaseURL+"/"+dbNames[1];
+        print "getUser = "+self.dbConfigurator.getUser()
+        print "runId = "+runId
+        print "dbRun = "+dbRun
+        print "dbGlobal = "+dbGlobal
+
+        #provenance = Provenance(self.dbConfigurator.getUser(),  runId, dbRun, dbGlobal);
+        provenance = None
 
         classFactory = NamedClassFactory()
 
         pipePolicy = self.policy.get("pipelines")
         pipelines = pipePolicy.policyNames(True)
+
+        # TODO: check for command line switch to substitute of this value
+        reposValue = self.policy.get("repositoryDirectory")
+        repository = EnvString.resolve(reposValue)
+
+        if not os.path.exists(repository):
+            raise RuntimeError(repository + ": directory not found");
+        
+        if not os.path.isdir(repository): 
+            raise RuntimeError(repository + ": not a directory");
+
 
         for pipeline in pipelines:
             self.logger.log(Log.DEBUG, "pipeline ---> "+pipeline)
@@ -43,7 +90,7 @@ class ProductionRunManager:
                 pipelineManager = pipelineManagerClass()
 
                 # configure this pipeline
-                pipelineManager.configure(pipeline, pipelinePolicy, runId)
+                pipelineManager.configure(pipeline, pipelinePolicy, runId, repository, provenance, dbRun)
                 self.pipelineManagers.append(pipelineManager)
 
 

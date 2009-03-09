@@ -49,7 +49,7 @@ framework: {
    # can be represented as $ENVVAR which will be replaced with the
    # value of the environment variable with the name ENVVAR.
    # 
-   environment: "$DC3PIPE_DIR/etc/setup.sh".
+   environment: "$DC3PIPE_DIR/etc/setup.sh"
 
    # this is the execution script that we will use to start the
    # pipeline on the head node of the platform.  The file path component
