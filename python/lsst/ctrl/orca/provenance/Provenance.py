@@ -34,7 +34,7 @@ class Provenance:
         self.globalDb.setRetrieveLocation(globalLoc)
 
         self.globalDb.startTransaction()
-        self.globalDb.setTableForQuery("runId")
+        self.globalDb.setTableForQuery("prv_Run")
         self.globalDb.outColumn("offset")
         self.globalDb.condParamString("runId", runId)
         self.globalDb.setQueryWhere("runId = :runId")
@@ -47,8 +47,8 @@ class Provenance:
 
         self.globalDb.setPersistLocation(globalLoc)
 
-        self.policyFileId = offset + 1
-        self.policyKeyId = offset + 1
+        self.policyFileId = self.offset + 1
+        self.policyKeyId = self.offset + 1
 
     def recordEnvironment(self):
         """Record the software environment of the pipeline."""
