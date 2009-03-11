@@ -42,9 +42,9 @@ class DatabaseConfigurator:
         self.checkUserOnlyPermissions(dbPolicyDir)
 
         #
-        # next, check that the $HOME/.lsst/lsst-db-auth.paf file is protected
+        # next, check that the $HOME/.lsst/db-auth.paf file is protected
         #
-        dbPolicyCredentialsFile = os.path.join(os.environ["HOME"], ".lsst/lsst-db-auth.paf")
+        dbPolicyCredentialsFile = os.path.join(os.environ["HOME"], ".lsst/db-auth.paf")
         self.checkUserOnlyPermissions(dbPolicyCredentialsFile)
 
         #
@@ -87,7 +87,7 @@ class DatabaseConfigurator:
     ##
     # initAuthInfo - given a policy object with specifies "database.host" and
     # optionally, "database.port", match it against the credential policy
-    # file $HOME/.lsst/lsst-db-auth.paf
+    # file $HOME/.lsst/db-auth.paf
     #
     # The credential policy has the following format:
     #
@@ -123,11 +123,15 @@ class DatabaseConfigurator:
         port = policy.get("database.authInfo.port")
         if port == None:
             raise RuntimeError("database port must be specified in policy")
-        dbPolicyCredentialsFile = os.path.join(os.environ["HOME"], ".lsst/lsst-db-auth.paf")
+        dbPolicyCredentialsFile = os.path.join(os.environ["HOME"], ".lsst/db-auth.paf")
         
         dbPolicyCredentials = Policy.createPolicy(dbPolicyCredentialsFile)
 
-        authArray = dbPolicyCredentials.getArray("database.authInfo")
+        print "dbPolicyCredentials"
+        print dbPolicyCredentials.toString()
+        authArray = dbPolicyCredentials.getPolicyArray("database.authInfo")
+        print "authArray"
+        print authArray
 
         for auth in authArray:
             self.dbHost = auth.get("host")

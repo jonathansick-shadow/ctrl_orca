@@ -12,7 +12,7 @@ usage = """usage: %%prog exposureList...
 Send events to an event broker, to kick off pipeline processing of exposures.
 """
 
-logger = Log(Log.getDefaultLog(), "dc2pipe")
+logger = Log(Log.getDefaultLog(), "dc3pipe")
 
 cl = optparse.OptionParser(usage)
 

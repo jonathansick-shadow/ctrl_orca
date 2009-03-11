@@ -14,9 +14,9 @@ class SimplePipelineManager(PipelineManager):
 
     def __init__(self):
         self.logger = Log(Log.getDefaultLog(), "dc3pipe")
-        self.logger.log(Log.DEBUG, "SimplePipelineMnager:__init__")
+        self.logger.log(Log.DEBUG, "SimplePipelineManager:__init__")
         PipelineManager.__init__(self)
-        self.logger.log(Log.DEBUG, "SimplePipelineMnager:__init__:done")
+        self.logger.log(Log.DEBUG, "SimplePipelineManager:__init__:done")
 
     def createDirectories(self):
         self.logger.log(Log.DEBUG, "SimplePipelineManager:createDirectories")
@@ -113,12 +113,12 @@ class SimplePipelineManager(PipelineManager):
                        "Working directory already contains %s; won't overwrite" % \
                            polbasefile)
         else:
-            newPolicyFile = open(filePath, 'w')
-            newPolicyFile.write(newPolicy.toString())
-            newPolicyFile.close()
+            pw = pol.PAFWriter(filePath)
+            pw.write(newPolicy)
+            pw.close()
+
             # TODO: uncomment this when the other stuff is working
             # self.provenance.recordPolicy(newPolicyFile)
-            shutil.copy(polfile, self.dirs["work"])
         
         if os.path.exists(os.path.join(self.dirs["work"], self.pipeline)):
             self.logger.log(Log.WARN, 
@@ -136,7 +136,7 @@ class SimplePipelineManager(PipelineManager):
         # kick off the run
         #launchcmd = os.path.join(os.environ["DC3PIPE_DIR"], "bin", "launchPipeline.sh")
 
-        cmd = ["ssh", self.masterNode, "bash -c 'SHELL=/bin/bash;cd %s; source %s; %s %s %s -V %s'" % (self.dirs["work"], self.script, launchcmd, self.pipeline+".paf", self.runId, orca.verbosity) ]
+        cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -V %s" % (self.dirs["work"], self.script, launchcmd, self.pipeline+".paf", self.runId, orca.verbosity) ]
         if orca.dryrun == True:
             print "dryrun: would execute"
             print cmd
