@@ -2,10 +2,12 @@ import os
 import stat
 from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
+from lsst.ctrl.orca.dbservers import MySQLConfigurator
 
 class DatabaseConfigurator:
     def __init__(self):
         self.logger = Log(Log.getDefaultLog(), "dc3pipe")
+        
 
     def checkConfiguration(self):
         dbPolicyDir = os.path.join(os.environ["HOME"], ".lsst")
