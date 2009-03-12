@@ -50,6 +50,8 @@ class DatabaseConfigurator:
         #
         # now, look up, and initialize the authorization information for host and port
         #
+        print "IN checkConfiguration"
+        print policy
         self.initAuthInfo(policy)
 
         # 
