@@ -5,16 +5,15 @@ from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 import lsst.ctrl.orca.pipelines
 import lsst.ctrl.orca.dbservers
 from lsst.pex.logging import Log
+from lsst.pex.policy import Policy
 from lsst.ctrl.orca.dbservers.DatabaseConfigurator import DatabaseConfigurator
 from lsst.ctrl.orca.provenance.Provenance import Provenance
 from lsst.ctrl.orca.EnvString import EnvString
 
 
 class ProductionRunManager:
-    def __init__(self, policy):
+    def __init__(self):
         self.logger = Log(Log.getDefaultLog(), "d3pipe")
-
-        self.policy = policy
 
         self.eventMonitor = None
 
@@ -29,8 +28,17 @@ class ProductionRunManager:
         #classFactory = NamedClassFactory()
         #databaseConfigName = self.policy.get("databaseConfig.configuratorClass")
 
-        dbPolicy = self.policy.getPolicy("databaseConfig.database")
+        print self.policy
+        dbConfigPolicy = self.policy.getPolicy("databaseConfig")
+        print "dbConfigPolicy  ",dbConfigPolicy
+        print "self.repository  "+self.repository
+        dbPolicy = dbConfigPolicy.loadPolicyFiles(self.repository)
+        print "NEW dbConfigPolicy  ",dbConfigPolicy
+        dbPolicy = dbConfigPolicy.getPolicy("database")
+        dbPolicy.loadPolicyFiles(self.repository)
+        print "------- dbPolicy start ---------"
         print dbPolicy.toString()
+        print "------- dbPolicy end   ---------"
         dbType = self.policy.get("databaseConfig.type")
 
         #self.logger.log(Log.DEBUG, "databaseConfigName = " + databaseConfigName)
@@ -43,9 +51,22 @@ class ProductionRunManager:
         print dbNames
         return dbNames
 
-
-    def configure(self, runId):
+    def configure(self, policyFile, runId):
         self.logger.log(Log.DEBUG, "ProductionRunManager:configure")
+
+        print "configure: policyFile = "+policyFile
+        self.policy = Policy.createPolicy(policyFile, False)
+        if orca.repository == None:
+            reposValue = self.policy.get("repositoryDirectory")
+            self.repository = EnvString.resolve(reposValue)
+        else:
+            self.repository = orca.repository
+
+        if not os.path.exists(self.repository):
+            raise RuntimeError("specified repository " + self.repository + ": directory not found");
+        
+        if not os.path.isdir(self.repository): 
+            raise RuntimeError("specified repository "+ self.repository + ": not a directory");
 
 
         dbNames = self.createDatabase(runId)
@@ -57,23 +78,18 @@ class ProductionRunManager:
         print "dbRun = "+dbRun
         print "dbGlobal = "+dbGlobal
 
-        #provenance = Provenance(self.dbConfigurator.getUser(),  runId, dbRun, dbGlobal);
-        provenance = None
 
+        provenance = Provenance(self.dbConfigurator.getUser(), runId, dbRun, dbGlobal)
+        print "configure: policyFile = "+policyFile
+        realLocation = os.path.join(self.repository, policyFile)
+        print "configure: realLocation = "+realLocation
+
+        provenance.recordPolicy(realLocation)
+        
         classFactory = NamedClassFactory()
 
         pipePolicy = self.policy.get("pipelines")
         pipelines = pipePolicy.policyNames(True)
-
-        # TODO: check for command line switch to substitute of this value
-        reposValue = self.policy.get("repositoryDirectory")
-        repository = EnvString.resolve(reposValue)
-
-        if not os.path.exists(repository):
-            raise RuntimeError(repository + ": directory not found");
-        
-        if not os.path.isdir(repository): 
-            raise RuntimeError(repository + ": not a directory");
 
 
         for pipeline in pipelines:
@@ -90,7 +106,7 @@ class ProductionRunManager:
                 pipelineManager = pipelineManagerClass()
 
                 # configure this pipeline
-                pipelineManager.configure(pipeline, pipelinePolicy, runId, repository, provenance, dbRun)
+                pipelineManager.configure(pipeline, pipelinePolicy, runId, self.repository, provenance, dbRun)
                 self.pipelineManagers.append(pipelineManager)
 
 
