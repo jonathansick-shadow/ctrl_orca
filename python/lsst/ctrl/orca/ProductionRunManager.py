@@ -58,7 +58,10 @@ class ProductionRunManager:
         self.policy = Policy.createPolicy(policyFile, False)
         if orca.repository == None:
             reposValue = self.policy.get("repositoryDirectory")
-            self.repository = EnvString.resolve(reposValue)
+            if reposValue == None:
+                self.repository = "."
+            else:
+                self.repository = EnvString.resolve(reposValue)
         else:
             self.repository = orca.repository
 

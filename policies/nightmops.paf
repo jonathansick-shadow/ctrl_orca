@@ -86,6 +86,9 @@ execute: {
       #
       defaultRoot:  .
 
+      runDirPattern: "%(runid)s"
+
+
       # These indicate the directory that should be used for a named purpose.
       # If relative paths are given, the resulting directory will be relative
       # to the default run directory (determined by defaultRoot and the 

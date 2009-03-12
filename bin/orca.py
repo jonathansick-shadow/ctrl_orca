@@ -38,6 +38,7 @@ runId = parser.args[1]
 
 orca.dryrun = parser.opts.dryrun
 orca.repository = parser.opts.repository
+orca.envscript = parser.opts.envscript
 
 logger = Log(Log.getDefaultLog(), "d3pipe")
 orca.verbosity = parser.opts.verbosity

@@ -78,10 +78,14 @@ class SimplePipelineManager(PipelineManager):
         #else:
         #    self.script = "setup.csh"
         #self.script = os.path.join(os.environ["DC3PIPE_DIR"], "etc", self.script)
+        print "orca.envscript = "+orca.envscript
         if orca.envscript == None:
-            shutil.copy(self.script, self.dirs["work"])
+            print "using default setup.sh"
         else:
-            shutil.copy(orca.envscript, self.dirs["work"])
+            self.script = orca.envscript
+
+        shutil.copy(self.script, self.dirs["work"])
+         
         
         # 
         #  read in default policy
