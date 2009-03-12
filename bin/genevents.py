@@ -4,15 +4,15 @@ from __future__ import with_statement
 import optparse, os, os.path, subprocess, shutil, time
 from lsst.pex.logging import Log
 
-pkgdirvar = "DC2PIPE_DIR"
-eventgenerator = "eventgenerator.py lsst8"
+pkgdirvar = "DC3PIPE_DIR"
+eventgenerator = "eventgenerator2.py lsst8"
 
 usage = """usage: %%prog exposureList...
 
 Send events to an event broker, to kick off pipeline processing of exposures.
 """
 
-logger = Log(Log.getDefaultLog(), "dc2pipe")
+logger = Log(Log.getDefaultLog(), "dc3pipe")
 
 cl = optparse.OptionParser(usage)
 
@@ -35,9 +35,9 @@ for efile in exposureFiles:
     if not os.path.exists(efile):
         logger.log(Log.WARN, "Exposure list file not found: " + efile)
 
-    print "Pausing for 15s, waiting for setup..."
-    logger.log(Log.DEBUG, "Pausing for 15s, waiting for setup...")
-    time.sleep(15)
+    #print "Pausing for 15s, waiting for setup..."
+    #logger.log(Log.DEBUG, "Pausing for 15s, waiting for setup...")
+    #time.sleep(15)
 
     logger.log(Log.INFO, "Sending exposure data from " + efile)
     logger.log(Log.DEBUG,

@@ -1,6 +1,7 @@
 import os
 import lsst.ctrl.orca as orca
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
+from lsst.ctrl.orca.dbservers.DatabaseConfigurator import DatabaseConfigurator
 from lsst.pex.logging import Log
 
 class PipelineManager:
@@ -16,43 +17,46 @@ class PipelineManager:
         self.logger = Log(Log.getDefaultLog(), "dc3pipe")
 
         self.masterNode = ""
+        self.dbConfigurator = None
 
     def checkConfiguration(self):
         self.logger.log(Log.DEBUG, "PipelineManager:checkConfiguration")
 
-    def configure(self, pipeline, policy, runId):
+    def configure(self, pipeline, policy, runId, repository, provenance, dbRunURL):
         self.logger.log(Log.DEBUG, "PipelineManager:configure")
 
         self.pipeline = pipeline
         self.policy = policy
         self.runId = runId
+        self.repository = repository
+        self.provenance = provenance
+        self.dbRunURL = dbRunURL
 
         self.defaultDomain = policy.get("platform.deploy.defaultDomain")
         self.logger.log(Log.DEBUG, "defaultDomain = "+self.defaultDomain)
         self.rootDir = policy.get("defRootDir")
 
-        repository = os.path.join(os.environ["DC2PIPE_DIR"], "pipeline")
-
-        if not os.path.exists(repository):
-            raise RuntimeError(repository + ": directory not found");
-
-        if not os.path.isdir(repository):
-            raise RuntimeError(repository + ": not a directory");
-
         self.createDirectories()
         print "in superclass: self.dirs['work']: ",self.dirs["work"]
         self.nodes = self.createNodeList()
-        self.createDatabase()
-        self.deploySetup(repository)
+        #dbNames = self.createDatabase()
+        self.deploySetup()
 
-    def createDatabase(self):
-        classFactory = NamedClassFactory()
-        databaseConfigName = self.policy.get("database.configuratorClass")
-        self.logger.log(Log.DEBUG, "databaseConfigName = " + databaseConfigName)
-        databaseConfiguratorClass = classFactory.createClass(databaseConfigName)
-        databaseConfigurator = databaseConfiguratorClass()
-        databaseConfigurator.checkConfiguration()
-        databaseConfigurator.configureDatabase(self.policy, self.runId)
+    #def createDatabase(self):
+    #    classFactory = NamedClassFactory()
+    #    databaseConfigName = self.policy.get("databaseConfig.configuratorClass")
+    #
+    #    dbPolicy = self.policy.getPolicy("databaseConfig.database")
+    #    dbType = self.policy.get("databaseConfig.type")
+    #
+    #    self.logger.log(Log.DEBUG, "databaseConfigName = " + databaseConfigName)
+    #    #databaseConfiguratorClass = classFactory.createClass(databaseConfigName)
+    #
+    #   #self.databaseConfigurator = databaseConfiguratorClass(dbType, dbPolicy)
+    #   self.dbConfigurator = DatabaseConfigurator(dbType, dbPolicy)
+    #   self.dbConfigurator.checkConfiguration(dbPolicy)
+    #   dbNames = self.dbConfigurator.prepareForNewRun(self.runId)
+    #   return dbNames
 
     def createNodeList(self):
         self.logger.log(Log.DEBUG, "PipelineManager:createNodeList")
@@ -126,7 +130,7 @@ class PipelineManager:
         # return the list of directories
         return dirs
 
-    def deploySetup(self, repository):
+    def deploySetup(self):
         self.logger.log(Log.DEBUG, "PipelineManager:deploySetup")
 
     def launchPipeline(self):

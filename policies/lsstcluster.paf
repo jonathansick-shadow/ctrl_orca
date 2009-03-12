@@ -50,7 +50,7 @@ hw: {
    minRamPerNode:  2.0
 
    # the maximum RAM available per node in GB
-   minRamPerNode: 16.0
+   maxRamPerNode: 16.0
 }
 
 deploy:  {

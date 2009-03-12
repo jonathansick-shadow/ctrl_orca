@@ -13,10 +13,10 @@ databaseConfig: {
 }
 
 pipelines: {
-   imageSubtractionDetection: {
+   iSDshort: {
 
       shortname:     ipd
-      configuration: @imageSubtractionDetection.paf
+      configuration: @iSDshort.paf
       platform:      @lsstcluster.paf
 
       launch: true
