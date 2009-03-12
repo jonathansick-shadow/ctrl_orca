@@ -76,7 +76,10 @@ class SimplePipelineManager(PipelineManager):
         #else:
         #    self.script = "setup.csh"
         #self.script = os.path.join(os.environ["DC3PIPE_DIR"], "etc", self.script)
-        shutil.copy(self.script, self.dirs["work"])
+        if orca.envscript == None:
+            shutil.copy(self.script, self.dirs["work"])
+        else:
+            shutil.copy(orca.envscript, self.dirs["work"])
         
         # 
         #  read in default policy
@@ -118,7 +121,7 @@ class SimplePipelineManager(PipelineManager):
             pw.close()
 
             # TODO: uncomment this when the other stuff is working
-            # self.provenance.recordPolicy(newPolicyFile)
+            self.provenance.recordPolicy(newPolicyFile)
         
         if os.path.exists(os.path.join(self.dirs["work"], self.pipeline)):
             self.logger.log(Log.WARN, 
