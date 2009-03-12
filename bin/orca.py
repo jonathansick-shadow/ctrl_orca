@@ -16,6 +16,12 @@ parser = optparse.OptionParser(usage)
 # TODO: handle "--dryrun"
 parser.add_option("-n", "--dryrun", action="store_true", dest="dryrun", default=False, help="print messages, but don't execute anything")
 parser.add_option("-V", "--verbosity", type="int", action="store", dest="verbosity", default=0, metavar="int", help="verbosity level (0=normal, 1=debug, -1=quiet, -3=silent)")
+parser.add_option("-r", "--policyRepository", type="string", action="store",
+              dest="repository", default=None, metavar="dir",
+              help="directory containing policy files")
+parser.add_option("-e", "--envscript", action="store", dest="envscript",
+              default=None, metavar="script",
+              help="an environment-setting script to source on pipeline platform")
 
 
 parser.opts = {}
@@ -31,6 +37,7 @@ pipelinePolicyFile = parser.args[0]
 runId = parser.args[1]
 
 orca.dryrun = parser.opts.dryrun
+orca.repository = parser.opts.repository
 
 logger = Log(Log.getDefaultLog(), "d3pipe")
 orca.verbosity = parser.opts.verbosity
@@ -44,11 +51,9 @@ orca.dryrun = parser.opts.dryrun
 logger.log(Log.DEBUG,"pipelinePolicyFile = "+pipelinePolicyFile)
 logger.log(Log.DEBUG, "runId = "+runId)
 
-policy = Policy.createPolicy(pipelinePolicyFile)
-
 # create the ProductionRunManager, configure it, and launch it
-productionRunManager = ProductionRunManager(policy)
-productionRunManager.configure(runId)
+productionRunManager = ProductionRunManager()
+productionRunManager.configure(pipelinePolicyFile, runId)
 productionRunManager.checkConfiguration()
 productionRunManager.launch()
 
