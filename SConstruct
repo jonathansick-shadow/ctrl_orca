@@ -8,7 +8,7 @@ import lsst.SConsUtils as scons
 dependencies = ["boost", "pex_exceptions", "utils", "daf_base", "pex_policy", "daf_persistence"]
 
 env = scons.makeEnv("ctrl_orca",
-                    r"$HeadURL: svn+ssh://svn.lsstcorp.org/DMS/ctrl/orca/tickets/315/SConstruct $",
+                    r"$HeadURL$",
                     [["boost", "boost/regex.hpp", "boost_regex:C++"],
 		     ["pex_exceptions", "lsst/pex/exceptions.h", "pex_exceptions:C++"],
                      ["utils", "lsst/utils/Utils.h", "utils:C++"],
