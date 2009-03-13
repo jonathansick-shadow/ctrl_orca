@@ -4,7 +4,7 @@ from __future__ import with_statement
 import optparse, os, os.path, subprocess, shutil, time
 from lsst.pex.logging import Log
 
-pkgdirvar = "DC3PIPE_DIR"
+pkgdirvar = "CTRL_DC3PIPE_DIR"
 eventgenerator = "eventgenerator2.py lsst8"
 
 usage = """usage: %%prog exposureList...

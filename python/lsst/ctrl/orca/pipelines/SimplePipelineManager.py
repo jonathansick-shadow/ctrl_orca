@@ -66,6 +66,8 @@ class SimplePipelineManager(PipelineManager):
         print "simplepipelinemanager, policy:"
         print self.policy
         setupPath = self.policy.get("configuration.framework.environment")
+        if setupPath == None:
+             raise RuntimeError("couldn't find configuration.framework.environment")
         self.script = EnvString.resolve(setupPath)
 
         ## TODO: We did this same thing in DC2. We shouldn't be
@@ -77,8 +79,8 @@ class SimplePipelineManager(PipelineManager):
         #    self.script = "setup.sh"
         #else:
         #    self.script = "setup.csh"
-        #self.script = os.path.join(os.environ["DC3PIPE_DIR"], "etc", self.script)
-        print "orca.envscript = "+orca.envscript
+        #self.script = os.path.join(os.environ["CTRL_DC3PIPE_DIR"], "etc", self.script)
+        print "orca.envscript = ",orca.envscript
         if orca.envscript == None:
             print "using default setup.sh"
         else:
@@ -143,7 +145,7 @@ class SimplePipelineManager(PipelineManager):
         execPath = self.policy.get("configuration.framework.exec")
         launchcmd = EnvString.resolve(execPath)
         # kick off the run
-        #launchcmd = os.path.join(os.environ["DC3PIPE_DIR"], "bin", "launchPipeline.sh")
+        #launchcmd = os.path.join(os.environ["CTRL_DC3PIPE_DIR"], "bin", "launchPipeline.sh")
 
         cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -V %s" % (self.dirs["work"], self.script, launchcmd, self.pipeline+".paf", self.runId, orca.verbosity) ]
         if orca.dryrun == True:
@@ -152,7 +154,7 @@ class SimplePipelineManager(PipelineManager):
         else:
             self.logger.log(Log.DEBUG, "launching pipeline")
 
-            # launchcmd = os.path.join(os.environ["DC3PIPE_DIR"], "bin", "launchPipeline.sh")
+            # launchcmd = os.path.join(os.environ["CTRL_DC3PIPE_DIR"], "bin", "launchPipeline.sh")
 
             # by convention the first node in the list is the "master" node
             print "launching %s on %s" % (self.pipeline, self.masterNode) 
