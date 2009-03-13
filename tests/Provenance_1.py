@@ -11,22 +11,22 @@ import lsst.ctrl.orca.provenance as orcaProv
 import lsst.pex.policy as pexPolicy
 from lsst.daf.persistence import DbStorage, LogicalLocation
 
-runId = "test_" + repr(time.time())
-
 class ProvenanceTestCase(unittest.TestCase):
     """A test case for Provenance."""
 
     def setUp(self):
-        global runId
         self.user = "test"
-        self.runId = runId
+        self.runId = "test_" + repr(time.time())
         self.dbLoc = "mysql://lsst10.ncsa.uiuc.edu:3306/provenance"
         self.globalDbLoc = "mysql://lsst10.ncsa.uiuc.edu:3306/provglobal"
         db = DbStorage()
+        globalDb = DbStorage()
         db.setPersistLocation(LogicalLocation(self.dbLoc))
+        globalDb.setPersistLocation(LogicalLocation(self.globalDbLoc))
         for table in ("prv_SoftwarePackage", "prv_cnf_SoftwarePackage",
                 "prv_PolicyFile", "prv_PolicyKey", "prv_cnf_PolicyKey"):
             db.truncateTable(table)
+            globalDb.truncateTable(table)
 
     def testConstruct(self):
         ps = orcaProv.Provenance(self.user, self.runId, self.dbLoc,
