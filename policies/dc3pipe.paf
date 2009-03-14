@@ -21,5 +21,13 @@ pipelines: {
 
       launch: true
    }
+   
+   nightmops: {
 
+      shortname:     nightmops
+      configuration: @nightmops.paf
+      platform:      @lsstcluster.paf
+
+      launch: true
+   }
 }
