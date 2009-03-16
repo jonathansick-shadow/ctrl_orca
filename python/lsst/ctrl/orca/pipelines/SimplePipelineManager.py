@@ -35,6 +35,7 @@ class SimplePipelineManager(PipelineManager):
         directories = Directories(dirPolicy, self.runId)
         self.dirs = directories.getDirs()
         print "createDirectories: self.dirs['work']",self.dirs["work"]
+        print self.dirs
         for name in self.dirs:
             if orca.dryrun == True:
                 print "would create ",self.dirs[name]
@@ -106,15 +107,15 @@ class SimplePipelineManager(PipelineManager):
         newPolicy = pol.Policy.createPolicy(polfile)
 
         eventBrokerHost = self.policy.get("configuration.execute.eventBrokerHost")
-        newPolicy.set("configuration.execute.eventBrokerHost", eventBrokerHost)
+        newPolicy.set("execute.eventBrokerHost", eventBrokerHost)
 
         executeDir = self.policy.get("configuration.execute.dir")
-        newPolicy.set("configuration.execute.dir", executeDir)
+        newPolicy.set("execute.dir", executeDir)
 
         #baseURL = self.dbConfigurator.getHostURL()
 
         #fullURL = baseURL+"/"+ dbNames[0]
-        newPolicy.set("configuration.execute.database.url",self.dbRunURL)
+        newPolicy.set("execute.database.url",self.dbRunURL)
 
 
         polbasefile = os.path.basename(polfile)
