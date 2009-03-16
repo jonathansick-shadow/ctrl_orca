@@ -29,7 +29,7 @@ env.libs[pkg] += env.getlibs(" ".join(dependencies))
 #
 # Build/install things
 #
-for d in Split("lib python/lsst/" + re.sub(r'_', "/", pkg) + " examples tests doc"):
+for d in Split("lib python/lsst/" + re.sub(r'_', "/", pkg) ):
     if os.path.isdir(d):
         try:
             SConscript(os.path.join(d, "SConscript"))
