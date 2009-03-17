@@ -4,7 +4,7 @@
 #
 
 eventBrokerHost:  lsst8.ncsa.uiuc.edu
-repositoryDirectory: $CTRL_ORCA_DIR/policies
+repositoryDirectory: $CTRL_ORCA_DIR/examples/pipeline
 
 databaseConfig: {
     type: MySQL

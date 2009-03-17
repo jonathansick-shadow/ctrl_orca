@@ -10,30 +10,36 @@
 requires: {
    database: {
       type:  MySQL
+
    }
 
    platform: {
-      minCoreCount:  8
+      # minNodeCount:  4
+      # minCoresPerNode:  8
+      minCoreCount:  2
    }
 }
 
 # this part is used by the orchestration layer to 
 setup: {
+
    # the schema of this item is determined by the database type given 
    # above in requires.database.type.  
    database:  {
-      # If not provided, this defaults to $CTRL_DC3PIPE_DIR
       # 
       # scriptRepository: /lsst/...
+
       script: lsstSchema4mysql.sql
       script: lsstPipelineSetup4mysql.sql
    }
+
    data:  {
       
    }
 }
 
 framework: {
+
    # the type determines the schema of the "execute" policy below
    type:  standard
 
@@ -42,36 +48,75 @@ framework: {
    # can be represented as $ENVVAR which will be replaced with the
    # value of the environment variable with the name ENVVAR.
    # 
-   environment: "$CTRL_DC3PIPE_DIR/etc/setup.sh".
+   environment: "$CTRL_ORCA_DIR/examples/etc/setup.sh"
 
    # this is the execution script that we will use to start the
    # pipeline on the head node of the platform.  The file path component
    # can be represented as $ENVVAR which will be replaced with the
    # value of the environment variable with the name ENVVAR.
    # 
-   exec:  "$CTRL_DC3PIPE_DIR/bin/launchPipeline.sh"
+   exec:  "$PEX_HARNESS_DIR/bin/launchPipeline.sh"
 }
 
 # the contents of this item is passed to the harness to configure the
 # pipeline at launch time.
 # 
 execute: {
-    localLogMode: true
+
+   # executionMode: "oneloop" ,
+   # shutdownTopic: "triggerShutdownEvent" 
+
+   localLogMode:  true
+   shutdownTopic:  triggerSundownA
+
+   ##
+   # Stage configuration
+   
+   # Stage 2: load input data (science and template images) into memory
+   appStage: {
+      stageName: "lsst.pex.harness.IOStage.InputStage"
+      eventTopic: "triggerVisitEvent"  
+      stagePolicy: "iSDshort/input_policy.paf"
+   }
+   
+   # Stage 4: persist the per-visit metadata
+   appStage: {
+      stageName: "lsst.pex.harness.IOStage.OutputStage"
+      eventTopic: "None"
+      stagePolicy: "iSDshort/metadataOutput_policy.paf"
+   }
+   
+   # Stage 5: persist the Exposure with its metadata
+   appStage: {
+      stageName: "lsst.pex.harness.IOStage.OutputStage"
+      eventTopic: "None"
+      stagePolicy: "iSDshort/exposureOutput_policy.paf"
+   }
+   
+   # Stage 7: write out the difference image
+   appStage: {
+      stageName: "lsst.pex.harness.IOStage.OutputStage"
+      eventTopic: "None"
+      stagePolicy: "iSDshort/subtractOutput_policy.paf"
+   }
+   
+   # Stage 9: write out the table of detected sources to the database
+   appStage: {
+      stageName: "lsst.pex.harness.IOStage.OutputStage"
+      eventTopic: "None"
+      stagePolicy: "iSDshort/detectOutput_policy.paf"
+   }
+   
+   # Stage 10: send an event to the association pipeline indicating that 
+   #           new detections are available
+   appStage: {
+      stageName: "lsst.pex.harness.EventStage.EventStage"
+      eventTopic: "None"
+      stagePolicy: "iSDshort/associationEvent_policy.paf"
+   }
 
 
-    appStage: { 
-         stageName: "lsst.mops.nightmops.pipeline.MopsStage" 
-         eventTopic: "triggerImageprocEvent0" 
-         stagePolicy: "nightmops/NightMopsStagePolicy.paf"
-    }
-    
-    appStage: { 
-         stageName: "lsst.pex.harness.IOStage.OutputStage" 
-         eventTopic: "None" 
-         stagePolicy: "nightmops/output_policy.paf"
-    }
-    
-    # the rest items will get overridden by the policy passed from the
+   # the rest items will get overridden by the policy passed from the
    # orchestration layer.  It appears here as default values for when
    # the pipeline is launch directly via pipeline harness rather than
    # via the orchestration layer (e.g. for testing purposes).  
@@ -87,7 +132,6 @@ execute: {
       defaultRoot:  .
 
       runDirPattern: "%(runid)s"
-
 
       # These indicate the directory that should be used for a named purpose.
       # If relative paths are given, the resulting directory will be relative
