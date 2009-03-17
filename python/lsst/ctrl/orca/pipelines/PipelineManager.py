@@ -37,7 +37,6 @@ class PipelineManager:
         self.rootDir = policy.get("defRootDir")
 
         self.createDirectories()
-        print "in superclass: self.dirs['work']: ",self.dirs["work"]
         self.nodes = self.createNodeList()
     
         self.deploySetup()
@@ -55,7 +54,7 @@ class PipelineManager:
         if colon > 1:
             self.masterNode = self.masterNode[0:colon]
         if orca.dryrun == False:
-            nodelist = open(os.path.join(self.dirs["work"], "nodelist.scr"), 'w')
+            nodelist = open(os.path.join(self.dirs.get("work"), "nodelist.scr"), 'w')
             for node in nodes:
                 print >> nodelist, node
             nodelist.close()

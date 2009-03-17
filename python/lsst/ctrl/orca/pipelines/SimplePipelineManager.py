@@ -8,7 +8,7 @@ import lsst.ctrl.orca as orca
 
 from lsst.ctrl.orca.pipelines.PipelineManager import PipelineManager
 
-from lsst.ctrl.orca.Directories import Directories
+from lsst.pex.harness.Directories import Directories
 
 class SimplePipelineManager(PipelineManager):
 
@@ -34,13 +34,12 @@ class SimplePipelineManager(PipelineManager):
         dirPolicy = self.policy.getPolicy("platform.dir")
         directories = Directories(dirPolicy, self.runId)
         self.dirs = directories.getDirs()
-        print "createDirectories: self.dirs['work']",self.dirs["work"]
-        print self.dirs
-        for name in self.dirs:
+        print self.dirs.names()
+        for name in self.dirs.names():
             if orca.dryrun == True:
-                print "would create ",self.dirs[name]
+                print "would create ",self.dirs.get(name)
             else:
-                if not os.path.exists(self.dirs[name]): os.makedirs(self.dirs[name])
+                if not os.path.exists(self.dirs.get(name)): os.makedirs(self.dirs.get(name))
 
     #
     # look in the policy for the named directory alias, and create it
@@ -87,7 +86,7 @@ class SimplePipelineManager(PipelineManager):
         else:
             self.script = orca.envscript
 
-        shutil.copy(self.script, self.dirs["work"])
+        shutil.copy(self.script, self.dirs.get("work"))
          
         
         # 
@@ -119,7 +118,7 @@ class SimplePipelineManager(PipelineManager):
 
 
         polbasefile = os.path.basename(polfile)
-        filePath = os.path.join(self.dirs["work"], self.pipeline+".paf")
+        filePath = os.path.join(self.dirs.get("work"), self.pipeline+".paf")
         if os.path.exists(filePath):
             self.logger.log(Log.WARN, 
                        "Working directory already contains %s; won't overwrite" % \
@@ -132,12 +131,12 @@ class SimplePipelineManager(PipelineManager):
             # TODO: uncomment this when the other stuff is working
             #self.provenance.recordPolicy(newPolicyFile)
         
-        if os.path.exists(os.path.join(self.dirs["work"], self.pipeline)):
+        if os.path.exists(os.path.join(self.dirs.get("work"), self.pipeline)):
             self.logger.log(Log.WARN, 
               "Working directory already contains %s directory; won't overwrite" % \
                            self.pipeline)
         else:
-            shutil.copytree(os.path.join(self.repository, self.pipeline), os.path.join(self.dirs["work"],self.pipeline))
+            shutil.copytree(os.path.join(self.repository, self.pipeline), os.path.join(self.dirs.get("work"),self.pipeline))
 
     def launchPipeline(self):
 
@@ -148,7 +147,7 @@ class SimplePipelineManager(PipelineManager):
         # kick off the run
         #launchcmd = os.path.join(os.environ["CTRL_DC3PIPE_DIR"], "bin", "launchPipeline.sh")
 
-        cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -V %s" % (self.dirs["work"], self.script, launchcmd, self.pipeline+".paf", self.runId, orca.verbosity) ]
+        cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -V %s" % (self.dirs.get("work"), self.script, launchcmd, self.pipeline+".paf", self.runId, orca.verbosity) ]
         if orca.dryrun == True:
             print "dryrun: would execute"
             print cmd
