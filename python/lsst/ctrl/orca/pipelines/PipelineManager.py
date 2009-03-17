@@ -39,24 +39,8 @@ class PipelineManager:
         self.createDirectories()
         print "in superclass: self.dirs['work']: ",self.dirs["work"]
         self.nodes = self.createNodeList()
-        #dbNames = self.createDatabase()
+    
         self.deploySetup()
-
-    #def createDatabase(self):
-    #    classFactory = NamedClassFactory()
-    #    databaseConfigName = self.policy.get("databaseConfig.configuratorClass")
-    #
-    #    dbPolicy = self.policy.getPolicy("databaseConfig.database")
-    #    dbType = self.policy.get("databaseConfig.type")
-    #
-    #    self.logger.log(Log.DEBUG, "databaseConfigName = " + databaseConfigName)
-    #    #databaseConfiguratorClass = classFactory.createClass(databaseConfigName)
-    #
-    #   #self.databaseConfigurator = databaseConfiguratorClass(dbType, dbPolicy)
-    #   self.dbConfigurator = DatabaseConfigurator(dbType, dbPolicy)
-    #   self.dbConfigurator.checkConfiguration(dbPolicy)
-    #   dbNames = self.dbConfigurator.prepareForNewRun(self.runId)
-    #   return dbNames
 
     def createNodeList(self):
         self.logger.log(Log.DEBUG, "PipelineManager:createNodeList")

@@ -109,7 +109,7 @@ class SimplePipelineManager(PipelineManager):
         eventBrokerHost = self.policy.get("configuration.execute.eventBrokerHost")
         newPolicy.set("execute.eventBrokerHost", eventBrokerHost)
 
-        executeDir = self.policy.get("configuration.execute.dir")
+        executeDir = self.policy.get("platform.dir")
         newPolicy.set("execute.dir", executeDir)
 
         #baseURL = self.dbConfigurator.getHostURL()
