@@ -13,13 +13,14 @@ from lsst.pex.harness.Directories import Directories
 class SimplePipelineManager(PipelineManager):
 
     def __init__(self):
-        self.logger = Log(Log.getDefaultLog(), "dc3")
-        self.logger.log(Log.DEBUG, "SimplePipelineManager:__init__")
+        if orca.logger == None:
+            orca.logger = Log(Log.getDefaultLog(), "dc3")
+        orca.logger.log(Log.DEBUG, "SimplePipelineManager:__init__")
         PipelineManager.__init__(self)
-        self.logger.log(Log.DEBUG, "SimplePipelineManager:__init__:done")
+        orca.logger.log(Log.DEBUG, "SimplePipelineManager:__init__:done")
 
     def createDirectories(self):
-        self.logger.log(Log.DEBUG, "SimplePipelineManager:createDirectories")
+        orca.logger.log(Log.DEBUG, "SimplePipelineManager:createDirectories")
 
 
         # ensure the existence of the working directory
@@ -50,16 +51,16 @@ class SimplePipelineManager(PipelineManager):
         if dirName == None:
             return None
 
-        self.logger.log(Log.DEBUG, "self.rootDir = "+ self.rootDir)
-        self.logger.log(Log.DEBUG, "self.rundId = "+ self.runId)
-        self.logger.log(Log.DEBUG, "self.pdir = "+ pdir)
+        orca.logger.log(Log.DEBUG, "self.rootDir = "+ self.rootDir)
+        orca.logger.log(Log.DEBUG, "self.rundId = "+ self.runId)
+        orca.logger.log(Log.DEBUG, "self.pdir = "+ pdir)
         wdir = os.path.join(self.rootDir, self.runId, pdir)
         dir = os.path.join(wdir, dirName)
         if not os.path.exists(dir): os.makedirs(dir)
         return dir
 
     def deploySetup(self):
-        self.logger.log(Log.DEBUG, "SimplePipelineManager:deploySetup")
+        orca.logger.log(Log.DEBUG, "SimplePipelineManager:deploySetup")
 
         # copy /bin/sh script responsible for environment setting
 
@@ -117,7 +118,7 @@ class SimplePipelineManager(PipelineManager):
         newPolicyFile = os.path.join(self.dirs.get("work"), self.pipeline+".paf")
         print "newPolicyFile = "+newPolicyFile
         if os.path.exists(newPolicyFile):
-            self.logger.log(Log.WARN, 
+            orca.logger.log(Log.WARN, 
                        "Working directory already contains %s; won't overwrite" % \
                            polbasefile)
         else:
@@ -128,7 +129,7 @@ class SimplePipelineManager(PipelineManager):
             self.provenance.recordPolicy(newPolicyFile)
         
         if os.path.exists(os.path.join(self.dirs.get("work"), self.pipeline)):
-            self.logger.log(Log.WARN, 
+            orca.logger.log(Log.WARN, 
               "Working directory already contains %s directory; won't overwrite" % \
                            self.pipeline)
         else:
@@ -136,7 +137,7 @@ class SimplePipelineManager(PipelineManager):
 
     def launchPipeline(self):
 
-        self.logger.log(Log.DEBUG, "SimplePipelineManager:launchPipeline")
+        orca.logger.log(Log.DEBUG, "SimplePipelineManager:launchPipeline")
 
         execPath = self.policy.get("configuration.framework.exec")
         launchcmd = EnvString.resolve(execPath)
@@ -147,14 +148,14 @@ class SimplePipelineManager(PipelineManager):
             print "dryrun: would execute"
             print cmd
         else:
-            self.logger.log(Log.DEBUG, "launching pipeline")
+            orca.logger.log(Log.DEBUG, "launching pipeline")
 
             # by convention the first node in the list is the "master" node
             print "launching %s on %s" % (self.pipeline, self.masterNode) 
             print "executing: ",cmd
                        
-            self.logger.log(Log.INFO, "launching %s on %s" % (self.pipeline, self.masterNode) )
-            self.logger.log(Log.DEBUG, "executing: " + " ".join(cmd))
+            orca.logger.log(Log.INFO, "launching %s on %s" % (self.pipeline, self.masterNode) )
+            orca.logger.log(Log.DEBUG, "executing: " + " ".join(cmd))
 
             if subprocess.call(cmd) != 0:
                 raise RuntimeError("Failed to launch " + self.pipeline)

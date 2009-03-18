@@ -40,17 +40,17 @@ orca.dryrun = parser.opts.dryrun
 orca.repository = parser.opts.repository
 orca.envscript = parser.opts.envscript
 
-logger = Log(Log.getDefaultLog(), "d3pipe")
+orca.logger = Log(Log.getDefaultLog(), "d3pipe")
 orca.verbosity = parser.opts.verbosity
-logger.setThreshold(-10 * parser.opts.verbosity)
+orca.logger.setThreshold(-10 * parser.opts.verbosity)
 
 # set the dryrun singleton to the value set on the command line.
 # we reference this in other classes
 orca.dryrun = parser.opts.dryrun
 
 
-logger.log(Log.DEBUG,"pipelinePolicyFile = "+pipelinePolicyFile)
-logger.log(Log.DEBUG, "runId = "+runId)
+orca.logger.log(Log.DEBUG,"pipelinePolicyFile = "+pipelinePolicyFile)
+orca.logger.log(Log.DEBUG, "runId = "+runId)
 
 # create the ProductionRunManager, configure it, and launch it
 productionRunManager = ProductionRunManager()

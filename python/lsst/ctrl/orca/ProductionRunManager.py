@@ -13,7 +13,8 @@ from lsst.ctrl.orca.EnvString import EnvString
 
 class ProductionRunManager:
     def __init__(self):
-        self.logger = Log(Log.getDefaultLog(), "d3pipe")
+        if orca.logger == None:
+            orca.logger = Log(Log.getDefaultLog(), "d3pipe")
 
         self.eventMonitor = None
 
@@ -41,7 +42,7 @@ class ProductionRunManager:
         print "------- dbPolicy end   ---------"
         dbType = self.policy.get("databaseConfig.type")
 
-        #self.logger.log(Log.DEBUG, "databaseConfigName = " + databaseConfigName)
+        #orca.logger.log(Log.DEBUG, "databaseConfigName = " + databaseConfigName)
         #databaseConfiguratorClass = classFactory.createClass(databaseConfigName)
         #self.databaseConfigurator = databaseConfiguratorClass(dbType, dbPolicy)        
         self.dbConfigurator = DatabaseConfigurator(dbType, dbPolicy)
@@ -52,7 +53,7 @@ class ProductionRunManager:
         return dbNames
 
     def configure(self, policyFile, runId):
-        self.logger.log(Log.DEBUG, "ProductionRunManager:configure")
+        orca.logger.log(Log.DEBUG, "ProductionRunManager:configure")
 
         print "configure: policyFile = "+policyFile
         self.policy = Policy.createPolicy(policyFile, False)
@@ -97,7 +98,7 @@ class ProductionRunManager:
 
 
         for pipeline in pipelines:
-            self.logger.log(Log.DEBUG, "pipeline ---> "+pipeline)
+            orca.logger.log(Log.DEBUG, "pipeline ---> "+pipeline)
             pipelinePolicy = pipePolicy.get(pipeline)
             if pipelinePolicy.get("launch",1) != 0:
 
@@ -117,33 +118,33 @@ class ProductionRunManager:
 
 
     def launch(self):
-        self.logger.log(Log.DEBUG, "ProductionRunManager:launchPipelines")
+        orca.logger.log(Log.DEBUG, "ProductionRunManager:launchPipelines")
         for pipelineMgr in self.pipelineManagers:
             pipelineMgr.launchPipeline()
 
     def startEventMonitor(self):
-        self.logger.log(Log.DEBUG, "ProductionRunManager:startEventMonitor")
+        orca.logger.log(Log.DEBUG, "ProductionRunManager:startEventMonitor")
         monitorFile = self.policy.get("eventMonitorConfig")
         self.eventMonitor = EventMonitor.EventMonitor(monitorFile)
 
     def stopEventMonitor(self):
-        self.logger.log(Log.DEBUG, "ProductionRunManager:stopEventMonitor")
+        orca.logger.log(Log.DEBUG, "ProductionRunManager:stopEventMonitor")
         self.eventMonitor.stop()
 
     def runPostLaunchProcess(self):
-        self.logger.log(Log.DEBUG, "ProductionRunManager:runPostLaunchProcess")
+        orca.logger.log(Log.DEBUG, "ProductionRunManager:runPostLaunchProcess")
         # launch event generator (or whatever) at this point
 
     def stop(self):
-        self.logger.log(Log.DEBUG, "ProductionRunManager:stop")
+        orca.logger.log(Log.DEBUG, "ProductionRunManager:stop")
         self.stopEventMonitor()
         self.cleanup()
 
     def cleanup(self):
-        self.logger.log(Log.DEBUG, "ProductionRunManager:cleanup")
+        orca.logger.log(Log.DEBUG, "ProductionRunManager:cleanup")
 
     def handleEvent(self):
-        self.logger.log(Log.DEBUG, "ProductionRunManager:handleEvent")
+        orca.logger.log(Log.DEBUG, "ProductionRunManager:handleEvent")
 
     def handleFailure(self):
-        self.logger.log(Log.DEBUG, "ProductionRunManager:handleFailure")
+        orca.logger.log(Log.DEBUG, "ProductionRunManager:handleFailure")

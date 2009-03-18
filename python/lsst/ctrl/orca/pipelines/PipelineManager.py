@@ -14,16 +14,17 @@ class PipelineManager:
         self.policy = None
         self.runId = ""
 
-        self.logger = Log(Log.getDefaultLog(), "dc3")
+        if orca.logger == None:
+            orca.logger = Log(Log.getDefaultLog(), "dc3")
 
         self.masterNode = ""
         self.dbConfigurator = None
 
     def checkConfiguration(self):
-        self.logger.log(Log.DEBUG, "PipelineManager:checkConfiguration")
+        orca.logger.log(Log.DEBUG, "PipelineManager:checkConfiguration")
 
     def configure(self, pipeline, policy, runId, repository, provenance, dbRunURL):
-        self.logger.log(Log.DEBUG, "PipelineManager:configure")
+        orca.logger.log(Log.DEBUG, "PipelineManager:configure")
 
         self.pipeline = pipeline
         self.policy = policy
@@ -33,7 +34,7 @@ class PipelineManager:
         self.dbRunURL = dbRunURL
 
         self.defaultDomain = policy.get("platform.deploy.defaultDomain")
-        self.logger.log(Log.DEBUG, "defaultDomain = "+self.defaultDomain)
+        orca.logger.log(Log.DEBUG, "defaultDomain = "+self.defaultDomain)
         self.rootDir = policy.get("defRootDir")
 
         self.createDirectories()
@@ -42,7 +43,7 @@ class PipelineManager:
         self.deploySetup()
 
     def createNodeList(self):
-        self.logger.log(Log.DEBUG, "PipelineManager:createNodeList")
+        orca.logger.log(Log.DEBUG, "PipelineManager:createNodeList")
 
         node = self.policy.getArray("platform.deploy.nodes")
 
@@ -74,23 +75,23 @@ class PipelineManager:
                 node = nodeentry[0:colon]
                 if len(node) < 3:
                     #logger.log(Log.WARN, "Suspiciously short node name: " + node)
-                    self.logger.log(Log.DEBUG, "Suspiciously short node name: " + node)
-                self.logger.log(Log.DEBUG, "-> nodeentry  =" + nodeentry)
-                self.logger.log(Log.DEBUG, "-> node  =" + node)
+                    orca.logger.log(Log.DEBUG, "Suspiciously short node name: " + node)
+                orca.logger.log(Log.DEBUG, "-> nodeentry  =" + nodeentry)
+                orca.logger.log(Log.DEBUG, "-> node  =" + node)
                 node += "."+self.defaultDomain
                 nodeentry = "%s:%s" % (node, nodeentry[colon+1:])
             else:
                 nodeentry = "%s%s:1" % (node, self.defaultDomain)
 
-        self.logger.log(Log.DEBUG, "returning nodeentry = " + nodeentry)
+        orca.logger.log(Log.DEBUG, "returning nodeentry = " + nodeentry)
         return nodeentry
 
 
     def createDirectories(self):
-        self.logger.log(Log.DEBUG, "PipelineManager:createDirectories")
+        orca.logger.log(Log.DEBUG, "PipelineManager:createDirectories")
 
     def createDirectoryList(self):
-        self.logger.log(Log.DEBUG, "PipelineManager:createDirectoryList")
+        orca.logger.log(Log.DEBUG, "PipelineManager:createDirectoryList")
 
         names = self.policy.get("directoryNames")
         dirs = []
@@ -114,7 +115,7 @@ class PipelineManager:
         return dirs
 
     def deploySetup(self):
-        self.logger.log(Log.DEBUG, "PipelineManager:deploySetup")
+        orca.logger.log(Log.DEBUG, "PipelineManager:deploySetup")
 
     def launchPipeline(self):
-        self.logger.log(Log.DEBUG, "PipelineManager:launchPipeline")
+        orca.logger.log(Log.DEBUG, "PipelineManager:launchPipeline")

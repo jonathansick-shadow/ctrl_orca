@@ -1,5 +1,6 @@
 import os
 import stat
+import lsst.ctrl.orca as orca
 from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
 # TODO: remove this next line when we get named plugin instantiation
@@ -7,7 +8,9 @@ from lsst.ctrl.orca.dbservers.MySQLConfigurator import MySQLConfigurator
 
 class DatabaseConfigurator:
     def __init__(self, type, policy):
-        self.logger = Log(Log.getDefaultLog(), "dc3")
+        if orca.logger == None:
+            orca.logger = Log(Log.getDefaultLog(), "dc3")
+
         self.type = type
         self.delegate = None
 
@@ -141,6 +144,6 @@ class DatabaseConfigurator:
             self.dbUser = auth.get("user")
             self.dbPassword = auth.get("password")
             if (self.dbHost == host) and (self.dbPort == port):
-                    self.logger.log(Log.DEBUG, "using host %s at port %d" % (host, port))
+                    orca.logger.log(Log.DEBUG, "using host %s at port %d" % (host, port))
                     return
             raise RuntimeError("couldn't find any matching authorization for host %s and port %d " % (host, port))
