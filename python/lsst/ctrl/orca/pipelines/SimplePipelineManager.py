@@ -118,18 +118,18 @@ class SimplePipelineManager(PipelineManager):
 
 
         polbasefile = os.path.basename(polfile)
-        filePath = os.path.join(self.dirs.get("work"), self.pipeline+".paf")
-        if os.path.exists(filePath):
+        newPolicyFile = os.path.join(self.dirs.get("work"), self.pipeline+".paf")
+        print "newPolicyFile = "+newPolicyFile
+        if os.path.exists(newPolicyFile):
             self.logger.log(Log.WARN, 
                        "Working directory already contains %s; won't overwrite" % \
                            polbasefile)
         else:
-            pw = pol.PAFWriter(filePath)
+            pw = pol.PAFWriter(newPolicyFile)
             pw.write(newPolicy)
             pw.close()
 
-            # TODO: uncomment this when the other stuff is working
-            #self.provenance.recordPolicy(newPolicyFile)
+            self.provenance.recordPolicy(newPolicyFile)
         
         if os.path.exists(os.path.join(self.dirs.get("work"), self.pipeline)):
             self.logger.log(Log.WARN, 

@@ -83,13 +83,12 @@ class ProductionRunManager:
         print "dbGlobal = "+dbGlobal
 
 
-        #provenance = Provenance(self.dbConfigurator.getUser(), runId, dbRun, dbGlobal)
-        #print "configure: policyFile = "+policyFile
+        provenance = Provenance(self.dbConfigurator.getUser(), runId, dbRun, dbGlobal)
+        print "configure: policyFile = "+policyFile
         #realLocation = os.path.join(self.repository, policyFile)
         #print "configure: realLocation = "+realLocation
 
-        #provenance.recordPolicy(realLocation)
-        provenance = None
+        provenance.recordPolicy(policyFile)
         
         classFactory = NamedClassFactory()
 
