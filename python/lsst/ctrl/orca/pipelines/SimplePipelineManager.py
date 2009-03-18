@@ -13,7 +13,7 @@ from lsst.pex.harness.Directories import Directories
 class SimplePipelineManager(PipelineManager):
 
     def __init__(self):
-        self.logger = Log(Log.getDefaultLog(), "dc3pipe")
+        self.logger = Log(Log.getDefaultLog(), "dc3")
         self.logger.log(Log.DEBUG, "SimplePipelineManager:__init__")
         PipelineManager.__init__(self)
         self.logger.log(Log.DEBUG, "SimplePipelineManager:__init__:done")
@@ -75,11 +75,7 @@ class SimplePipelineManager(PipelineManager):
         ## of the setup.*sh script to run.   The remote systems aren't
         ## guaranteed to be running the same shell as the interactive
         ## shell from which orca was launched.
-        #if (os.environ["SHELL"] == "/bin/bash":
-        #    self.script = "setup.sh"
-        #else:
-        #    self.script = "setup.csh"
-        #self.script = os.path.join(os.environ["CTRL_DC3PIPE_DIR"], "etc", self.script)
+
         print "orca.envscript = ",orca.envscript
         if orca.envscript == None:
             print "using default setup.sh"
@@ -145,7 +141,6 @@ class SimplePipelineManager(PipelineManager):
         execPath = self.policy.get("configuration.framework.exec")
         launchcmd = EnvString.resolve(execPath)
         # kick off the run
-        #launchcmd = os.path.join(os.environ["CTRL_DC3PIPE_DIR"], "bin", "launchPipeline.sh")
 
         cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -V %s" % (self.dirs.get("work"), self.script, launchcmd, self.pipeline+".paf", self.runId, orca.verbosity) ]
         if orca.dryrun == True:
@@ -153,8 +148,6 @@ class SimplePipelineManager(PipelineManager):
             print cmd
         else:
             self.logger.log(Log.DEBUG, "launching pipeline")
-
-            # launchcmd = os.path.join(os.environ["CTRL_DC3PIPE_DIR"], "bin", "launchPipeline.sh")
 
             # by convention the first node in the list is the "master" node
             print "launching %s on %s" % (self.pipeline, self.masterNode) 

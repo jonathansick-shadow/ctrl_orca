@@ -7,7 +7,7 @@ from lsst.ctrl.orca.dbservers.MySQLConfigurator import MySQLConfigurator
 
 class DatabaseConfigurator:
     def __init__(self, type, policy):
-        self.logger = Log(Log.getDefaultLog(), "dc3pipe")
+        self.logger = Log(Log.getDefaultLog(), "dc3")
         self.type = type
         self.delegate = None
 

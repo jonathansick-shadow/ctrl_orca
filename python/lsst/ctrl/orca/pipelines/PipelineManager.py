@@ -14,7 +14,7 @@ class PipelineManager:
         self.policy = None
         self.runId = ""
 
-        self.logger = Log(Log.getDefaultLog(), "dc3pipe")
+        self.logger = Log(Log.getDefaultLog(), "dc3")
 
         self.masterNode = ""
         self.dbConfigurator = None

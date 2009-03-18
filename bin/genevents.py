@@ -5,14 +5,14 @@ import optparse, os, os.path, subprocess, shutil, time
 from lsst.pex.logging import Log
 
 pkgdirvar = "CTRL_DC3PIPE_DIR"
-eventgenerator = "eventgenerator2.py lsst8"
+eventgenerator = "eventgenerator.py lsst8"
 
 usage = """usage: %%prog exposureList...
 
 Send events to an event broker, to kick off pipeline processing of exposures.
 """
 
-logger = Log(Log.getDefaultLog(), "dc3pipe")
+logger = Log(Log.getDefaultLog(), "dc3")
 
 cl = optparse.OptionParser(usage)
 
