@@ -1,5 +1,5 @@
 from __future__ import with_statement
-import re, sys, os, os.path, shutil, subprocess
+import re, sys, os, os.path, fnmatch, shutil, subprocess, string
 import traceback, time
 from lsst.pex.logging import Log
 from lsst.ctrl.orca.EnvString import EnvString
@@ -126,7 +126,7 @@ class SimplePipelineManager(PipelineManager):
             pw.write(newPolicy)
             pw.close()
 
-            self.provenance.recordPolicy(newPolicyFile)
+            self.provenance.recordPolicy(self.repository, newPolicyFile)
         
         if os.path.exists(os.path.join(self.dirs.get("work"), self.pipeline)):
             orca.logger.log(Log.WARN, 
@@ -134,6 +134,12 @@ class SimplePipelineManager(PipelineManager):
                            self.pipeline)
         else:
             shutil.copytree(os.path.join(self.repository, self.pipeline), os.path.join(self.dirs.get("work"),self.pipeline))
+            nameList = self.getAllNames(os.path.join(self.repository, self.pipeline))
+
+            for name in nameList:
+                self.provenance.recordPolicy(self.repository, name)
+
+
 
     def launchPipeline(self):
 
@@ -159,3 +165,29 @@ class SimplePipelineManager(PipelineManager):
 
             if subprocess.call(cmd) != 0:
                 raise RuntimeError("Failed to launch " + self.pipeline)
+
+
+    def getAllNames(self, dirName):
+        
+        nameList = []
+    
+        try:
+            names = os.listdir(dirName)
+        except os.error:
+            return nameList
+    
+        pat_list = string.splitfields( '*.paf', ';' )
+        
+        for name in names:
+            fullname = os.path.normpath(os.path.join(dirName, name))
+    
+            for pat in pat_list:
+                if fnmatch.fnmatch(name, pat):
+                    if os.path.isfile(fullname) or (os.path.isdir(fullname) == False):
+                        nameList.append(fullname)
+                    continue
+                    
+            if os.path.isdir(fullname) and not os.path.islink(fullname):
+                nameList = nameList + self.getAllNames(fullname)
+                
+        return nameList

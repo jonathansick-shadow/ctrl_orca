@@ -55,8 +55,13 @@ class ProductionRunManager:
     def configure(self, policyFile, runId):
         orca.logger.log(Log.DEBUG, "ProductionRunManager:configure")
 
-        print "configure: policyFile = "+policyFile
-        self.policy = Policy.createPolicy(policyFile, False)
+        print "ProductionRunManager: configure: policyFile = "+policyFile
+        fullPolicyFilePath = ""
+        if os.path.isabs(policyFile) == True:
+            fullPolicyFilePath = policyFile
+        else:
+            fullPolicyFilePath = os.path.join(os.path.realpath('.'), policyFile)
+        self.policy = Policy.createPolicy(fullPolicyFilePath, False)
         if orca.repository == None:
             reposValue = self.policy.get("repositoryDirectory")
             if reposValue == None:
@@ -89,7 +94,7 @@ class ProductionRunManager:
         #realLocation = os.path.join(self.repository, policyFile)
         #print "configure: realLocation = "+realLocation
 
-        provenance.recordPolicy(policyFile)
+        provenance.recordPolicy(self.repository, fullPolicyFilePath)
         
         classFactory = NamedClassFactory()
 
