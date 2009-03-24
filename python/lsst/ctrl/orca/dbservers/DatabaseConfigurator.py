@@ -146,4 +146,4 @@ class DatabaseConfigurator:
             if (self.dbHost == host) and (self.dbPort == port):
                     orca.logger.log(Log.DEBUG, "using host %s at port %d" % (host, port))
                     return
-            raise RuntimeError("couldn't find any matching authorization for host %s and port %d " % (host, port))
+        raise RuntimeError("couldn't find any matching authorization for host %s and port %d " % (host, port))

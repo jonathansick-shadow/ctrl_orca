@@ -126,7 +126,7 @@ class SimplePipelineManager(PipelineManager):
             pw.write(newPolicy)
             pw.close()
 
-            self.provenance.recordPolicy(self.repository, newPolicyFile)
+        self.provenance.recordPolicy(self.repository, newPolicyFile)
         
         if os.path.exists(os.path.join(self.dirs.get("work"), self.pipeline)):
             orca.logger.log(Log.WARN, 
@@ -134,7 +134,7 @@ class SimplePipelineManager(PipelineManager):
                            self.pipeline)
         else:
             shutil.copytree(os.path.join(self.repository, self.pipeline), os.path.join(self.dirs.get("work"),self.pipeline))
-            nameList = self.getAllNames(os.path.join(self.repository, self.pipeline))
+            nameList = self.getAllNames(os.path.join(self.repository, self.pipeline), '*.paf')
 
             for name in nameList:
                 self.provenance.recordPolicy(self.repository, name)
@@ -167,7 +167,7 @@ class SimplePipelineManager(PipelineManager):
                 raise RuntimeError("Failed to launch " + self.pipeline)
 
 
-    def getAllNames(self, dirName):
+    def getAllNames(self, dirName, pattern):
         
         nameList = []
     
@@ -176,18 +176,18 @@ class SimplePipelineManager(PipelineManager):
         except os.error:
             return nameList
     
-        pat_list = string.splitfields( '*.paf', ';' )
+        patternList = string.splitfields( pattern, ';' )
         
         for name in names:
             fullname = os.path.normpath(os.path.join(dirName, name))
     
-            for pat in pat_list:
+            for pat in patternList:
                 if fnmatch.fnmatch(name, pat):
                     if os.path.isfile(fullname) or (os.path.isdir(fullname) == False):
                         nameList.append(fullname)
                     continue
                     
             if os.path.isdir(fullname) and not os.path.islink(fullname):
-                nameList = nameList + self.getAllNames(fullname)
+                nameList = nameList + self.getAllNames(fullname, pattern)
                 
         return nameList

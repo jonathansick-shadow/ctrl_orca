@@ -57,7 +57,3 @@ productionRunManager = ProductionRunManager()
 productionRunManager.configure(pipelinePolicyFile, runId)
 productionRunManager.checkConfiguration()
 productionRunManager.launch()
-
-#
-# Check any runtime prequisites (environment variables, files that need
-# to be set up, etc)
