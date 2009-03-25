@@ -93,7 +93,7 @@ class ProductionRunManager:
 
         # end of TODO
 
-        self.policy.loadPolicyFiles(self.repository, True)
+        #self.policy.loadPolicyFiles(self.repository, True)
 
 
         dbNames = self.createDatabase(runId)
@@ -132,8 +132,16 @@ class ProductionRunManager:
 
                 # create the pipelineManager object that will actually do
                 # the work.
-                pipelineManagerName = pipelinePolicy.get("platform.deploy.managerClass")
+
+                platformFilename = pipelinePolicy.getFile("platform").getPath()
+                platformFilename = os.path.join(self.repository, platformFilename)
+                if (platformFilename in self.policySet) == False:
+                    provenance.recordPolicy(platformFilename)
+                    self.policySet.add(platformFilename)
+
+                pipelinePolicy.loadPolicyFiles(self.repository, True)
             
+                pipelineManagerName = pipelinePolicy.get("platform.deploy.managerClass")
                 print "pipelinePolicy is "
                 print pipelinePolicy
                 pipelineManagerClass = classFactory.createClass(pipelineManagerName)
