@@ -1,4 +1,4 @@
-import os, os.path
+import os, os.path, sets
 import EventMonitor
 import lsst.ctrl.orca as orca
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
@@ -19,6 +19,8 @@ class ProductionRunManager:
         self.eventMonitor = None
 
         self.pipelineManagers = []
+
+        self.policySet = sets.Set()
 
 
     def checkConfiguration(self):
@@ -61,6 +63,8 @@ class ProductionRunManager:
             fullPolicyFilePath = policyFile
         else:
             fullPolicyFilePath = os.path.join(os.path.realpath('.'), policyFile)
+
+        # create policy file - but don't dereference yet
         self.policy = Policy.createPolicy(fullPolicyFilePath, False)
         if orca.repository == None:
             reposValue = self.policy.get("repositoryDirectory")
@@ -76,6 +80,19 @@ class ProductionRunManager:
         
         if not os.path.isdir(self.repository): 
             raise RuntimeError("specified repository "+ self.repository + ": not a directory");
+
+        # TODO: next, get all the referenced files, check if they exist in the 
+        # policySet object.  If they don't, record provenance, and add them to
+        # the set.
+
+
+        dbFilename = self.policy.getFile("databaseConfig.database").getPath()
+        dbFilename = os.path.join(self.repository, dbFilename)
+
+        
+
+        # end of TODO
+
         self.policy.loadPolicyFiles(self.repository, True)
 
 
@@ -94,7 +111,13 @@ class ProductionRunManager:
         #realLocation = os.path.join(self.repository, policyFile)
         #print "configure: realLocation = "+realLocation
 
-        provenance.recordPolicy(self.repository, fullPolicyFilePath)
+        # record policy file handed in from command line
+        provenance.recordPolicy(fullPolicyFilePath)
+        self.policySet.add(fullPolicyFilePath)
+
+        # databaseConfig.database policy 
+        provenance.recordPolicy(dbFilename)
+        self.policySet.add(dbFilename)
         
         classFactory = NamedClassFactory()
 
@@ -118,7 +141,7 @@ class ProductionRunManager:
                 pipelineManager = pipelineManagerClass()
 
                 # configure this pipeline
-                pipelineManager.configure(pipeline, pipelinePolicy, runId, self.repository, provenance, dbRun)
+                pipelineManager.configure(pipeline, pipelinePolicy, runId, self.repository, provenance, dbRun, self.policySet)
                 self.pipelineManagers.append(pipelineManager)
 
 

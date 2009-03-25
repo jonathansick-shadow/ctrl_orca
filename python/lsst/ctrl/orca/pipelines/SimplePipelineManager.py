@@ -19,6 +19,9 @@ class SimplePipelineManager(PipelineManager):
         PipelineManager.__init__(self)
         orca.logger.log(Log.DEBUG, "SimplePipelineManager:__init__:done")
 
+    def configureDatabase(self):
+        orca.logger.log(Log.DEBUG, "SimplePipelineManager:configureDatabase")
+
     def createDirectories(self):
         orca.logger.log(Log.DEBUG, "SimplePipelineManager:createDirectories")
 
@@ -100,7 +103,7 @@ class SimplePipelineManager(PipelineManager):
         # copy the policies to the working directory
         polfile = os.path.join(self.repository, self.pipeline+".paf")
 
-        newPolicy = pol.Policy.createPolicy(polfile)
+        newPolicy = pol.Policy.createPolicy(polfile, False)
 
         eventBrokerHost = self.policy.get("configuration.execute.eventBrokerHost")
         newPolicy.set("execute.eventBrokerHost", eventBrokerHost)
@@ -126,7 +129,12 @@ class SimplePipelineManager(PipelineManager):
             pw.write(newPolicy)
             pw.close()
 
-        self.provenance.recordPolicy(self.repository, newPolicyFile)
+        self.provenance.recordPolicy(newPolicyFile)
+        self.policySet.add(newPolicyFile)
+
+        # XXX - reuse "newPolicy"?
+        newPolicyObj = pol.Policy.createPolicy(newPolicyFile, False)
+        self.recordChildPolicies(self.repository, newPolicyFile, newPolicyObj)
         
         if os.path.exists(os.path.join(self.dirs.get("work"), self.pipeline)):
             orca.logger.log(Log.WARN, 
@@ -134,11 +142,6 @@ class SimplePipelineManager(PipelineManager):
                            self.pipeline)
         else:
             shutil.copytree(os.path.join(self.repository, self.pipeline), os.path.join(self.dirs.get("work"),self.pipeline))
-            nameList = self.getAllNames(os.path.join(self.repository, self.pipeline), '*.paf')
-
-            for name in nameList:
-                self.provenance.recordPolicy(self.repository, name)
-
 
 
     def launchPipeline(self):

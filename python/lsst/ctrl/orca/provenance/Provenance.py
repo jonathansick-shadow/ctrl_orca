@@ -77,7 +77,7 @@ class Provenance:
 
         db.endTransaction()
 
-    def recordPolicy(self, repositoryLoc, policyFile):
+    def recordPolicy(self, policyFile):
         """Record the contents of the given Policy as part of provenance."""
 
         md5 = hashlib.md5()
@@ -90,12 +90,6 @@ class Provenance:
         self._realRecordPolicyFile(self.globalDb, policyFile, md5)
 
         p = Policy.createPolicy(policyFile, False)
-        print "---- before load policy files ---"
-        print p
-        print "---- done load policy files ---"
-        p.loadPolicyFiles(repositoryLoc, True)
-        print "---- recording policy ---"
-        print p
         for key in p.paramNames():
             type = p.getTypeName(key)
             val = p.str(key) # works for arrays, too
@@ -104,7 +98,6 @@ class Provenance:
             self._realRecordPolicyContents(self.globalDb, key, type, val)
 
             self.policyKeyId += 1
-        print "---- done recording policy ---"
 
         self.policyFileId += 1
 

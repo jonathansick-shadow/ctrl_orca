@@ -76,35 +76,35 @@ execute: {
    appStage: {
       stageName: "lsst.pex.harness.IOStage.InputStage"
       eventTopic: "triggerVisitEvent"  
-      stagePolicy: "iSDshort/input_policy.paf"
+      stagePolicy: @iSDshort/input_policy.paf
    }
    
    # Stage 4: persist the per-visit metadata
    appStage: {
       stageName: "lsst.pex.harness.IOStage.OutputStage"
       eventTopic: "None"
-      stagePolicy: "iSDshort/metadataOutput_policy.paf"
+      stagePolicy: @iSDshort/metadataOutput_policy.paf
    }
    
    # Stage 5: persist the Exposure with its metadata
    appStage: {
       stageName: "lsst.pex.harness.IOStage.OutputStage"
       eventTopic: "None"
-      stagePolicy: "iSDshort/exposureOutput_policy.paf"
+      stagePolicy: @iSDshort/exposureOutput_policy.paf
    }
    
    # Stage 7: write out the difference image
    appStage: {
       stageName: "lsst.pex.harness.IOStage.OutputStage"
       eventTopic: "None"
-      stagePolicy: "iSDshort/subtractOutput_policy.paf"
+      stagePolicy: @iSDshort/subtractOutput_policy.paf
    }
    
    # Stage 9: write out the table of detected sources to the database
    appStage: {
       stageName: "lsst.pex.harness.IOStage.OutputStage"
       eventTopic: "None"
-      stagePolicy: "iSDshort/detectOutput_policy.paf"
+      stagePolicy: @iSDshort/detectOutput_policy.paf
    }
    
    # Stage 10: send an event to the association pipeline indicating that 
@@ -112,7 +112,7 @@ execute: {
    appStage: {
       stageName: "lsst.pex.harness.EventStage.EventStage"
       eventTopic: "None"
-      stagePolicy: "iSDshort/associationEvent_policy.paf"
+      stagePolicy: @iSDshort/associationEvent_policy.paf
    }
 
 
