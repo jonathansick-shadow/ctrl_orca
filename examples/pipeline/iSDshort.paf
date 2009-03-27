@@ -131,7 +131,7 @@ execute: {
       #
       defaultRoot:  .
 
-      runDirPattern: "%(runid)s"
+      runDirPattern: "%(runid)s/%(pipename)s"
 
       # These indicate the directory that should be used for a named purpose.
       # If relative paths are given, the resulting directory will be relative
