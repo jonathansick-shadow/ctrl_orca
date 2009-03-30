@@ -131,7 +131,8 @@ execute: {
       #
       defaultRoot:  .
 
-      runDirPattern: "%(runid)s/%(pipename)s"
+      shortname = iSDshort
+      runDirPattern: "%(runid)s/%(shortname)s"
 
       # These indicate the directory that should be used for a named purpose.
       # If relative paths are given, the resulting directory will be relative
