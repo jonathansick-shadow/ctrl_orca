@@ -89,7 +89,7 @@ class Provenance:
         self._realRecordPolicyFile(self.db, policyFile, md5)
         self._realRecordPolicyFile(self.globalDb, policyFile, md5)
 
-        p = Policy.createPolicy(policyFile)
+        p = Policy.createPolicy(policyFile, False)
         for key in p.paramNames():
             type = p.getTypeName(key)
             val = p.str(key) # works for arrays, too

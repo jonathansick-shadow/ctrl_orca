@@ -1,5 +1,5 @@
 from __future__ import with_statement
-import re, sys, os, os.path, shutil, subprocess
+import re, sys, os, os.path, fnmatch, shutil, subprocess, string
 import traceback, time
 from lsst.pex.logging import Log
 from lsst.ctrl.orca.EnvString import EnvString
@@ -18,6 +18,9 @@ class SimplePipelineManager(PipelineManager):
         orca.logger.log(Log.DEBUG, "SimplePipelineManager:__init__")
         PipelineManager.__init__(self)
         orca.logger.log(Log.DEBUG, "SimplePipelineManager:__init__:done")
+
+    def configureDatabase(self):
+        orca.logger.log(Log.DEBUG, "SimplePipelineManager:configureDatabase")
 
     def createDirectories(self):
         orca.logger.log(Log.DEBUG, "SimplePipelineManager:createDirectories")
@@ -102,7 +105,7 @@ class SimplePipelineManager(PipelineManager):
         # copy the policies to the working directory
         polfile = os.path.join(self.repository, self.pipeline+".paf")
 
-        newPolicy = pol.Policy.createPolicy(polfile)
+        newPolicy = pol.Policy.createPolicy(polfile, False)
 
         eventBrokerHost = self.policy.get("configuration.execute.eventBrokerHost")
         newPolicy.set("execute.eventBrokerHost", eventBrokerHost)
@@ -128,7 +131,12 @@ class SimplePipelineManager(PipelineManager):
             pw.write(newPolicy)
             pw.close()
 
-            self.provenance.recordPolicy(newPolicyFile)
+        self.provenance.recordPolicy(newPolicyFile)
+        self.policySet.add(newPolicyFile)
+
+        # XXX - reuse "newPolicy"?
+        newPolicyObj = pol.Policy.createPolicy(newPolicyFile, False)
+        self.recordChildPolicies(self.repository, newPolicyFile, newPolicyObj)
         
         if os.path.exists(os.path.join(self.dirs.get("work"), self.pipeline)):
             orca.logger.log(Log.WARN, 
@@ -136,6 +144,7 @@ class SimplePipelineManager(PipelineManager):
                            self.pipeline)
         else:
             shutil.copytree(os.path.join(self.repository, self.pipeline), os.path.join(self.dirs.get("work"),self.pipeline))
+
 
     def launchPipeline(self):
 
@@ -161,3 +170,29 @@ class SimplePipelineManager(PipelineManager):
 
             if subprocess.call(cmd) != 0:
                 raise RuntimeError("Failed to launch " + self.pipeline)
+
+
+    def getAllNames(self, dirName, pattern):
+        
+        nameList = []
+    
+        try:
+            names = os.listdir(dirName)
+        except os.error:
+            return nameList
+    
+        patternList = string.splitfields( pattern, ';' )
+        
+        for name in names:
+            fullname = os.path.normpath(os.path.join(dirName, name))
+    
+            for pat in patternList:
+                if fnmatch.fnmatch(name, pat):
+                    if os.path.isfile(fullname) or (os.path.isdir(fullname) == False):
+                        nameList.append(fullname)
+                    continue
+                    
+            if os.path.isdir(fullname) and not os.path.islink(fullname):
+                nameList = nameList + self.getAllNames(fullname, pattern)
+                
+        return nameList

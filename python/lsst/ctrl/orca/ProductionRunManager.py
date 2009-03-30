@@ -1,4 +1,4 @@
-import os, os.path
+import os, os.path, sets
 import EventMonitor
 import lsst.ctrl.orca as orca
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
@@ -19,6 +19,8 @@ class ProductionRunManager:
         self.eventMonitor = None
 
         self.pipelineManagers = []
+
+        self.policySet = sets.Set()
 
 
     def checkConfiguration(self):
@@ -55,8 +57,15 @@ class ProductionRunManager:
     def configure(self, policyFile, runId):
         orca.logger.log(Log.DEBUG, "ProductionRunManager:configure")
 
-        print "configure: policyFile = "+policyFile
-        self.policy = Policy.createPolicy(policyFile, False)
+        print "ProductionRunManager: configure: policyFile = "+policyFile
+        fullPolicyFilePath = ""
+        if os.path.isabs(policyFile) == True:
+            fullPolicyFilePath = policyFile
+        else:
+            fullPolicyFilePath = os.path.join(os.path.realpath('.'), policyFile)
+
+        # create policy file - but don't dereference yet
+        self.policy = Policy.createPolicy(fullPolicyFilePath, False)
         if orca.repository == None:
             reposValue = self.policy.get("repositoryDirectory")
             if reposValue == None:
@@ -71,7 +80,20 @@ class ProductionRunManager:
         
         if not os.path.isdir(self.repository): 
             raise RuntimeError("specified repository "+ self.repository + ": not a directory");
-        self.policy.loadPolicyFiles(self.repository, True)
+
+        # TODO: next, get all the referenced files, check if they exist in the 
+        # policySet object.  If they don't, record provenance, and add them to
+        # the set.
+
+
+        dbFilename = self.policy.getFile("databaseConfig.database").getPath()
+        dbFilename = os.path.join(self.repository, dbFilename)
+
+        
+
+        # end of TODO
+
+        #self.policy.loadPolicyFiles(self.repository, True)
 
 
         dbNames = self.createDatabase(runId)
@@ -89,7 +111,13 @@ class ProductionRunManager:
         #realLocation = os.path.join(self.repository, policyFile)
         #print "configure: realLocation = "+realLocation
 
-        provenance.recordPolicy(policyFile)
+        # record policy file handed in from command line
+        provenance.recordPolicy(fullPolicyFilePath)
+        self.policySet.add(fullPolicyFilePath)
+
+        # databaseConfig.database policy 
+        provenance.recordPolicy(dbFilename)
+        self.policySet.add(dbFilename)
         
         classFactory = NamedClassFactory()
 
@@ -104,8 +132,16 @@ class ProductionRunManager:
 
                 # create the pipelineManager object that will actually do
                 # the work.
-                pipelineManagerName = pipelinePolicy.get("platform.deploy.managerClass")
+
+                platformFilename = pipelinePolicy.getFile("platform").getPath()
+                platformFilename = os.path.join(self.repository, platformFilename)
+                if (platformFilename in self.policySet) == False:
+                    provenance.recordPolicy(platformFilename)
+                    self.policySet.add(platformFilename)
+
+                pipelinePolicy.loadPolicyFiles(self.repository, True)
             
+                pipelineManagerName = pipelinePolicy.get("platform.deploy.managerClass")
                 print "pipelinePolicy is "
                 print pipelinePolicy
                 pipelineManagerClass = classFactory.createClass(pipelineManagerName)
@@ -113,7 +149,7 @@ class ProductionRunManager:
                 pipelineManager = pipelineManagerClass()
 
                 # configure this pipeline
-                pipelineManager.configure(pipeline, pipelinePolicy, runId, self.repository, provenance, dbRun)
+                pipelineManager.configure(pipeline, pipelinePolicy, runId, self.repository, provenance, dbRun, self.policySet)
                 self.pipelineManagers.append(pipelineManager)
 
 

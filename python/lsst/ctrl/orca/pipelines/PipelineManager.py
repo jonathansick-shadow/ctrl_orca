@@ -1,8 +1,11 @@
-import os
+import os, os.path
+import sets
 import lsst.ctrl.orca as orca
+import lsst.pex.policy as pol
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.ctrl.orca.dbservers.DatabaseConfigurator import DatabaseConfigurator
 from lsst.pex.logging import Log
+
 
 class PipelineManager:
 
@@ -23,15 +26,20 @@ class PipelineManager:
     def checkConfiguration(self):
         orca.logger.log(Log.DEBUG, "PipelineManager:checkConfiguration")
 
-    def configure(self, pipeline, policy, runId, repository, provenance, dbRunURL):
+    def configureDatabase(self):
+        orca.logger.log(Log.DEBUG, "PipelineManager:configureDatabase")
+
+    def configure(self, pipeline, policy, runId, repository, provenance, dbRunURL, policySet):
         orca.logger.log(Log.DEBUG, "PipelineManager:configure")
 
+        # TODO: redesign this ....many too many arguments to this method
         self.pipeline = pipeline
         self.policy = policy
         self.runId = runId
         self.repository = repository
         self.provenance = provenance
         self.dbRunURL = dbRunURL
+        self.policySet = policySet
 
         self.defaultDomain = policy.get("platform.deploy.defaultDomain")
         orca.logger.log(Log.DEBUG, "defaultDomain = "+self.defaultDomain)
@@ -119,3 +127,22 @@ class PipelineManager:
 
     def launchPipeline(self):
         orca.logger.log(Log.DEBUG, "PipelineManager:launchPipeline")
+
+
+    def recordChildPolicies(self, repos, filename, policy):
+        names = policy.fileNames()
+
+        for name in names:
+            desc = name[0:name.rfind('.')]
+            field = name[name.rfind('.')+1:]
+            policyObjs = policy.getPolicyArray(desc)
+            for policyObj in policyObjs:
+                filename = policyObj.getFile(field).getPath()
+                filename = os.path.join(repos, filename)
+                if (filename in self.policySet) == False:
+                    self.provenance.recordPolicy(filename)
+                    self.policySet.add(filename)
+                else:
+                    print "already recorded - NOT ADDING "+filename
+                newPolicy = pol.Policy.createPolicy(filename, False)
+                self.recordChildPolicies(repos, filename, newPolicy)
