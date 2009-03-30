@@ -36,7 +36,7 @@ class SimplePipelineManager(PipelineManager):
         # self.workingDirectory = self.createDirectory(pdir, "workRootDir")
         # print "SELF -> workingDirectory: ",self.workingDirectory
         dirPolicy = self.policy.getPolicy("platform.dir")
-        directories = Directories(dirPolicy, self.runId)
+        directories = Directories(dirPolicy, self.pipeline, self.runId)
         self.dirs = directories.getDirs()
         print self.dirs.names()
         for name in self.dirs.names():
@@ -88,6 +88,8 @@ class SimplePipelineManager(PipelineManager):
 
         shutil.copy(self.script, self.dirs.get("work"))
          
+        # now point at the new location for the setup script
+        self.script = os.path.join(self.dirs.get("work"),os.path.basename(self.script))
         
         # 
         #  read in default policy
