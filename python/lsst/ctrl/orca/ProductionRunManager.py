@@ -107,6 +107,9 @@ class ProductionRunManager:
 
 
         provenance = Provenance(self.dbConfigurator.getUser(), runId, dbRun, dbGlobal)
+        print "calling record environment"
+        provenance.recordEnvironment()
+        print "calling record done environment"
         print "configure: policyFile = "+policyFile
         #realLocation = os.path.join(self.repository, policyFile)
         #print "configure: realLocation = "+realLocation
