@@ -5,6 +5,7 @@ from lsst.pex.logging import Log
 from lsst.ctrl.orca.EnvString import EnvString
 import lsst.pex.policy as pol
 import lsst.ctrl.orca as orca
+import sets
 
 from lsst.ctrl.orca.pipelines.PipelineManager import PipelineManager
 
@@ -136,14 +137,40 @@ class SimplePipelineManager(PipelineManager):
 
         # XXX - reuse "newPolicy"?
         newPolicyObj = pol.Policy.createPolicy(newPolicyFile, False)
-        self.recordChildPolicies(self.repository, newPolicyFile, newPolicyObj)
+        pipelinePolicySet = sets.Set()
+        self.recordChildPolicies(self.repository, newPolicyObj, pipelinePolicySet)
         
         if os.path.exists(os.path.join(self.dirs.get("work"), self.pipeline)):
             orca.logger.log(Log.WARN, 
               "Working directory already contains %s directory; won't overwrite" % \
                            self.pipeline)
         else:
-            shutil.copytree(os.path.join(self.repository, self.pipeline), os.path.join(self.dirs.get("work"),self.pipeline))
+            #shutil.copytree(os.path.join(self.repository, self.pipeline), os.path.join(self.dirs.get("work"),self.pipeline))
+            #
+            # instead of blindly copying the whole directory, take the set
+            # if files from policySet and copy those.
+            #
+            # This is slightly tricky, because we want to copy from the policy file 
+            # repository directory to the "work" directory, but we also want to keep
+            # that partial directory hierarchy we're copying to as well.
+            #
+            for filename  in pipelinePolicySet:
+                destinationDir = self.dirs.get("work")
+                destName = filename.replace(self.repository+"/","")
+                tokens = destName.split('/')
+                tokensLength = len(tokens)
+                # if the destination directory heirarchy doesn't exist, create all
+                # the missing directories
+                destinationFile = tokens[len(tokens)-1]
+                for newDestinationDir in tokens[:len(tokens)-1]:
+                    newDir = os.path.join(destinationDir, newDestinationDir)
+                    if os.path.exists(newDir) == False:
+                        print "makedir: ",newDir
+                        os.mkdir(newDir)
+                    destinationDir = newDir
+                #print "destinationDir = ",destinationDir
+                #print "copy from ",filename,"to ", os.path.join(destinationDir,destinationFile)
+                shutil.copyfile(filename, os.path.join(destinationDir, destinationFile))
 
 
     def launchPipeline(self):
