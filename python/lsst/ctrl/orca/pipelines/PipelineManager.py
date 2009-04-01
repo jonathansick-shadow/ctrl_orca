@@ -129,7 +129,7 @@ class PipelineManager:
         orca.logger.log(Log.DEBUG, "PipelineManager:launchPipeline")
 
 
-    def recordChildPolicies(self, repos, filename, policy):
+    def recordChildPolicies(self, repos, policy, pipelinePolicySet):
         print "<---------->"
         print policy
         names = policy.fileNames()
@@ -150,8 +150,10 @@ class PipelineManager:
                             self.policySet.add(filename)
                         else:
                             print "already recorded - NOT ADDING "+filename
+                        if (filename in pipelinePolicySet) == False:
+                            pipelinePolicySet.add(filename)
                         newPolicy = pol.Policy.createPolicy(filename, False)
-                        self.recordChildPolicies(repos, filename, newPolicy)
+                        self.recordChildPolicies(repos, newPolicy, pipelinePolicySet)
             else:
                 field = name
                 if policy.getValueType(field) == pol.Policy.FILE:
@@ -163,6 +165,8 @@ class PipelineManager:
                         self.policySet.add(filename)
                     else:
                         print "already recorded - NOT ADDING "+filename
+                    if (filename in pipelinePolicySet) == False:
+                        pipelinePolicySet.add(filename)
                     newPolicy = pol.Policy.createPolicy(filename, False)
-                    self.recordChildPolicies(repos, filename, newPolicy)
+                    self.recordChildPolicies(repos, newPolicy, pipelinePolicySet)
         print "done"
