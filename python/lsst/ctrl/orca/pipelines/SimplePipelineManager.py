@@ -27,19 +27,10 @@ class SimplePipelineManager(PipelineManager):
         orca.logger.log(Log.DEBUG, "SimplePipelineManager:createDirectories")
 
 
-        # ensure the existence of the working directory
-        # pdir = self.policy.get("shortName", self.pipeline)
-        # 
-        # self.inputRootDir = self.createDirectory(pdir, "inputRootDir")
-        # self.outputRootDir = self.createDirectory(pdir, "outputRootDir")
-        # self.updateRootDir = self.createDirectory(pdir, "updateRootDir")
-        # self.scratchRootDir = self.createDirectory(pdir, "scratchRootDir")
-        # self.workingDirectory = self.createDirectory(pdir, "workRootDir")
-        # print "SELF -> workingDirectory: ",self.workingDirectory
         dirPolicy = self.policy.getPolicy("platform.dir")
         directories = Directories(dirPolicy, self.pipeline, self.runId)
         self.dirs = directories.getDirs()
-        print self.dirs.names()
+        
         for name in self.dirs.names():
             if orca.dryrun == True:
                 print "would create ",self.dirs.get(name)
@@ -68,8 +59,6 @@ class SimplePipelineManager(PipelineManager):
 
         # copy /bin/sh script responsible for environment setting
 
-        print "simplepipelinemanager, policy:"
-        print self.policy
         setupPath = self.policy.get("configuration.framework.environment")
         if setupPath == None:
              raise RuntimeError("couldn't find configuration.framework.environment")
@@ -81,7 +70,6 @@ class SimplePipelineManager(PipelineManager):
         ## guaranteed to be running the same shell as the interactive
         ## shell from which orca was launched.
 
-        print "orca.envscript = ",orca.envscript
         if orca.envscript == None:
             print "using default setup.sh"
         else:
@@ -122,7 +110,6 @@ class SimplePipelineManager(PipelineManager):
 
         polbasefile = os.path.basename(polfile)
         newPolicyFile = os.path.join(self.dirs.get("work"), self.pipeline+".paf")
-        print "newPolicyFile = "+newPolicyFile
         if os.path.exists(newPolicyFile):
             orca.logger.log(Log.WARN, 
                        "Working directory already contains %s; won't overwrite" % \
@@ -165,11 +152,8 @@ class SimplePipelineManager(PipelineManager):
                 for newDestinationDir in tokens[:len(tokens)-1]:
                     newDir = os.path.join(destinationDir, newDestinationDir)
                     if os.path.exists(newDir) == False:
-                        print "makedir: ",newDir
                         os.mkdir(newDir)
                     destinationDir = newDir
-                #print "destinationDir = ",destinationDir
-                #print "copy from ",filename,"to ", os.path.join(destinationDir,destinationFile)
                 shutil.copyfile(filename, os.path.join(destinationDir, destinationFile))
 
 
@@ -189,8 +173,6 @@ class SimplePipelineManager(PipelineManager):
             orca.logger.log(Log.DEBUG, "launching pipeline")
 
             # by convention the first node in the list is the "master" node
-            print "launching %s on %s" % (self.pipeline, self.masterNode) 
-            print "executing: ",cmd
                        
             orca.logger.log(Log.INFO, "launching %s on %s" % (self.pipeline, self.masterNode) )
             orca.logger.log(Log.DEBUG, "executing: " + " ".join(cmd))

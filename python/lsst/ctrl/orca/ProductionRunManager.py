@@ -31,17 +31,10 @@ class ProductionRunManager:
         #classFactory = NamedClassFactory()
         #databaseConfigName = self.policy.get("databaseConfig.configuratorClass")
 
-        print self.policy
         dbConfigPolicy = self.policy.getPolicy("databaseConfig")
-        print "dbConfigPolicy  ",dbConfigPolicy
-        print "self.repository  "+self.repository
         dbPolicy = dbConfigPolicy.loadPolicyFiles(self.repository)
-        print "NEW dbConfigPolicy  ",dbConfigPolicy
         dbPolicy = dbConfigPolicy.getPolicy("database")
         dbPolicy.loadPolicyFiles(self.repository)
-        print "------- dbPolicy start ---------"
-        print dbPolicy.toString()
-        print "------- dbPolicy end   ---------"
         dbType = self.policy.get("databaseConfig.type")
 
         #orca.logger.log(Log.DEBUG, "databaseConfigName = " + databaseConfigName)
@@ -50,14 +43,11 @@ class ProductionRunManager:
         self.dbConfigurator = DatabaseConfigurator(dbType, dbPolicy)
         self.dbConfigurator.checkConfiguration(dbPolicy)
         dbNames = self.dbConfigurator.prepareForNewRun(runId)
-        print "dbNames"
-        print dbNames
         return dbNames
 
     def configure(self, policyFile, runId):
         orca.logger.log(Log.DEBUG, "ProductionRunManager:configure")
 
-        print "ProductionRunManager: configure: policyFile = "+policyFile
         fullPolicyFilePath = ""
         if os.path.isabs(policyFile) == True:
             fullPolicyFilePath = policyFile
@@ -100,19 +90,9 @@ class ProductionRunManager:
         dbBaseURL = self.dbConfigurator.getHostURL()
         dbRun = dbBaseURL+"/"+dbNames[0];
         dbGlobal = dbBaseURL+"/"+dbNames[1];
-        print "getUser = "+self.dbConfigurator.getUser()
-        print "runId = "+runId
-        print "dbRun = "+dbRun
-        print "dbGlobal = "+dbGlobal
-
 
         provenance = Provenance(self.dbConfigurator.getUser(), runId, dbRun, dbGlobal)
-        print "calling record environment"
         provenance.recordEnvironment()
-        print "calling record done environment"
-        print "configure: policyFile = "+policyFile
-        #realLocation = os.path.join(self.repository, policyFile)
-        #print "configure: realLocation = "+realLocation
 
         # record policy file handed in from command line
         provenance.recordPolicy(fullPolicyFilePath)
@@ -145,8 +125,6 @@ class ProductionRunManager:
                 pipelinePolicy.loadPolicyFiles(self.repository, True)
             
                 pipelineManagerName = pipelinePolicy.get("platform.deploy.managerClass")
-                print "pipelinePolicy is "
-                print pipelinePolicy
                 pipelineManagerClass = classFactory.createClass(pipelineManagerName)
            
                 pipelineManager = pipelineManagerClass()
