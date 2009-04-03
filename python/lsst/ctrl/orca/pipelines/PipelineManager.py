@@ -130,26 +130,19 @@ class PipelineManager:
 
 
     def recordChildPolicies(self, repos, policy, pipelinePolicySet):
-        print "<---------->"
-        print policy
         names = policy.fileNames()
-        print "names",names
-        print "<---------->"
         for name in names:
             if name.rfind('.') > 0:
                 desc = name[0:name.rfind('.')]
                 field = name[name.rfind('.')+1:]
                 policyObjs = policy.getPolicyArray(desc)
                 for policyObj in policyObjs:
-                    print "desc =",desc,"field",field
                     if policyObj.getValueType(field) == pol.Policy.FILE:
                         filename = policyObj.getFile(field).getPath()
                         filename = os.path.join(repos, filename)
                         if (filename in self.policySet) == False:
                             self.provenance.recordPolicy(filename)
                             self.policySet.add(filename)
-                        else:
-                            print "already recorded - NOT ADDING "+filename
                         if (filename in pipelinePolicySet) == False:
                             pipelinePolicySet.add(filename)
                         newPolicy = pol.Policy.createPolicy(filename, False)
@@ -163,10 +156,7 @@ class PipelineManager:
                     if (filename in self.policySet) == False:
                         self.provenance.recordPolicy(filename)
                         self.policySet.add(filename)
-                    else:
-                        print "already recorded - NOT ADDING "+filename
                     if (filename in pipelinePolicySet) == False:
                         pipelinePolicySet.add(filename)
                     newPolicy = pol.Policy.createPolicy(filename, False)
                     self.recordChildPolicies(repos, newPolicy, pipelinePolicySet)
-        print "done"

@@ -53,8 +53,6 @@ class DatabaseConfigurator:
         #
         # now, look up, and initialize the authorization information for host and port
         #
-        print "IN checkConfiguration"
-        print policy
         self.initAuthInfo(policy)
 
         # 
@@ -65,7 +63,6 @@ class DatabaseConfigurator:
     def getHostURL(self):
         schema = self.type.lower()
         retVal = schema+"://"+self.dbHost+":"+str(self.dbPort)
-        print retVal
         return retVal
 
     def getUser(self):
@@ -121,7 +118,6 @@ class DatabaseConfigurator:
     # If there is no match, an exception is thrown.
     # 
     def initAuthInfo(self, policy):
-        print policy.toString()
         host = policy.get("database.authInfo.host")
         if host == None:
             raise RuntimeError("database host must be specified in policy")
@@ -132,11 +128,7 @@ class DatabaseConfigurator:
         
         dbPolicyCredentials = Policy.createPolicy(dbPolicyCredentialsFile)
 
-        print "dbPolicyCredentials"
-        print dbPolicyCredentials.toString()
         authArray = dbPolicyCredentials.getPolicyArray("database.authInfo")
-        print "authArray"
-        print authArray
 
         for auth in authArray:
             self.dbHost = auth.get("host")
