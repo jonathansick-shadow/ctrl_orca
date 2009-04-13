@@ -7,9 +7,16 @@ from lsst.pex.policy import Policy
 from lsst.ctrl.orca.dbservers.MySQLConfigurator import MySQLConfigurator
 
 class DatabaseConfigurator:
-    def __init__(self, type, policy):
-        if orca.logger == None:
-            orca.logger = Log(Log.getDefaultLog(), "dc3")
+    def __init__(self, type, policy, logger=None):
+        """
+        create a generic 
+        @param type      the category of configurator
+        @param policy    the policy to use in the configuration
+        @param logger    the caller's Log instance from which this manager can.
+                            create a child Log
+        """
+        if logger is None:  logger = orca.logger
+        self.logger = Log(logger, "dbconfig")
 
         self.type = type
         self.delegate = None
@@ -136,6 +143,6 @@ class DatabaseConfigurator:
             self.dbUser = auth.get("user")
             self.dbPassword = auth.get("password")
             if (self.dbHost == host) and (self.dbPort == port):
-                    orca.logger.log(Log.DEBUG, "using host %s at port %d" % (host, port))
+                    self.logger.log(Log.DEBUG, "using host %s at port %d" % (host, port))
                     return
         raise RuntimeError("couldn't find any matching authorization for host %s and port %d " % (host, port))

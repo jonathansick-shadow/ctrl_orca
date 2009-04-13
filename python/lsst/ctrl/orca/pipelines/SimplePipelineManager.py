@@ -13,18 +13,22 @@ from lsst.pex.harness.Directories import Directories
 
 class SimplePipelineManager(PipelineManager):
 
-    def __init__(self):
-        if orca.logger == None:
-            orca.logger = Log(Log.getDefaultLog(), "dc3")
-        orca.logger.log(Log.DEBUG, "SimplePipelineManager:__init__")
-        PipelineManager.__init__(self)
-        orca.logger.log(Log.DEBUG, "SimplePipelineManager:__init__:done")
+    def __init__(self, pipeVerb=None, logger=None):
+        """
+        create a SimplePipelineManager
+        @param pipeVerb  the verbosity level to pass onto the pipelines for 
+                            pipeline messages
+        @param logger    the caller's Log instance from which this manager can.
+                            create a child Log
+        """
+        PipelineManager.__init__(self, pipeVerb, logger)
+        self.logger.log(Log.DEBUG, "SimplePipelineManager:__init__:done")
 
     def configureDatabase(self):
-        orca.logger.log(Log.DEBUG, "SimplePipelineManager:configureDatabase")
+        self.logger.log(Log.DEBUG, "SimplePipelineManager:configureDatabase")
 
     def createDirectories(self):
-        orca.logger.log(Log.DEBUG, "SimplePipelineManager:createDirectories")
+        self.logger.log(Log.DEBUG, "SimplePipelineManager:createDirectories")
 
 
         dirPolicy = self.policy.getPolicy("platform.dir")
@@ -46,16 +50,16 @@ class SimplePipelineManager(PipelineManager):
         if dirName == None:
             return None
 
-        orca.logger.log(Log.DEBUG, "self.rootDir = "+ self.rootDir)
-        orca.logger.log(Log.DEBUG, "self.rundId = "+ self.runId)
-        orca.logger.log(Log.DEBUG, "self.pdir = "+ pdir)
+        self.logger.log(Log.DEBUG, "self.rootDir = "+ self.rootDir)
+        self.logger.log(Log.DEBUG, "self.rundId = "+ self.runId)
+        self.logger.log(Log.DEBUG, "self.pdir = "+ pdir)
         wdir = os.path.join(self.rootDir, self.runId, pdir)
         dir = os.path.join(wdir, dirName)
         if not os.path.exists(dir): os.makedirs(dir)
         return dir
 
     def deploySetup(self):
-        orca.logger.log(Log.DEBUG, "SimplePipelineManager:deploySetup")
+        self.logger.log(Log.DEBUG, "SimplePipelineManager:deploySetup")
 
         # copy /bin/sh script responsible for environment setting
 
@@ -111,7 +115,7 @@ class SimplePipelineManager(PipelineManager):
         polbasefile = os.path.basename(polfile)
         newPolicyFile = os.path.join(self.dirs.get("work"), self.pipeline+".paf")
         if os.path.exists(newPolicyFile):
-            orca.logger.log(Log.WARN, 
+            self.logger.log(Log.WARN, 
                        "Working directory already contains %s; won't overwrite" % \
                            polbasefile)
         else:
@@ -128,7 +132,7 @@ class SimplePipelineManager(PipelineManager):
         self.recordChildPolicies(self.repository, newPolicyObj, pipelinePolicySet)
         
         if os.path.exists(os.path.join(self.dirs.get("work"), self.pipeline)):
-            orca.logger.log(Log.WARN, 
+            self.logger.log(Log.WARN, 
               "Working directory already contains %s directory; won't overwrite" % \
                            self.pipeline)
         else:
@@ -159,23 +163,23 @@ class SimplePipelineManager(PipelineManager):
 
     def launchPipeline(self):
 
-        orca.logger.log(Log.DEBUG, "SimplePipelineManager:launchPipeline")
+        self.logger.log(Log.DEBUG, "SimplePipelineManager:launchPipeline")
 
         execPath = self.policy.get("configuration.framework.exec")
         launchcmd = EnvString.resolve(execPath)
         # kick off the run
 
-        cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -V %s" % (self.dirs.get("work"), self.script, launchcmd, self.pipeline+".paf", self.runId, orca.verbosity) ]
+        cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % (self.dirs.get("work"), self.script, launchcmd, self.pipeline+".paf", self.runId, self.pipelineVerbosity) ]
         if orca.dryrun == True:
             print "dryrun: would execute"
             print cmd
         else:
-            orca.logger.log(Log.DEBUG, "launching pipeline")
+            self.logger.log(Log.DEBUG, "launching pipeline")
 
             # by convention the first node in the list is the "master" node
                        
-            orca.logger.log(Log.INFO, "launching %s on %s" % (self.pipeline, self.masterNode) )
-            orca.logger.log(Log.DEBUG, "executing: " + " ".join(cmd))
+            self.logger.log(Log.INFO, "launching %s on %s" % (self.pipeline, self.masterNode) )
+            self.logger.log(Log.DEBUG, "executing: " + " ".join(cmd))
 
             if subprocess.call(cmd) != 0:
                 raise RuntimeError("Failed to launch " + self.pipeline)
