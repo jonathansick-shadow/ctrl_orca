@@ -4,14 +4,12 @@ from __future__ import with_statement
 import re, sys, os, os.path, shutil, subprocess
 import optparse, traceback, time
 import lsst.ctrl.orca as orca
-import lsst.ctrl.harness.run as run
+import lsst.pex.harness.run as run
 from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
 from lsst.ctrl.orca.ProductionRunManager import ProductionRunManager 
 
-usage = """usage: %%prog [-n] pipelinePolicyFile runId"""
-
-
+usage = """usage: %%prog [-n] [-r dir] [-e script] [V int][-L lev] pipelinePolicyFile runId"""
 
 parser = optparse.OptionParser(usage)
 # TODO: handle "--dryrun"
