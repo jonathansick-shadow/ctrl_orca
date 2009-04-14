@@ -9,7 +9,7 @@ from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
 from lsst.ctrl.orca.ProductionRunManager import ProductionRunManager 
 
-usage = """usage: %%prog [-ndvqs] [-r dir] [-e script] [V int][-L lev] pipelinePolicyFile runId"""
+usage = """usage: %prog [-ndvqs] [-r dir] [-e script] [V int][-L lev] pipelinePolicyFile runId"""
 
 parser = optparse.OptionParser(usage)
 # TODO: handle "--dryrun"
@@ -21,13 +21,13 @@ parser.add_option("-r", "--policyRepository", type="string", action="store",
 parser.add_option("-e", "--envscript", action="store", dest="envscript",
               default=None, metavar="script",
               help="an environment-setting script to source on pipeline platform")
-parser.add_option("-d", "--debug", action="store_const", const=1, type="int",
+parser.add_option("-d", "--debug", action="store_const", const=1, 
                   dest="verbosity", help="print maximum amount of messages")
-parser.add_option("-v", "--verbose", action="store_const", const=1, type="int",
+parser.add_option("-v", "--verbose", action="store_const", const=1,
                   dest="verbosity", help="same as -d")
-parser.add_option("-q", "--quiet", action="store_const", const=-1, type="int",
+parser.add_option("-q", "--quiet", action="store_const", const=-1,
                   dest="verbosity", help="print only warning & error messages")
-parser.add_option("-s", "--silent", action="store_const", const=-3, type="int",
+parser.add_option("-s", "--silent", action="store_const", const=-3,
                   dest="verbosity", help="print nothing (if possible)")
 run.addVerbosityOption(parser, dest="pipeverb")
 
