@@ -9,7 +9,7 @@ from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
 from lsst.ctrl.orca.ProductionRunManager import ProductionRunManager 
 
-usage = """usage: %prog [-ndvqs] [-r dir] [-e script] [V int][-L lev] pipelinePolicyFile runId"""
+usage = """usage: %prog [-ndvqs] [-r dir] [-e script] [-V int][-L lev] pipelinePolicyFile runId"""
 
 parser = optparse.OptionParser(usage)
 # TODO: handle "--dryrun"
