@@ -100,8 +100,12 @@ class SimplePipelineManager(PipelineManager):
 
         newPolicy = pol.Policy.createPolicy(polfile, False)
 
-        eventBrokerHost = self.policy.get("configuration.execute.eventBrokerHost")
-        newPolicy.set("execute.eventBrokerHost", eventBrokerHost)
+        if self.prodPolicyOverrides is not None:
+            for name in self.prodPolicyOverrides.paramNames():
+                newPolicy.set(name, self.prodPolicyOverrides.get(name))
+
+#        eventBrokerHost = self.policy.get("configuration.execute.eventBrokerHost")
+#        newPolicy.set("execute.eventBrokerHost", eventBrokerHost)
 
         executeDir = self.policy.get("platform.dir")
         newPolicy.set("execute.dir", executeDir)

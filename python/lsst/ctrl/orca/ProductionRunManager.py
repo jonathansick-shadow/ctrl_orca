@@ -115,7 +115,17 @@ class ProductionRunManager:
         pipePolicy = self.policy.get("pipelines")
         pipelines = pipePolicy.policyNames(True)
 
-
+        prodoverrides = Policy()
+        if self.policy.exists("eventBrokerHost"):
+            prodoverrides.set("execute.eventBrokerHost",
+                              self.policy.get("eventBrokerHost"))
+        if self.policy.exists("logThreshold"):
+            prodoverrides.set("execute.logThreshold",
+                              self.policy.get("logThreshold"))
+        if self.policy.exists("shutdownTopic"):
+            prodoverrides.set("execute.shutdownTopic",
+                              self.policy.get("shutdownTopic"))
+        
         for pipeline in pipelines:
             self.logger.log(Log.DEBUG, "pipeline ---> "+pipeline)
             pipelinePolicy = pipePolicy.get(pipeline)
@@ -138,7 +148,9 @@ class ProductionRunManager:
                 pipelineManager = pipelineManagerClass(self.pipelineVerbosity)
 
                 # configure this pipeline
-                pipelineManager.configure(pipeline, pipelinePolicy, runId, self.repository, provenance, dbRun, self.policySet)
+                print "running configure"
+                pipelineManager.configure(pipeline, pipelinePolicy, runId, self.repository, provenance, dbRun, self.policySet, prodoverrides)
+                print "done configure"
                 self.pipelineManagers.append(pipelineManager)
 
 

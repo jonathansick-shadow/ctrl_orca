@@ -37,7 +37,7 @@ class PipelineManager:
     def configureDatabase(self):
         self.logger.log(Log.DEBUG, "PipelineManager:configureDatabase")
 
-    def configure(self, pipeline, policy, runId, repository, provenance, dbRunURL, policySet):
+    def configure(self, pipeline, policy, runId, repository, provenance, dbRunURL, policySet, prodPolicyOverrides):
         self.logger.log(Log.DEBUG, "PipelineManager:configure")
 
         # TODO: redesign this ....many too many arguments to this method
@@ -48,6 +48,7 @@ class PipelineManager:
         self.provenance = provenance
         self.dbRunURL = dbRunURL
         self.policySet = policySet
+        self.prodPolicyOverrides = prodPolicyOverrides
 
         self.defaultDomain = policy.get("platform.deploy.defaultDomain")
         self.logger.log(Log.DEBUG, "defaultDomain = "+self.defaultDomain)
