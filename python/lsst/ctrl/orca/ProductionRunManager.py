@@ -148,9 +148,7 @@ class ProductionRunManager:
                 pipelineManager = pipelineManagerClass(self.pipelineVerbosity)
 
                 # configure this pipeline
-                print "running configure"
                 pipelineManager.configure(pipeline, pipelinePolicy, runId, self.repository, provenance, dbRun, self.policySet, prodoverrides)
-                print "done configure"
                 self.pipelineManagers.append(pipelineManager)
 
 
