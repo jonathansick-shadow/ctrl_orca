@@ -9,7 +9,14 @@ from lsst.pex.logging import Log
 
 class PipelineManager:
 
-    def __init__(self):
+    def __init__(self, pipeVerb=None, logger=None):
+        """
+        create a generic PipelineManager
+        @param pipeVerb  the verbosity level to pass onto the pipelines for 
+                            pipeline messages
+        @param logger    the caller's Log instance from which this manager can.
+                            create a child Log
+        """
         self.defaultDomain = ""
         self.rootDir = ""
 
@@ -17,20 +24,21 @@ class PipelineManager:
         self.policy = None
         self.runId = ""
 
-        if orca.logger == None:
-            orca.logger = Log(Log.getDefaultLog(), "dc3")
+        if logger is None:  logger = orca.logger
+        self.logger = Log(logger, "pipelineMgr")
+        self.pipelineVerbosity = pipeVerb
 
         self.masterNode = ""
         self.dbConfigurator = None
 
     def checkConfiguration(self):
-        orca.logger.log(Log.DEBUG, "PipelineManager:checkConfiguration")
+        self.logger.log(Log.DEBUG, "PipelineManager:checkConfiguration")
 
     def configureDatabase(self):
-        orca.logger.log(Log.DEBUG, "PipelineManager:configureDatabase")
+        self.logger.log(Log.DEBUG, "PipelineManager:configureDatabase")
 
-    def configure(self, pipeline, policy, runId, repository, provenance, dbRunURL, policySet):
-        orca.logger.log(Log.DEBUG, "PipelineManager:configure")
+    def configure(self, pipeline, policy, runId, repository, provenance, dbRunURL, policySet, prodPolicyOverrides):
+        self.logger.log(Log.DEBUG, "PipelineManager:configure")
 
         # TODO: redesign this ....many too many arguments to this method
         self.pipeline = pipeline
@@ -40,9 +48,10 @@ class PipelineManager:
         self.provenance = provenance
         self.dbRunURL = dbRunURL
         self.policySet = policySet
+        self.prodPolicyOverrides = prodPolicyOverrides
 
         self.defaultDomain = policy.get("platform.deploy.defaultDomain")
-        orca.logger.log(Log.DEBUG, "defaultDomain = "+self.defaultDomain)
+        self.logger.log(Log.DEBUG, "defaultDomain = "+self.defaultDomain)
         self.rootDir = policy.get("defRootDir")
 
         self.createDirectories()
@@ -51,7 +60,7 @@ class PipelineManager:
         self.deploySetup()
 
     def createNodeList(self):
-        orca.logger.log(Log.DEBUG, "PipelineManager:createNodeList")
+        self.logger.log(Log.DEBUG, "PipelineManager:createNodeList")
 
         node = self.policy.getArray("platform.deploy.nodes")
 
@@ -83,23 +92,23 @@ class PipelineManager:
                 node = nodeentry[0:colon]
                 if len(node) < 3:
                     #logger.log(Log.WARN, "Suspiciously short node name: " + node)
-                    orca.logger.log(Log.DEBUG, "Suspiciously short node name: " + node)
-                orca.logger.log(Log.DEBUG, "-> nodeentry  =" + nodeentry)
-                orca.logger.log(Log.DEBUG, "-> node  =" + node)
+                    self.logger.log(Log.DEBUG, "Suspiciously short node name: " + node)
+                self.logger.log(Log.DEBUG, "-> nodeentry  =" + nodeentry)
+                self.logger.log(Log.DEBUG, "-> node  =" + node)
                 node += "."+self.defaultDomain
                 nodeentry = "%s:%s" % (node, nodeentry[colon+1:])
             else:
                 nodeentry = "%s%s:1" % (node, self.defaultDomain)
 
-        orca.logger.log(Log.DEBUG, "returning nodeentry = " + nodeentry)
+        self.logger.log(Log.DEBUG, "returning nodeentry = " + nodeentry)
         return nodeentry
 
 
     def createDirectories(self):
-        orca.logger.log(Log.DEBUG, "PipelineManager:createDirectories")
+        self.logger.log(Log.DEBUG, "PipelineManager:createDirectories")
 
     def createDirectoryList(self):
-        orca.logger.log(Log.DEBUG, "PipelineManager:createDirectoryList")
+        self.logger.log(Log.DEBUG, "PipelineManager:createDirectoryList")
 
         names = self.policy.get("directoryNames")
         dirs = []
@@ -123,10 +132,10 @@ class PipelineManager:
         return dirs
 
     def deploySetup(self):
-        orca.logger.log(Log.DEBUG, "PipelineManager:deploySetup")
+        self.logger.log(Log.DEBUG, "PipelineManager:deploySetup")
 
     def launchPipeline(self):
-        orca.logger.log(Log.DEBUG, "PipelineManager:launchPipeline")
+        self.logger.log(Log.DEBUG, "PipelineManager:launchPipeline")
 
 
     def recordChildPolicies(self, repos, policy, pipelinePolicySet):

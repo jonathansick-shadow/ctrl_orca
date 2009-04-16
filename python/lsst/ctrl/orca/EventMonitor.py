@@ -3,15 +3,15 @@ from lsst.pex.logging import Log
 
 class EventMonitor:
 
-    def __init__(self, monitorFile):
-        if orca.logger == None:
-            orca.logger = Log(Log.getDefaultLog(), "d3pipe")
+    def __init__(self, monitorFile, logger=None):
+        if logger is None:  logger = orca.logger
+        self.logger = Log(logger, "eventMonitor")
 
-        orca.logger.log(Log.DEBUG,"EventMonitor:init")
+        self.logger.log(Log.DEBUG,"EventMonitor:init")
         # create and initialize Event Monitor
 
     def start(self):
-        orca.logger.log(Log.DEBUG, "EventMonitor:start")
+        self.logger.log(Log.DEBUG, "EventMonitor:start")
 
     def stop(self):
-        orca.logger.log(Log.DEBUG, "EventMonitor:stop")
+        self.logger.log(Log.DEBUG, "EventMonitor:stop")
