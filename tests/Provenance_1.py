@@ -10,6 +10,7 @@ import unittest
 import lsst.ctrl.orca.provenance as orcaProv
 import lsst.pex.policy as pexPolicy
 from lsst.daf.persistence import DbStorage, LogicalLocation
+from lsst.daf.base import DateTime
 
 class ProvenanceTestCase(unittest.TestCase):
     """A test case for Provenance."""
@@ -27,6 +28,7 @@ class ProvenanceTestCase(unittest.TestCase):
                 "prv_PolicyFile", "prv_PolicyKey", "prv_cnf_PolicyKey"):
             db.truncateTable(table)
             globalDb.truncateTable(table)
+        globalDb.truncateTable("prv_Run")
 
     def testConstruct(self):
         ps = orcaProv.Provenance(self.user, self.runId, self.dbLoc,
@@ -61,7 +63,7 @@ class ProvenanceTestCase(unittest.TestCase):
             self.assert_(not db.columnIsNull(1))
             self.assert_(not db.columnIsNull(2))
             self.assert_(not db.columnIsNull(3))
-            self.assertEqual(db.getColumnByPosInt(0), i)
+            self.assertEqual(db.getColumnByPosInt(0), (1 << 16) + i)
             self.assertEqual(db.getColumnByPosString(1), pkgs[i - 1][0])
             self.assertEqual(db.getColumnByPosString(2), pkgs[i - 1][1])
             self.assertEqual(db.getColumnByPosString(3), pkgs[i - 1][3])
@@ -88,7 +90,7 @@ class ProvenanceTestCase(unittest.TestCase):
                 md5.update(line)
             f.close()
             hash = md5.hexdigest()
-            mod = os.stat(p)[8] * 1000000000L
+            mod = DateTime(os.stat(p)[8] * 1000000000L, DateTime.UTC)
 
             pol = pexPolicy.Policy(p)
             names = pol.paramNames()
@@ -116,7 +118,7 @@ class ProvenanceTestCase(unittest.TestCase):
                 self.assert_(not db.columnIsNull(3))
                 self.assert_(not db.columnIsNull(4))
                 self.assertEqual(db.getColumnByPosString(0), hash)
-                self.assertEqual(db.getColumnByPosInt64(1), mod)
+                self.assertEqual(db.getColumnByPosInt64(1), mod.nsecs())
                 key = db.getColumnByPosString(2)
                 self.assert_(pol.exists(key))
                 self.assert_(key in names)
