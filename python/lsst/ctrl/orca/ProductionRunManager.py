@@ -79,6 +79,9 @@ class ProductionRunManager:
         if not os.path.isdir(self.repository): 
             raise RuntimeError("specified repository "+ self.repository + ": not a directory");
 
+        self.startEventMonitor(runId)
+
+        
         # TODO: next, get all the referenced files, check if they exist in the 
         # policySet object.  If they don't, record provenance, and add them to
         # the set.
@@ -125,7 +128,7 @@ class ProductionRunManager:
         if self.policy.exists("shutdownTopic"):
             prodoverrides.set("execute.shutdownTopic",
                               self.policy.get("shutdownTopic"))
-        
+
         for pipeline in pipelines:
             self.logger.log(Log.DEBUG, "pipeline ---> "+pipeline)
             pipelinePolicy = pipePolicy.get(pipeline)
@@ -157,10 +160,12 @@ class ProductionRunManager:
         for pipelineMgr in self.pipelineManagers:
             pipelineMgr.launchPipeline()
 
-    def startEventMonitor(self):
+    def startEventMonitor(self, runId):
         self.logger.log(Log.DEBUG, "ProductionRunManager:startEventMonitor")
-        monitorFile = self.policy.get("eventMonitorConfig")
-        self.eventMonitor = EventMonitor.EventMonitor(monitorFile)
+        print "ProductionRunManager:startEventMonitor"
+        monitorFile = self.policy.get("eventMonitorScript")
+        self.eventMonitor = EventMonitor.EventMonitor(runId, monitorFile)
+        print "ProductionRunManager:startEventMonitor finished"
 
     def stopEventMonitor(self):
         self.logger.log(Log.DEBUG, "ProductionRunManager:stopEventMonitor")
