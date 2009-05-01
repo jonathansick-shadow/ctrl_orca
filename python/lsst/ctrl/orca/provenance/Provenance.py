@@ -8,7 +8,7 @@ from lsst.pex.policy import Policy
 from lsst.daf.persistence import DbStorage, LogicalLocation
 from lsst.daf.base import DateTime
 
-class Provenance:
+class Provenance(object):
     """Class to maintain provenance for LSST pipelines."""
 
     def __init__(self, username, runId, dbLoc, globalDbLoc):
