@@ -218,7 +218,7 @@ class AbePipelineManager(PipelineManager):
         os.wait()[0]
         print "After Transfer 1 \n"; 
 
-        ## self.provenance.recordPolicy(newPolicyFile)
+        self.provenance.recordPolicy(newPolicyFile)
         self.policySet.add(newPolicyFile)
 
         # XXX - reuse "newPolicy"?
