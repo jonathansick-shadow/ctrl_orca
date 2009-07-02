@@ -3,6 +3,7 @@
 from lsst.ctrl.orca.dbservers.MySQLConfigurator import MySQLConfigurator
 from lsst.cat.MySQLBase import MySQLBase
 from lsst.cat.policyReader import PolicyReader
+from lsst.daf.persistence import DbAuth
 
 import getpass
 import os
@@ -65,8 +66,13 @@ def startSomeRuns():
 
 ####################################################
 
-usr = raw_input("Enter mysql account name: ")
-pwd = getpass.getpass()
+if DbAuth.available(host, str(port)):
+    usr = DbAuth.username(host, str(port))
+    pwd = DbAuth.password(host, str(port))
+else:
+    print "Authorization unavailable for %s:%s" % (host, port)
+    usr = raw_input("Enter mysql account name: ")
+    pwd = getpass.getpass()
 
 #authUser(usr, pwd)
 
