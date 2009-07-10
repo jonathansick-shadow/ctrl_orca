@@ -82,8 +82,6 @@ class AbePipelineManager(PipelineManager):
         setupLineList = self.script.split("/") 
         lengthLineList = len(setupLineList)
         setupShortname = setupLineList[lengthLineList-1]
-        print "lengthLineList ", lengthLineList, "\n" 
-        print "setupLineList ", setupShortname, "\n" 
 
         ## TODO: We did this same thing in DC2. We shouldn't be
         ## depending the system we launch on to determine which version
@@ -98,54 +96,44 @@ class AbePipelineManager(PipelineManager):
 
         # Stage the setup script  into place on the remote resource 
         localSetupName = "%s%s" % ("file://", self.script);
-        print "localSetupName ", localSetupName, "\n"; 
         abePrefix =  "gsiftp://gridftp-abe.ncsa.teragrid.org";  
 
         self.remoteScript = self.dirs.get("work") + "/" + setupShortname
         remoteSetupName = "%s%s" % (abePrefix, self.remoteScript);
-        print "remoteSetupName ", remoteSetupName, "\n"; 
         # Copy setup script 
-        print "setup script ", self.script, self.remoteScript, "\n";
 
         # build the copy command
         cmdSetup = "globus-url-copy -vb -cd %s %s " % \
            (localSetupName, remoteSetupName)
 
-        print "Before Transfer Setup \n"; 
         pid = os.fork()
         if not pid:
             os.execvp("globus-url-copy", cmdSetup.split())
         os.wait()[0]
-        print "After Transfer Setup \n" 
 
         # The local copy of the nodelist file
         nodelistBase = self.repository + "/nodelist.scr"
         # count the number of nodes for Condor job
         nodeFile = open(nodelistBase) 
         nodeLines = (nodeFile.readlines())
-        self.numNodes = len(nodeLines)
-        print "numNodes is ", self.numNodes
         nodeFile.close() 
+        self.numNodes = len(nodeLines)
+        self.logger.log(Log.DEBUG, "Number of nodes to be used " + str(self.numNodes))
 
         # write gridftp suitable local and remote names  
-        print "nodelistBase", nodelistBase
         localNodelistName = "%s%s" % ("file://", nodelistBase)
-        print "localNodelistName ", localNodelistName, "\n"
 
         remoteNodelist = self.dirs.get("work") + "/nodelist.scr"
         remoteNodelistName = "%s%s" % (abePrefix, remoteNodelist)
-        print "remoteNodelistName ", remoteNodelistName, "\n"
 
         # build the copy command for nodelist transfer
         cmdNodelist = "globus-url-copy -vb -cd %s %s " % \
            (localNodelistName, remoteNodelistName)
          
-        print "Before Transfer Nodelist \n"
         pid = os.fork()
         if not pid:
             os.execvp("globus-url-copy", cmdNodelist.split())
         os.wait()[0]
-        print "After Transfer Nodelist \n" 
 
         # 
         #  read in default policy
@@ -160,7 +148,6 @@ class AbePipelineManager(PipelineManager):
         # 
         # copy the policies to the working directory
         polfile = os.path.join(self.repository, self.pipeline+".paf")
-        print "polfile ", polfile, "\n";
 
         newPolicy = pol.Policy.createPolicy(polfile, False)
 
@@ -171,78 +158,49 @@ class AbePipelineManager(PipelineManager):
         executeDir = self.policy.get("platform.dir")
         newPolicy.set("execute.dir", executeDir)
 
-        print "executeDir ", executeDir, "\n";
-
         newPolicy.set("execute.database.url",self.dbRunURL)
-        print "dbRunURL ", self.dbRunURL, "\n";
 
         polbasefile = os.path.basename(polfile)
-        print "polbasefile ", polbasefile, "\n";
 
-        # do not write new Policy in remote location
-        # we have to write it here  
+        # Do not write new Policy in remote location; we have to write it here  
         # newPolicyFile = os.path.join(self.dirs.get("work"), self.pipeline+".paf")
         newPolicyFile = os.path.join(self.repository, self.pipeline+".paf.tmp"); 
 
-        print "self.pipeline ", self.pipeline, "\n";
-        print "newPolicyFile ", newPolicyFile, "\n";
-
-        if os.path.exists(newPolicyFile):
-            self.logger.log(Log.WARN, 
-                       "Working directory already contains %s; won't overwrite" % \
-                           polbasefile)
-        else:
-            pw = pol.PAFWriter(newPolicyFile)
-            pw.write(newPolicy)
-            pw.close()
-
+        pw = pol.PAFWriter(newPolicyFile)
+        pw.write(newPolicy)
+        pw.close()
 
         # Stage the newPolicy File into place on the remote resource 
         localGridName0 = "%s%s" % ("file://", newPolicyFile);
-        print "localGridName0 ", localGridName0, "\n"; 
 
         remoteFile = os.path.join(self.dirs.get("work"), self.pipeline+".paf");
-        # print "remoteFile ", remoteFile, "\n"; 
 
         remoteGridName0 = "%s%s" % (abePrefix, remoteFile);
-        print "remoteGridName0 ", remoteGridName0, "\n"; 
 
         # build the copy command
         cmd0 = "globus-url-copy -vb -cd %s %s " % \
            (localGridName0, remoteGridName0)
 
-        print "Before Transfer 1 \n"; 
         pid = os.fork()
         if not pid:
             os.execvp("globus-url-copy", cmd0.split())
         os.wait()[0]
-        print "After Transfer 1 \n"; 
 
         self.provenance.recordPolicy(newPolicyFile)
         self.policySet.add(newPolicyFile)
 
-        # XXX - reuse "newPolicy"?
-        # Turn off provenance
         newPolicyObj = pol.Policy.createPolicy(newPolicyFile, False)
         pipelinePolicySet = sets.Set()
         self.recordChildPolicies(self.repository, newPolicyObj, pipelinePolicySet)
         
-        ## if os.path.exists(os.path.join(self.dirs.get("work"), self.pipeline)):
-        ##    self.logger.log(Log.WARN, 
-        ##      "Working directory already contains %s directory; won't overwrite" % \
-        ##                   self.pipeline)
-        ## else:
-            #shutil.copytree(os.path.join(self.repository, self.pipeline), os.path.join(self.dirs.get("work"),self.pipeline))
-            #
-            # instead of blindly copying the whole directory, take the set
-            # if files from policySet and copy those.
-            #
-            # This is slightly tricky, because we want to copy from the policy file 
-            # repository directory to the "work" directory, but we also want to keep
-            # that partial directory hierarchy we're copying to as well.
-            #
 
+        for filename  in pipelinePolicySet:
+            self.logger.log(Log.DEBUG, "Transfer list file> " + filename)
+
+        
+        emptyList = []
         # changing indent : always stage policy file 
+        # for filename  in emptyList:
         for filename  in pipelinePolicySet:
             destinationDir = self.dirs.get("work")
             destName = filename.replace(self.repository+"/","")
@@ -251,36 +209,43 @@ class AbePipelineManager(PipelineManager):
             # if the destination directory heirarchy doesn't exist, create all
             # the missing directories
             destinationFile = tokens[len(tokens)-1]
-            for newDestinationDir in tokens[:len(tokens)-1]:
-                print "newDestinationDir ", newDestinationDir, "\n"; 
-                newDir = os.path.join(destinationDir, newDestinationDir)
-                # do not make the newDir; it is remote 
-                # if os.path.exists(newDir) == False:
-                #     os.mkdir(newDir)
-                destinationDir = newDir
-                print "destinationDir ", destinationDir, "\n"; 
-                # Copy sub pipeline policy    
-                dest1 = os.path.join(destinationDir, destinationFile);  
-                print "dest1 ", dest1;
+            if tokensLength > 1:
+                for newDestinationDir in tokens[:len(tokens)-1]:
+                    newDir = os.path.join(destinationDir, newDestinationDir)
+                    # do not make the newDir; it is remote 
+                    # if os.path.exists(newDir) == False:
+                    #     os.mkdir(newDir)
+                    destinationDir = newDir
+                    # Copy sub pipeline policy    
+                    dest1 = os.path.join(destinationDir, destinationFile)  
 
-            print "filename ", filename, "\n"; 
+                    localGridName = "%s%s" % ("file://", filename) 
+                    self.logger.log(Log.DEBUG, "localGridName " + localGridName)
 
-            localGridName = "%s%s" % ("file://", filename);
-            print "localGridName ", localGridName, "\n"; 
+                    remoteGridName =  "%s%s" % (abePrefix, dest1) 
+                    self.logger.log(Log.DEBUG, "remoteGridName " + remoteGridName)
 
-            remoteGridName =  "%s%s" % (abePrefix, dest1);
-            print "remoteGridName ", remoteGridName, "\n"; 
+                    # build the copy command
+                    cmd = "globus-url-copy -vb -cd %s %s " % \
+                        (localGridName, remoteGridName)
 
-            # build the copy command
-            cmd = "globus-url-copy -vb -cd %s %s " % \
-                 (localGridName, remoteGridName)
+                    pid = os.fork()
+                    if not pid:
+                        os.execvp("globus-url-copy", cmd.split())
+                    os.wait()[0]
 
-            print "Before sub Transfer \n"; 
-            pid = os.fork()
-            if not pid:
-                os.execvp("globus-url-copy", cmd.split())
-            os.wait()[0]
-            print "After sub Transfer \n"; 
+            if tokensLength == 1:
+                dest1 = os.path.join(destinationDir, destinationFile)  
+                localGridName = "%s%s" % ("file://", filename) 
+                remoteGridName =  "%s%s" % (abePrefix, dest1) 
+                # build the copy command
+                cmd = "globus-url-copy -vb -cd %s %s " % \
+                    (localGridName, remoteGridName)
+
+                pid = os.fork()
+                if not pid:
+                    os.execvp("globus-url-copy", cmd.split())
+                os.wait()[0]
 
             # Typical globus-url-copy urls 
             # file:///lsst/home/daues/globus/lsst4/work/set.tar 
@@ -297,13 +262,14 @@ class AbePipelineManager(PipelineManager):
         # HardCode for now
         launchcmd =  execPath 
 
-        print "execPath ", execPath, "\n";
-        print "launchcmd ", launchcmd, "\n";
+        # print "execPath ", execPath, "\n";
+        # print "launchcmd ", launchcmd, "\n";
 
-        launchArgs = "%s %s -L %s -S %s" % (self.pipeline+".paf", self.runId, self.pipelineVerbosity, self.remoteScript)  
+        launchArgs = "%s %s -L %s -S %s" % \
+             (self.pipeline+".paf", self.runId, self.pipelineVerbosity, self.remoteScript)  
 
         # Write Condor file 
-        print "launchPipeline: Write Condor job file here"
+        # print "launchPipeline: Write Condor job file here"
         condorJobfile =  self.pipeline+".condor"
         # Let's create some data:
         clist = []
@@ -326,19 +292,17 @@ class AbePipelineManager(PipelineManager):
         
         # kick off the run
         cmdCondor = "condor_submit %s" % condorJobfile
-        print "cmdCondor \n"
-        print cmdCondor
 
-        print "Condor submit file \n"
-        print clist
-        print "\n"
+        self.logger.log(Log.DEBUG, "cmdCondor = "+ cmdCondor)
+        for item in clist:
+            self.logger.log(Log.DEBUG, "Condor submit file line> "+ item)
 
-        print "Submitting Condor job ... \n";
+        self.logger.log(Log.INFO, "Submitting Condor job ... ")
         pid = os.fork()
         if not pid:
             os.execvp("condor_submit", cmdCondor.split())
         os.wait()[0]
-        print "Condor job submitted. \n";
+        self.logger.log(Log.INFO, "Condor job submitted. ")
 
 
     def getAllNames(self, dirName, pattern):
