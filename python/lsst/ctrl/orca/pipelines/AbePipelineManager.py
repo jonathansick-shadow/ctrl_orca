@@ -79,9 +79,6 @@ class AbePipelineManager(PipelineManager):
              raise RuntimeError("couldn't find configuration.framework.environment")
         self.script = EnvString.resolve(setupPath)
 
-        setupLineList = self.script.split("/") 
-        lengthLineList = len(setupLineList)
-        setupShortname = setupLineList[lengthLineList-1]
 
         ## TODO: We did this same thing in DC2. We shouldn't be
         ## depending the system we launch on to determine which version
@@ -89,10 +86,17 @@ class AbePipelineManager(PipelineManager):
         ## guaranteed to be running the same shell as the interactive
         ## shell from which orca was launched.
 
+        # BUG FIX :   On the command line the envscript may be specified as "setup.sh"
+        #      or "setup.csh" . In that case (no leading /) one needs to prepend the 
+        #      current working directory to have a correct URL / 
         if orca.envscript == None:
             print "using default setup.sh"
         else:
             self.script = orca.envscript
+
+        setupLineList = self.script.split("/") 
+        lengthLineList = len(setupLineList)
+        setupShortname = setupLineList[lengthLineList-1]
 
         # Stage the setup script  into place on the remote resource 
         localSetupName = "%s%s" % ("file://", self.script);
