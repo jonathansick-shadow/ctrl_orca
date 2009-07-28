@@ -1,0 +1,25 @@
+The DC3a calling sequence:
+
+Orca:
+    create manager = ProductionRunManager
+    manager.configure(policyFile, runId)
+        * create policy object from policyFile name, resolving Env strings
+        * check that repository directory exists
+        * get the filename (dbFileName) of the policy "databaseConfig.database"
+        * prepend the repository directory to dbFileName
+        # call to create database
+        dbNames = manager.createDatabase(runId)
+        # dbNames contains the run and global name
+        dbBaseURL = dbConfigurator.getHostURL()
+        dbRun = dbBaseURL+"/"+dbNames[0]
+        dbGlobal = dbBaseURL+"/"+dbNames[1]
+        # create Provenance object
+        provenance = Provenance()
+        * call Provenance object record the environment
+        provenance.recordEnvironment()
+
+        * record provenance for fully resolved policyFile path
+        * record provenance for dbFileName
+
+    manager.checkConfiguration()
+    manager.launch()

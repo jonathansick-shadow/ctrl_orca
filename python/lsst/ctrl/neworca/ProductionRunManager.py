@@ -15,7 +15,7 @@ class ProductionRunManager:
     def getPolicy(self):
         return self.policy
 
-    def setPolicy(self, policy):`
+    def setPolicy(self, policy):
         self.policy = policy
 
     def runProduction(self):
