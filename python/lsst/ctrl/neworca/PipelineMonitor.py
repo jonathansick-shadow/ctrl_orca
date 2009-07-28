@@ -6,12 +6,12 @@ class PipelineMonitor:
         self.logger.log(Log.DEBUG, "PipelineMonitor:isRunnable")
         return True
 
-    def stopPipeline(self):
+    def stopPipeline(self, timeout):
         self.logger.log(Log.DEBUG, "PipelineMonitor:stopPipeline")
 
     def handleEvent(self, event):
+        # even - an event delivered to this pipeline
         self.logger.log(Log.DEBUG, "PipelineMonitor:handleEvent")
 
     def handleFailure(self):
         self.logger.log(Log.DEBUG, "PipelineMonitor:handleFailure")
-

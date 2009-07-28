@@ -9,5 +9,7 @@ class PipelineLauncher:
     def cleanUp(self):
         self.logger.log(Log.DEBUG, "PipelineLauncher:cleanUp")
 
-    def checkConfiguration(self, level):
+    def checkConfiguration(self, care):
+        # the level of care taken in the checks.  In general, the higher
+        # the number of checks that will be done.
         self.logger.log(Log.DEBUG, "PipelineLauncher:checkConfiguration")
