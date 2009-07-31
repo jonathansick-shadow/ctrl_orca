@@ -21,5 +21,42 @@ Orca:
         * record provenance for fully resolved policyFile path
         * record provenance for dbFileName
 
+        * lookup "pipelines" in policy for pipelinePolicy object.
+        * override defaults for "eventBrokerHost", "logThreshold" and
+        * "shutdownTopic"
+
+        * for each pipeline in "pipelines"
+          * get the policy object for that name
+          * if it's "launch" is set to true,
+            * lookup the platformFile name via "platform"
+            * create the full path to platformFile by prepending the
+                 repository directory
+            * record the provenance for this platformFile, if it hasn't been
+              done already
+            * run "loadPolicyFiles" # XXX
+            * get the platform.deploy.managerClass, and create that object as
+              pipelineManager
+            * configure the pipeline using pipelineManager.configure()
+            * add this pipelineManager to the list of pipelineManagers.
+
     manager.checkConfiguration()
+        for each pipelineManager in pipelineManagers:
+            pipelineManager.checkConfiguration()
+
     manager.launch()
+        for each pipelineManager in pipelineManagers:
+            pipelineManager.launchPipeline()
+-------------
+PipelineManger.configure():
+    createDirectories() # overridden by pipeline specific manager
+    nodes = createNodeList()
+    deploySetup() # overridden by pipeline specific manager
+
+-------------
+PipelineManager.createNodeList():
+    * get array of nodes from "platform.deploy.nodes" in policy
+    * nodeList = map(self.expandNodeHost, nodes)
+    # MasterNode is the first node in the list
+    * create a file named "nodelist.scr", and write all the nodes, one per
+      line, to it
+    * return the list of nodes

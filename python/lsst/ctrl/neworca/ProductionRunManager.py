@@ -1,30 +1,35 @@
 class ProductionRunManager:
-    def __init__(self):
+    def __init__(self, runid, policy, verbosity, logger):
+        self.logger = logger
+        self.verbosity = verbosity
         self.logger.log(Log.DEBUG, "ProductionRunManager:__init__")
-        self.runid = ""
-        self.policy = None
-        self.pipelineManager = []
+        self.runid = runid
+        self.policy = policy
+        self.pipelineManagers = []
 
 
     def getRunId(self):
         return self.runid
 
-    def setRunId(self, id):
-        self.runid = id
-
     def getPolicy(self):
         return self.policy
 
-    def setPolicy(self, policy):
-        self.policy = policy
-
     def runProduction(self):
         self.logger.log(Log.DEBUG, "ProductionRunManager:runProduction")
-        self.productionRunConfigurator = createConfigurator()
+        self.productionRunConfigurator = createConfigurator(policy)
 
-        # create all pipelineManagers
-        pipelineManager = productionRunConfigurator.createPipelineManager(name, policy)
-        self.pipelineManagers.append(pipelineManager)
+        # get pipelines
+        pipelines = self.policy.get("pipelines")
+        pipelinePolicyNames = pipelinePolicy.policyNames(True)
+
+        # create a pipelineManager for each pipeline, and save it.
+        for policyName in pipelinePolicyNames:
+            self.logger.log(Log.DEBUG, "pipeline --> "+pipeline)
+            pipelinePolicy = pipelines.get(policyName)
+            if pipelinePolicy.get("launch",1) != 0:
+                shortName = pipelinePolicy.get("shortname", policyName)
+                pipelineManager = productionRunConfigurator.createPipelineManager(shortName, pipelinePolicy)
+                self.pipelineManagers.append(pipelineManager)
 
         productionRunConfigurator.configure()
 
@@ -52,7 +57,8 @@ class ProductionRunManager:
     def createConfigurator(self, prodPolicy):
         # prodPolicy - the production run policy
         self.logger.log(Log.DEBUG, "ProductionRunManager:createConfigurator")
-        return 0 # returns a productionRunConfigurator
+        productionRunConfigurator = ProductionRunConfigurator(runid, policy, self.verbosity, self.logger)
+        return productionRunConfigurator
         
     def checkConfiguration(self, care):
         # care - level of "care" in checking the configuration to take. In
