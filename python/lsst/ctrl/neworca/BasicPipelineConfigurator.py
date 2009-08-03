@@ -4,6 +4,11 @@ class BasicPipelineConfigurator:
 
     def configure(self):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:configure")
+        createNodeList()
+        prepPlatform()
+        createLaunchScript()
+        deploySetup()
+        setupDatabase()
         return 0 # return PipelineLauncher
 
     def createNodeList(self):

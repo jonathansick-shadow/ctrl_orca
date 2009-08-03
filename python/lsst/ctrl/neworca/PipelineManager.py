@@ -14,6 +14,7 @@ class PipelineManager:
 
     def configure(self):
         self.logger.log(Log.DEBUG, "PipelineManager:configure")
+        basicPipelineConfigurator = BasicPipelineConfigurator()
         return 0 # return PipelineLauncher
 
     def createConfigurator(self):
