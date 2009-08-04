@@ -5,6 +5,8 @@ class PipelineManager:
 
     def runPipeline(self):
         self.logger.log(Log.DEBUG, "PipelineManager:runPipeline")
+        if self.pipelineConfigurator == None:
+            configure()
 
     def stopPipeline(self, timeout):
         self.logger.log(Log.DEBUG, "PipelineManager:stopPipeline")
@@ -14,7 +16,11 @@ class PipelineManager:
 
     def configure(self):
         self.logger.log(Log.DEBUG, "PipelineManager:configure")
-        basicPipelineConfigurator = BasicPipelineConfigurator()
+        #
+        # XXX - should be a factory to create this BasicPipelineConfigurator object
+        #
+        self.pipelineConfigurator = BasicPipelineConfigurator()
+        self.pipelineConfigurator.configure()
         return 0 # return PipelineLauncher
 
     def createConfigurator(self):

@@ -5,6 +5,10 @@ Orca:
     manager.configure(policyFile, runId)
         * create policy object from policyFile name, resolving Env strings
         * check that repository directory exists
+
+        #
+        # setup database for run, and record it's provenance
+        #
         * get the filename (dbFileName) of the policy "databaseConfig.database"
         * prepend the repository directory to dbFileName
         # call to create database
@@ -21,10 +25,17 @@ Orca:
         * record provenance for fully resolved policyFile path
         * record provenance for dbFileName
 
+        #
+        # override defaults for some keywords
+        #
         * lookup "pipelines" in policy for pipelinePolicy object.
         * override defaults for "eventBrokerHost", "logThreshold" and
         * "shutdownTopic"
 
+
+        #
+        #
+        #
         * for each pipeline in "pipelines"
           * get the policy object for that name
           * if it's "launch" is set to true,

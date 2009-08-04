@@ -20,5 +20,12 @@ class ProductionRunConfigurator:
         # prodPolicy - the policy that describes this production run
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:createPipelineManager")
 
+        pipelineManagerName = pipelinePolicy.get("platform.deply.managerClass")
+        pipelineManagerClass = classFactory.createClass(pipelineManagerName)
+        # XXX -  check -> Should this be pipeline verbosity, rather than the
+        # verbosity for the whole production run?
+        pipelineManager = pipelineManagerClass(self.verbosity)
+        return pipelineManager
+
     def configure(self):
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:configure")

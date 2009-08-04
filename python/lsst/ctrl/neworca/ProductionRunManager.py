@@ -16,22 +16,8 @@ class ProductionRunManager:
 
     def runProduction(self):
         self.logger.log(Log.DEBUG, "ProductionRunManager:runProduction")
+
         self.productionRunConfigurator = createConfigurator(policy)
-
-        # get pipelines
-        pipelines = self.policy.get("pipelines")
-        pipelinePolicyNames = pipelinePolicy.policyNames(True)
-
-        # create a pipelineManager for each pipeline, and save it.
-        for policyName in pipelinePolicyNames:
-            self.logger.log(Log.DEBUG, "pipeline --> "+pipeline)
-            pipelinePolicy = pipelines.get(policyName)
-            if pipelinePolicy.get("launch",1) != 0:
-                shortName = pipelinePolicy.get("shortname", policyName)
-                pipelineManager = productionRunConfigurator.createPipelineManager(shortName, pipelinePolicy)
-                self.pipelineManagers.append(pipelineManager)
-
-        productionRunConfigurator.configure()
 
         for pipelineMgr in self.pipelineManagers:
             pipelineLauncher = pipelineMgr.configure()
@@ -58,6 +44,22 @@ class ProductionRunManager:
         # prodPolicy - the production run policy
         self.logger.log(Log.DEBUG, "ProductionRunManager:createConfigurator")
         productionRunConfigurator = ProductionRunConfigurator(runid, policy, self.verbosity, self.logger)
+
+        # get pipelines
+        pipelinePolicies = prodPolicy.get("pipelines")
+        pipelinePolicyNames = pipelinePolicies.policyNames(True)
+
+        # create a pipelineManager for each pipeline, and save it.
+        for policyName in pipelinePolicyNames:
+            self.logger.log(Log.DEBUG, "pipeline --> "+pipeline)
+            pipelinePolicy = pipelines.get(policyName)
+            if pipelinePolicy.get("launch",1) != 0:
+                shortName = pipelinePolicy.get("shortname", policyName)
+                pipelineManager = productionRunConfigurator.createPipelineManager(shortName, pipelinePolicy)
+                self.pipelineManagers.append(pipelineManager)
+
+        productionRunConfigurator.configure()
+
         return productionRunConfigurator
         
     def checkConfiguration(self, care):
@@ -81,5 +83,4 @@ class ProductionRunManager:
         self.logger.log(Log.DEBUG, "ProductionRunManager:stopProduction")
         for pipelineMgr in self.pipelineManagers:
             pipelineMgr.stopProduction(urgency)
-            
             
