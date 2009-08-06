@@ -17,12 +17,15 @@ class ProductionRunManager:
     def runProduction(self):
         self.logger.log(Log.DEBUG, "ProductionRunManager:runProduction")
 
+        # create configurator
         self.productionRunConfigurator = createConfigurator(policy)
 
+        # configure each pipeline
         for pipelineMgr in self.pipelineManagers:
             pipelineLauncher = pipelineMgr.configure()
             self.pipelineLaunchers.append(pipelineLauncher)
 
+        # Check the configururation
         checkConfiguration()
 
         for pipelineMgr in self.pipelineManagers:
@@ -43,7 +46,7 @@ class ProductionRunManager:
     def createConfigurator(self, prodPolicy):
         # prodPolicy - the production run policy
         self.logger.log(Log.DEBUG, "ProductionRunManager:createConfigurator")
-        productionRunConfigurator = ProductionRunConfigurator(runid, policy, self.verbosity, self.logger)
+        productionRunConfigurator = ProductionRunConfiguratorFactory.createProductionRunConfigurator(runid, policy, self.verbosity, self.logger)
 
         # get pipelines
         pipelinePolicies = prodPolicy.get("pipelines")

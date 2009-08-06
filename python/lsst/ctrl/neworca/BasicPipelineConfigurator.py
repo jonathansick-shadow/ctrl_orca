@@ -1,4 +1,4 @@
-class BasicPipelineConfigurator:
+class BasicPipelineConfigurator(PipelineConfigurator):
     def __init__(self):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:__init__")
         self.nodes = None

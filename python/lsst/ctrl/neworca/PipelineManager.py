@@ -19,13 +19,15 @@ class PipelineManager:
         #
         # XXX - should be a factory to create this BasicPipelineConfigurator object
         #
-        self.pipelineConfigurator = BasicPipelineConfigurator()
+        self.pipelineConfigurator = createConfigurator(policy)
         self.pipelineConfigurator.configure()
         return 0 # return PipelineLauncher
 
-    def createConfigurator(self):
+    def createConfigurator(self, policy):
         self.logger.log(Log.DEBUG, "PipelineManager:createConfigurator")
-        return 0 # return PipelineConfigurator
+        className = policy.get("className")
+        configurator = NamedClassFactory.createClass(className)
+        return configurator
 
     def isDone(self):
         self.logger.log(Log.DEBUG, "PipelineManager:isDone")
