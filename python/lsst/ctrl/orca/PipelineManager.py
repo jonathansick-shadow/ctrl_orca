@@ -26,7 +26,8 @@ class PipelineManager:
     def createConfigurator(self, policy):
         self.logger.log(Log.DEBUG, "PipelineManager:createConfigurator")
         className = policy.get("className")
-        configurator = NamedClassFactory.createClass(className)
+        configuratorClass = NamedClassFactory.createClass(className)
+        configurator = configuratorClass() 
         return configurator
 
     def isDone(self):

@@ -1,7 +1,7 @@
 class ProductionRunManager:
-    def __init__(self, runid, policy, verbosity, logger):
+    def __init__(self, runid, policy, pipelineVerbosity, logger):
         self.logger = logger
-        self.verbosity = verbosity
+        self.pipelineVerbosity = pipelineVerbosity
         self.logger.log(Log.DEBUG, "ProductionRunManager:__init__")
         self.runid = runid
         self.policy = policy
@@ -18,7 +18,7 @@ class ProductionRunManager:
         self.logger.log(Log.DEBUG, "ProductionRunManager:runProduction")
 
         # create configurator
-        self.productionRunConfigurator = createConfigurator(policy)
+        self.productionRunConfigurator = self.createConfigurator()
 
         # configure each pipeline
         for pipelineMgr in self.pipelineManagers:
@@ -26,7 +26,7 @@ class ProductionRunManager:
             self.pipelineLaunchers.append(pipelineLauncher)
 
         # Check the configururation
-        checkConfiguration()
+        self.checkConfiguration()
 
         for pipelineMgr in self.pipelineManagers:
             pipelineManager.runPipeline()
@@ -43,10 +43,16 @@ class ProductionRunManager:
         self.logger.log(Log.DEBUG, "ProductionRunManager:isRunnable")
         return False
 
-    def createConfigurator(self, prodPolicy):
+    def createConfigurator(self):
         # prodPolicy - the production run policy
         self.logger.log(Log.DEBUG, "ProductionRunManager:createConfigurator")
-        productionRunConfigurator = ProductionRunConfiguratorFactory.createProductionRunConfigurator(runid, policy, self.verbosity, self.logger)
+
+
+        productionRunConfiguratorName = self.policy.get("productionRunConfiguratorClass")
+
+        classFactory = NamedClassFactory()
+        productionRunConfiguratorClass = classFactory.createClass(productionRunConfiguratornName)
+        productionRunConfigurator = productionRunConfiguratorClass(self.runid, self.policy, self.pipelineVerbosity, self.logger)
 
         # get pipelines
         pipelinePolicies = prodPolicy.get("pipelines")
@@ -58,7 +64,7 @@ class ProductionRunManager:
             pipelinePolicy = pipelines.get(policyName)
             if pipelinePolicy.get("launch",1) != 0:
                 shortName = pipelinePolicy.get("shortname", policyName)
-                pipelineManager = productionRunConfigurator.createPipelineManager(shortName, pipelinePolicy)
+                pipelineManager = productionRunConfigurator.createPipelineManager(shortName, pipelinePolicy, self.pipelineVerbosity)
                 self.pipelineManagers.append(pipelineManager)
 
         productionRunConfigurator.configure()

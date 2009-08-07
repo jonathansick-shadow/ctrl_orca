@@ -15,16 +15,14 @@ class ProductionRunConfigurator:
             pipelinePolicy = pipePolicy.get(pipeline)
             if pipelinePolicy.get("launch",1) != 0:
 
-    def createPipelineManager(self, shortName, prodPolicy):
+    def createPipelineManager(self, shortName, prodPolicy, pipelineVerbosity):
         # shortName - the short name for the pipeline to be configured
         # prodPolicy - the policy that describes this production run
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:createPipelineManager")
 
-        pipelineManagerName = pipelinePolicy.get("platform.deply.managerClass")
+        pipelineManagerName = pipelinePolicy.get("platform.deploy.managerClass")
         pipelineManagerClass = classFactory.createClass(pipelineManagerName)
-        # XXX -  check -> Should this be pipeline verbosity, rather than the
-        # verbosity for the whole production run?
-        pipelineManager = pipelineManagerClass(self.verbosity)
+        pipelineManager = pipelineManagerClass(pipelineVerbosity)
         return pipelineManager
 
     def configure(self):
