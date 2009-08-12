@@ -10,7 +10,8 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         createLaunchScript()
         deploySetup()
         setupDatabase()
-        return 0 # return PipelineLauncher
+        pipelineLauncher = PipelineLauncher()
+        return pipelineLauncher
 
     def createNodeList(self):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:createNodeList")

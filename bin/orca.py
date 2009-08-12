@@ -63,7 +63,9 @@ orca.logger.log(Log.DEBUG,"pipelinePolicyFile = "+pipelinePolicyFile)
 orca.logger.log(Log.DEBUG, "runId = "+runId)
 
 # create the ProductionRunManager, configure it, and launch it
-productionRunManager = ProductionRunManager(pipelinePolicyFile, runId, pipeVerb=parser.opts.pipeverb, orca.logger)
+productionRunManager = ProductionRunManager(runId, pipelinePolicyFile, orca.logger, pipelineVerbosity=parser.opts.pipeverb)
+
+
 productionRunManager.runProduction()
 #productionRunManager.configure(pipelinePolicyFile, runId)
 #productionRunManager.checkConfiguration()

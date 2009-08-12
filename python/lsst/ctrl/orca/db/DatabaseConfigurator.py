@@ -1,5 +1,10 @@
+import os, stat
+import lsst.ctrl.orca as orca
+from lsst.pex.logging import Log
+from lsst.ctrl.orca.db.MySQLConfigurator import MySQLConfigurator
+
 class DatabaseConfigurator:
-    def __init__(self, type, policy, logger=None):
+    def __init__(self, runid, policy, logger=None):
         """
         create a generic 
         @param type      the category of configurator
@@ -7,11 +12,14 @@ class DatabaseConfigurator:
         @param logger    the caller's Log instance from which this manager can.
                             create a child Log
         """
+        print "***"
+        print policy
         if logger is None:  logger = orca.logger
         self.logger = Log(logger, "dbconfig")
 
         self.logger.log(Log.DEBUG, "DatabaseConfigurator:__init__")
-        self.type = type
+        self.type = "mysql"
+        self.runid = runid
         self.policy = policy
         self.delegate = None
 
@@ -19,6 +27,8 @@ class DatabaseConfigurator:
         # extract the databaseConfig.database policy to get required
         # parameters from it.
 
+        print "--**--"
+        print policy.toString()
         dbHostName = policy.get("database.authInfo.host");
         portNo = policy.get("database.authInfo.port");
         globalDbName = policy.get("database.globalSetup.globalDbName")
@@ -30,13 +40,11 @@ class DatabaseConfigurator:
         self.dbPolicy = policy
 
         self.delegate = MySQLConfigurator(dbHostName, portNo, globalDbName, dcVersion, dcDbName, minPercDiskSpaceReq, userRunLife)
-        else:
-            raise RuntimeError("Couldn't find Configurator for "+type)
 
     def setup(self):
         self.logger.log(Log.DEBUG, "DatabaseConfigurator:setup")
 
-        self.checkConfiguration(dbPolicy)
+        self.checkConfiguration(self.dbPolicy)
         dbNames = self.prepareForNewRun(self.runid)
         return dbNames
 

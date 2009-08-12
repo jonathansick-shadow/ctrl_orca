@@ -1,12 +1,17 @@
+from lsst.pex.logging import Log
+
 class PipelineManager:
-    def __init__(self):
+    def __init__(self, logger):
+        self.logger =  logger
         self.logger.log(Log.DEBUG, "PipelineManager:__init__")
         self.urgency = 0
+        self.pipelineLauncher = None
 
     def runPipeline(self):
         self.logger.log(Log.DEBUG, "PipelineManager:runPipeline")
         if self.pipelineConfigurator == None:
             configure()
+        self.pipelineLauncher.launch()
 
     def stopPipeline(self, timeout):
         self.logger.log(Log.DEBUG, "PipelineManager:stopPipeline")
@@ -16,17 +21,15 @@ class PipelineManager:
 
     def configure(self):
         self.logger.log(Log.DEBUG, "PipelineManager:configure")
-        #
-        # XXX - should be a factory to create this BasicPipelineConfigurator object
-        #
+
         self.pipelineConfigurator = createConfigurator(policy)
-        self.pipelineConfigurator.configure()
-        return 0 # return PipelineLauncher
+        self.pipelineLauncher = self.pipelineConfigurator.configure()
 
     def createConfigurator(self, policy):
         self.logger.log(Log.DEBUG, "PipelineManager:createConfigurator")
         className = policy.get("className")
-        configuratorClass = NamedClassFactory.createClass(className)
+        classFactory = NamedClassFactory()
+        configuratorClass = classFactory.createClass(className)
         configurator = configuratorClass() 
         return configurator
 

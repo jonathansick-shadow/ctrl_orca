@@ -1,17 +1,25 @@
+from lsst.pex.logging import Log
+from lsst.ctrl.orca.ProductionRunConfigurator import ProductionRunConfigurator
+from lsst.ctrl.orca.db.DatabaseConfigurator import DatabaseConfigurator
+
 class BasicProductionRunConfigurator(ProductionRunConfigurator):
-    def __init__(self, runid, policy):
+    def __init__(self, runid, policy, logger, pipelineVerbosity):
+        self.logger = logger
         self.logger.log(Log.DEBUG, "BasicProductionConfigurator:__init__")
         self.runid = runid
+        self.policy = policy
         self.databaseConfigurator = None
+        self.pipelineVerbosity = pipelineVerbosity
 
-    def configure(self, policyFile):
-        setupDatabase()
+    def configure(self):
+        self.setupDatabase()
 
     def setupDatabase(self):
         self.logger.log(Log.DEBUG, "BasicProductionConfigurator:setupBasicProduction")
 
-        self.databaseConfigurator =  DatabaseConfigurator(runid)
-        dbNames = self.databaseConfigurator.setup(runid)
+        databaseConfigPolicy = self.policy.get("databaseConfig")
+        self.databaseConfigurator =  DatabaseConfigurator(self.runid, databaseConfigPolicy, self.logger)
+        dbNames = self.databaseConfigurator.setup()
 
         # record provenance for this database policy file
         dbBaseURL = self.databaseConfigurator.getHostURL()

@@ -1,10 +1,11 @@
 class PipelineLauncher:
     def __init__(self):
         self.logger.log(Log.DEBUG, "PipelineLauncher:__init__")
+        self.pipelineMonitor = PipelineMonitor()
 
     def launch(self):
         self.logger.log(Log.DEBUG, "PipelineLauncher:launch")
-        return 0 # returns PipelineMonitor
+        return pipelineMonitor # returns PipelineMonitor
 
     def cleanUp(self):
         self.logger.log(Log.DEBUG, "PipelineLauncher:cleanUp")
