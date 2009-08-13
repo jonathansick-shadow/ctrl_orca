@@ -1,4 +1,4 @@
-import os, os.path, sets
+iself.mport os, os.path, sets
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
@@ -11,14 +11,32 @@ class ProductionRunManager:
         self.runid = runid
         self.pipelineManagers = []
 
-        fullPolicyFilePath = ""
+        self.fullPolicyFilePath = ""
         if os.path.isabs(policyFileName) == True:
-            fullPolicyFilePath = policyFileName
+            self.fullPolicyFilePath = policyFileName
         else:
-            fullPolicyFilePath = os.path.join(os.path.realpath('.'), policyFileName)
+            self.fullPolicyFilePath = os.path.join(os.path.realpath('.'), policyFileName)
 
         # create policy file - but don't dereference yet
-        self.policy = Policy.createPolicy(fullPolicyFilePath, False)
+        self.policy = Policy.createPolicy(self.fullPolicyFilePath, False)
+
+        # determine the repository
+
+        if orca.repository == None:
+            reposValue = self.policy.get("repositoryDirectory")
+            if reposValue == None:
+                self.repository = "."
+            else:
+                self.repository = EnvString.resolve(reposValue)
+        else:   
+            self.repository = orca.repository
+            
+        # do a little sanity checking on the repository before we continue.
+        if not os.path.exists(self.repository):
+            raise RuntimeError("specified repository " + self.repository + ": directory not found");        
+        if not os.path.isdir(self.repository):
+            raise RuntimeError("specified repository "+ self.repository + ": not a directory");
+
 
 
     def getRunId(self):
@@ -72,6 +90,19 @@ class ProductionRunManager:
         # prodPolicy - the production run policy
         self.logger.log(Log.DEBUG, "ProductionRunManager:createConfigurator")
 
+        # these are policy settings which can be overriden from what they
+        # are in the pipeline policies. Save them for when we create the
+        # PipelineManager, and let the PipelineManger use these overrides
+        # as it sees fit to do so.
+        policyOverrides = Policy()
+        if self.policy.exists("eventBrokerHost"):
+            policyOverrides.set("execute.eventBrokerHost",
+                              self.policy.get("eventBrokerHost"))
+        if self.policy.exists("logThreshold"):
+            policyOverrides.set("execute.logThreshold",
+                              self.policy.get("logThreshold"))
+        if self.policy.exists("shutdownTopic"):            
+            policyOverrides.set("execute.shutdownTopic", self.policy.get("shutdownTopic"))
 
         productionRunConfiguratorName = self.policy.get("productionRunConfiguratorClass")
         print self.policy.toString()
@@ -82,9 +113,11 @@ class ProductionRunManager:
         productionRunConfiguratorClass = classFactory.createClass(productionRunConfiguratorName)
         productionRunConfigurator = productionRunConfiguratorClass(self.runid, self.policy, self.logger, self.pipelineVerbosity)
 
+
         # get pipelines
         pipelinePolicies = self.policy.get("pipelines")
         pipelinePolicyNames = pipelinePolicies.policyNames(True)
+        
 
         # create a pipelineManager for each pipeline, and save it.
         for policyName in pipelinePolicyNames:
@@ -92,12 +125,57 @@ class ProductionRunManager:
             pipelinePolicy = pipelinePolicies.get(policyName)
             if pipelinePolicy.get("launch",1) != 0:
                 shortName = pipelinePolicy.get("shortname", policyName)
-                pipelineManager = productionRunConfigurator.createPipelineManager(shortName, pipelinePolicy, self.pipelineVerbosity)
+                newPolicy = self.rewritePolicy(shortName, pipelinePolicy, policyOverrides)
+                pipelineManager = productionRunConfigurator.createPipelineManager(shortName, newPolicy, self.pipelineVerbosity)
                 self.pipelineManagers.append(pipelineManager)
 
-        productionRunConfigurator.configure()
+        dbNames = productionRunConfigurator.configure()
+        productionRunConfigurator.recordPolicy(fullyPolicyFilePath)
 
         return productionRunConfigurator
+
+    def rewritePolicy(self, pipelinePolicy, policyOverrides):
+        #  read in default policy        
+        #  read in given policy
+        #  in given policy:
+        #     set: execute.eventBrokerHost
+        #     set: execute.dir
+        #     set: execute.database.url
+        #  write new policy file with overridden values        
+        #  write file to self.dirs["work"]
+        #  call provenance.recordPolicy()        # 
+        # copy the policies to the working directory
+        polfile = os.path.join(self.repository, shortName+".paf")
+
+        newPolicy = pol.Policy.createPolicy(polfile, False)
+
+        if policyOverrides is not None:
+            for name in policyOverrides.paramNames():
+                newPolicy.set(name, policyOverrides.get(name))
+
+        executeDir = self.pipelinePolicy.get("platform.dir")
+        newPolicy.set("execute.dir", executeDir)
+
+        newPolicy.set("execute.database.url",self.dbRunURL)
+
+
+        polbasefile = os.path.basename(polfile)
+        newPolicyFile = os.path.join(self.dirs.get("work"), shortName+".paf")   
+ 
+        if os.path.exists(newPolicyFile):
+            self.logger.log(Log.WARN,
+                       "Working directory already contains %s; won't overwrite" 
+% \                                polbasefile)        
+        else:            
+            pw = pol.PAFWriter(newPolicyFile)
+            pw.write(newPolicy)
+            pw.close()
+        return Policy.loadPolicy(newPolicyFile)
+        
+        # provenance really should be recorded here, since orca is supposed
+        # to be in control of everything.
+        #self.provenance.recordPolicy(newPolicyFile)
+
         
     def checkConfiguration(self, care):
         # care - level of "care" in checking the configuration to take. In

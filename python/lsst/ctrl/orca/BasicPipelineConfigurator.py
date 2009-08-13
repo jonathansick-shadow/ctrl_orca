@@ -3,9 +3,10 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:__init__")
         self.nodes = None
 
-    def configure(self):
+    def configure(self, policy):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:configure")
         self.nodes = createNodeList()
+        self.policy = policy
         prepPlatform()
         createLaunchScript()
         deploySetup()
@@ -31,7 +32,6 @@ class BasicPipelineConfigurator(PipelineConfigurator):
             nodelist.close()
 
         return nodes
-
 
     def prepPlatform(self):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:prepPlatform")
