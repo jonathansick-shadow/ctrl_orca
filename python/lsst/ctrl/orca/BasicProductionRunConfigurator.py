@@ -1,6 +1,7 @@
 from lsst.pex.logging import Log
 from lsst.ctrl.orca.ProductionRunConfigurator import ProductionRunConfigurator
 from lsst.ctrl.orca.db.DatabaseConfigurator import DatabaseConfigurator
+from lsst.pex.policy import Policy
 
 class BasicProductionRunConfigurator(ProductionRunConfigurator):
     def __init__(self, runid, policy, logger, pipelineVerbosity):

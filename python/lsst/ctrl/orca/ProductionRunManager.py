@@ -1,7 +1,8 @@
-iself.mport os, os.path, sets
+import os, os.path, sets
+import lsst.pex.policy as pol
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.pex.logging import Log
-from lsst.pex.policy import Policy
+from lsst.ctrl.orca.EnvString import EnvString
 
 class ProductionRunManager:
     def __init__(self, runid, policyFileName, logger, pipelineVerbosity=None):
@@ -18,18 +19,15 @@ class ProductionRunManager:
             self.fullPolicyFilePath = os.path.join(os.path.realpath('.'), policyFileName)
 
         # create policy file - but don't dereference yet
-        self.policy = Policy.createPolicy(self.fullPolicyFilePath, False)
+        self.policy = pol.Policy.createPolicy(self.fullPolicyFilePath, False)
 
         # determine the repository
 
-        if orca.repository == None:
-            reposValue = self.policy.get("repositoryDirectory")
-            if reposValue == None:
-                self.repository = "."
-            else:
-                self.repository = EnvString.resolve(reposValue)
-        else:   
-            self.repository = orca.repository
+        reposValue = self.policy.get("repositoryDirectory")
+        if reposValue == None:
+            self.repository = "."
+        else:
+            self.repository = EnvString.resolve(reposValue)
             
         # do a little sanity checking on the repository before we continue.
         if not os.path.exists(self.repository):
@@ -94,7 +92,7 @@ class ProductionRunManager:
         # are in the pipeline policies. Save them for when we create the
         # PipelineManager, and let the PipelineManger use these overrides
         # as it sees fit to do so.
-        policyOverrides = Policy()
+        policyOverrides = pol.Policy()
         if self.policy.exists("eventBrokerHost"):
             policyOverrides.set("execute.eventBrokerHost",
                               self.policy.get("eventBrokerHost"))
@@ -134,7 +132,7 @@ class ProductionRunManager:
 
         return productionRunConfigurator
 
-    def rewritePolicy(self, pipelinePolicy, policyOverrides):
+    def rewritePolicy(self, shortName, pipelinePolicy, policyOverrides):
         #  read in default policy        
         #  read in given policy
         #  in given policy:
@@ -163,14 +161,12 @@ class ProductionRunManager:
         newPolicyFile = os.path.join(self.dirs.get("work"), shortName+".paf")   
  
         if os.path.exists(newPolicyFile):
-            self.logger.log(Log.WARN,
-                       "Working directory already contains %s; won't overwrite" 
-% \                                polbasefile)        
+            self.logger.log(Log.WARN, "Working directory already contains %s; won't overwrite" % polbasefile)        
         else:            
             pw = pol.PAFWriter(newPolicyFile)
             pw.write(newPolicy)
             pw.close()
-        return Policy.loadPolicy(newPolicyFile)
+        return pol.Policy.loadPolicy(newPolicyFile)
         
         # provenance really should be recorded here, since orca is supposed
         # to be in control of everything.
