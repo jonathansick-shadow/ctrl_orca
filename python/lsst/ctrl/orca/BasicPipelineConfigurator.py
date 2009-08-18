@@ -63,44 +63,15 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         # now point at the new location for the setup script
         self.script = os.path.join(self.dirs.get("work"),os.path.basename(self.script))
 
-        # 
-        #  read in default policy
-        #  read in given policy
-        #  in given policy:
-        #     set: execute.eventBrokerHost
-        #     set: execute.dir
-        #     set: execute.database.url
-        #  write new policy file with overridden values
+        # This policy has the override values, but must be written out and
+        # recorded.
         #  write file to self.dirs["work"]
         #  call provenance.recordPolicy()
         # 
         # copy the policies to the working directory
-        polfile = os.path.join(self.repository, self.pipeline+".paf")
-
-        newPolicy = pol.Policy.createPolicy(polfile, False)
-
-        if self.prodPolicyOverrides is not None:
-            for name in self.prodPolicyOverrides.paramNames():
-                newPolicy.set(name, self.prodPolicyOverrides.get(name))
-
-#        eventBrokerHost = self.policy.get("configuration.execute.eventBrokerHost")
-#        newPolicy.set("execute.eventBrokerHost", eventBrokerHost)
-
-        executeDir = self.policy.get("platform.dir")
-        newPolicy.set("execute.dir", executeDir)
-
-        #baseURL = self.dbConfigurator.getHostURL()
-
-        #fullURL = baseURL+"/"+ dbNames[0]
-        newPolicy.set("execute.database.url",self.dbRunURL)
-
-
-        polbasefile = os.path.basename(polfile)
         newPolicyFile = os.path.join(self.dirs.get("work"), self.pipeline+".paf")
         if os.path.exists(newPolicyFile):
-            self.logger.log(Log.WARN,
-                       "Working directory already contains %s; won't overwrite" % \
-                           polbasefile)
+            self.logger.log(Log.WARN, "Working directory already contains %s")
         else:
             pw = pol.PAFWriter(newPolicyFile)
             pw.write(newPolicy)
@@ -182,3 +153,35 @@ e)
             else:
                 nodeentry = "%s%s:1" % (node, self.defaultDomain)
         
+   def recordChildPolicies(self, repos, policy, pipelinePolicySet):
+        names = policy.fileNames()
+        for name in names:
+            if name.rfind('.') > 0:
+                desc = name[0:name.rfind('.')]
+                field = name[name.rfind('.')+1:]
+                policyObjs = policy.getPolicyArray(desc)
+                for policyObj in policyObjs:
+                    if policyObj.getValueType(field) == pol.Policy.FILE:
+                        filename = policyObj.getFile(field).getPath()
+                        filename = os.path.join(repos, filename)
+                        if (filename in self.policySet) == False:
+                            self.provenance.recordPolicy(filename)
+                            self.policySet.add(filename)
+                        if (filename in pipelinePolicySet) == False:
+                            pipelinePolicySet.add(filename)
+                        newPolicy = pol.Policy.createPolicy(filename, False)
+                        self.recordChildPolicies(repos, newPolicy, pipelinePolicySet)
+            else:
+                field = name
+                if policy.getValueType(field) == pol.Policy.FILE:
+                    filename = policy.getFile(field).getPath()
+                    filename = policy.getFile(field).getPath()
+                    filename = os.path.join(repos, filename)
+                    if (filename in self.policySet) == False:
+                        self.provenance.recordPolicy(filename)
+                        self.policySet.add(filename)
+                    if (filename in pipelinePolicySet) == False:
+                        pipelinePolicySet.add(filename)
+                    newPolicy = pol.Policy.createPolicy(filename, False)
+                    self.recordChildPolicies(repos, newPolicy, pipelinePolicySet)
+

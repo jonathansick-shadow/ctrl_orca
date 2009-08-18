@@ -11,6 +11,7 @@ class ProductionRunManager:
         self.logger.log(Log.DEBUG, "ProductionRunManager:__init__")
         self.runid = runid
         self.pipelineManagers = []
+        self.dbNames = []
 
         self.fullPolicyFilePath = ""
         if os.path.isabs(policyFileName) == True:
@@ -112,6 +113,9 @@ class ProductionRunManager:
         productionRunConfigurator = productionRunConfiguratorClass(self.runid, self.policy, self.logger, self.pipelineVerbosity)
 
 
+        self.dbNames = productionRunConfigurator.configure(self.repository)
+        print "dbNames --->",self.dbNames
+
         # get pipelines
         pipelinePolicies = self.policy.get("pipelines")
         pipelinePolicyNames = pipelinePolicies.policyNames(True)
@@ -123,16 +127,22 @@ class ProductionRunManager:
             pipelinePolicy = pipelinePolicies.get(policyName)
             if pipelinePolicy.get("launch",1) != 0:
                 shortName = pipelinePolicy.get("shortname", policyName)
-                newPolicy = self.rewritePolicy(shortName, pipelinePolicy, policyOverrides)
+                configuration = pipelinePolicy.getFile("configuration").getPath()
+                # TODO: record provenance here
+
+                pipelinePolicy.loadPolicyFiles(self.repository, True)
+
+                newPolicy = self.rewritePolicy(configuration, pipelinePolicy, policyOverrides)
                 pipelineManager = productionRunConfigurator.createPipelineManager(shortName, newPolicy, self.pipelineVerbosity)
                 self.pipelineManagers.append(pipelineManager)
 
-        dbNames = productionRunConfigurator.configure()
-        productionRunConfigurator.recordPolicy(fullyPolicyFilePath)
+        productionRunConfigurator.recordPolicy(self.fullPolicyFilePath)
 
         return productionRunConfigurator
 
     def rewritePolicy(self, shortName, pipelinePolicy, policyOverrides):
+        # NOTE:  pipelinePolicy must be fully de-referenced by this point.
+
         #  read in default policy        
         #  read in given policy
         #  in given policy:
@@ -143,7 +153,7 @@ class ProductionRunManager:
         #  write file to self.dirs["work"]
         #  call provenance.recordPolicy()        # 
         # copy the policies to the working directory
-        polfile = os.path.join(self.repository, shortName+".paf")
+        polfile = os.path.join(self.repository, shortName)
 
         newPolicy = pol.Policy.createPolicy(polfile, False)
 
@@ -151,25 +161,21 @@ class ProductionRunManager:
             for name in policyOverrides.paramNames():
                 newPolicy.set(name, policyOverrides.get(name))
 
-        executeDir = self.pipelinePolicy.get("platform.dir")
+        executeDir = pipelinePolicy.get("platform.dir")
         newPolicy.set("execute.dir", executeDir)
 
-        newPolicy.set("execute.database.url",self.dbRunURL)
-
-
-        polbasefile = os.path.basename(polfile)
-        newPolicyFile = os.path.join(self.dirs.get("work"), shortName+".paf")   
- 
-        if os.path.exists(newPolicyFile):
-            self.logger.log(Log.WARN, "Working directory already contains %s; won't overwrite" % polbasefile)        
-        else:            
-            pw = pol.PAFWriter(newPolicyFile)
-            pw.write(newPolicy)
-            pw.close()
-        return pol.Policy.loadPolicy(newPolicyFile)
+        # TODO: clean this up.  
+        # This should be a call to productionRunConfigurator
         
-        # provenance really should be recorded here, since orca is supposed
-        # to be in control of everything.
+        dbRunURL = self.dbNames[1] 
+
+        # TODO:
+        newPolicy.set("execute.database.url", dbRunURL)
+
+
+        return newPolicy
+        
+        # provenance really should be recorded here
         #self.provenance.recordPolicy(newPolicyFile)
 
         

@@ -1,6 +1,7 @@
 import os, stat
 import lsst.ctrl.orca as orca
 from lsst.pex.logging import Log
+from lsst.pex.policy import Policy
 from lsst.ctrl.orca.db.MySQLConfigurator import MySQLConfigurator
 
 class DatabaseConfigurator:
@@ -129,6 +130,8 @@ class DatabaseConfigurator:
     # If there is no match, an exception is thrown.
     # 
     def initAuthInfo(self, policy):
+        print "---initAuthInfo---"
+        print policy.toString()
         host = policy.get("database.authInfo.host")
         if host == None:
             raise RuntimeError("database host must be specified in policy")
