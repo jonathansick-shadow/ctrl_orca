@@ -6,13 +6,14 @@ from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
 
 class BasicProductionRunConfigurator(ProductionRunConfigurator):
-    def __init__(self, runid, policy, logger, verbosity):
+    def __init__(self, runid, policy, repository, logger, verbosity):
         self.logger = logger
         self.logger.log(Log.DEBUG, "BasicProductionConfigurator:__init__")
         self.runid = runid
         self.policy = policy
         self.databaseConfigurator = None
         self.verbosity = verbosity
+        self.repository = repository
 
         # these are policy settings which can be overriden from what they
         # are in the pipeline policies.
@@ -28,11 +29,11 @@ class BasicProductionRunConfigurator(ProductionRunConfigurator):
                               self.policy.get("shutdownTopic"))
 
 
-    def configure(self, repository):
+    def configure(self):
         dbFileName = self.policy.getFile("databaseConfig.database").getPath()
-        dbFileName = os.path.join(repository, dbFileName)
+        dbFileName = os.path.join(self.repository, dbFileName)
 
-        dbNames = self.setupDatabase(repository)
+        dbNames = self.setupDatabase()
 
         dbRun = dbNames[0]
         dbGlobal = dbNames[1]
@@ -50,15 +51,15 @@ class BasicProductionRunConfigurator(ProductionRunConfigurator):
         return self.provenance
 
 
-    def setupDatabase(self, repository):
+    def setupDatabase(self):
         self.logger.log(Log.DEBUG, "BasicProductionConfigurator:setupBasicProduction")
 
         databaseConfigPolicy = self.policy.get("databaseConfig")
-        databaseConfigPolicy.loadPolicyFiles(repository)
+        databaseConfigPolicy.loadPolicyFiles(self.repository)
         print "dbConfigPolicy.toString() 1 "
         print databaseConfigPolicy.toString()
         dbPolicy = databaseConfigPolicy.getPolicy("database")
-        dbPolicy.loadPolicyFiles(repository)
+        dbPolicy.loadPolicyFiles(self.repository)
         print "dbPolicy.toString() 2 "
         print dbPolicy.toString()
         self.databaseConfigurator =  DatabaseConfigurator(self.runid, dbPolicy, self.logger)

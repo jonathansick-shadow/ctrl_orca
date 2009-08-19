@@ -1,11 +1,16 @@
+from lsst.pex.logging import Log
+from lsst.ctrl.orca.PipelineMonitor import PipelineMonitor
+
 class PipelineLauncher:
-    def __init__(self):
+    def __init__(self, policy, logger):
+        self.logger = logger
         self.logger.log(Log.DEBUG, "PipelineLauncher:__init__")
-        self.pipelineMonitor = PipelineMonitor()
+        self.policy = policy
 
     def launch(self):
         self.logger.log(Log.DEBUG, "PipelineLauncher:launch")
-        return pipelineMonitor # returns PipelineMonitor
+        self.pipelineMonitor = PipelineMonitor(self.logger)
+        return self.pipelineMonitor # returns PipelineMonitor
 
     def cleanUp(self):
         self.logger.log(Log.DEBUG, "PipelineLauncher:cleanUp")

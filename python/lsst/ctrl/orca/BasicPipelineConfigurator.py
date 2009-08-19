@@ -1,23 +1,47 @@
+import os, shutil, sets
+import lsst.ctrl.orca as orca
+import lsst.pex.policy as pol
+
+from lsst.pex.harness.Directories import Directories
+from lsst.pex.logging import Log
+
+from lsst.ctrl.orca.EnvString import EnvString
+from lsst.ctrl.orca.PipelineConfigurator import PipelineConfigurator
+from lsst.ctrl.orca.PipelineLauncher import PipelineLauncher
+
 class BasicPipelineConfigurator(PipelineConfigurator):
-    def __init__(self):
+    def __init__(self, runid, logger):
+        self.runid = runid
+        self.logger = logger
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:__init__")
         self.nodes = None
+        self.dirs = None
+        self.policySet = sets.Set()
 
-    def configure(self, policy):
+    def configure(self, policy, repository):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:configure")
-        self.nodes = createNodeList()
         self.policy = policy
-        prepPlatform()
-        createLaunchScript()
-        deploySetup()
-        setupDatabase()
-        pipelineLauncher = PipelineLauncher()
+        self.repository = repository
+        self.pipeline = self.policy.get("shortname")
+        self.nodes = self.createNodeList()
+        self.prepPlatform()
+        self.createLaunchScript()
+        self.deploySetup()
+        self.setupDatabase()
+        pipelineLauncher = PipelineLauncher(policy, self.logger)
         return pipelineLauncher
+
+    def createLaunchScript(self):
+        self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:createLaunchScript")
+    
 
     def createNodeList(self):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:createNodeList")
         node = self.policy.getArray("platform.deploy.nodes")
+        self.defaultDomain = self.policy.get("platform.deploy.defaultDomain")
 
+        print "policy ", self.policy.toString()
+        print "node ", node
         nodes = map(self.expandNodeHost, node)
         # by convention, the master node is the first node in the list
         # we use this later to launch things, so strip out the info past ":", if it's there.
@@ -25,17 +49,19 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         colon = self.masterNode.find(':')
         if colon > 1:
             self.masterNode = self.masterNode[0:colon]
-        if orca.dryrun == False:
-            nodelist = open(os.path.join(self.dirs.get("work"), "nodelist.scr"), 'w')
-            for node in nodes:
-                print >> nodelist, node
-            nodelist.close()
-
         return nodes
 
     def prepPlatform(self):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:prepPlatform")
-        createDirs()
+        self.createDirs()
+        self.writeNodeList()
+
+    def writeNodeList(self):
+        nodelist = open(os.path.join(self.dirs.get("work"), "nodelist.scr"), 'w')
+        for node in self.nodes:
+            print >> nodelist, node
+        nodelist.close()
+
 
     def deploySetup(self):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:deploySetup")
@@ -74,21 +100,23 @@ class BasicPipelineConfigurator(PipelineConfigurator):
             self.logger.log(Log.WARN, "Working directory already contains %s")
         else:
             pw = pol.PAFWriter(newPolicyFile)
-            pw.write(newPolicy)
+            pw.write(self.policy)
             pw.close()
 
-        self.provenance.recordPolicy(newPolicyFile)
+        # TODO: Provenance script needs to write out newPolicyFile
+        #self.provenance.recordPolicy(newPolicyFile)
         self.policySet.add(newPolicyFile)
 
-        # XXX - reuse "newPolicy"?
+        # TODO: cont'd - also needs to writeout child policies
         newPolicyObj = pol.Policy.createPolicy(newPolicyFile, False)
         pipelinePolicySet = sets.Set()
-        self.recordChildPolicies(self.repository, newPolicyObj, pipelinePolicySet)
+        self.extractChildPolicies(self.repository, newPolicyObj, pipelinePolicySet)
+        print "pipelinePolicySet"
+        print pipelinePolicySet
 
         if os.path.exists(os.path.join(self.dirs.get("work"), self.pipeline)):
             self.logger.log(Log.WARN,
-              "Working directory already contains %s directory; won't overwrite" % \
-                           self.pipeline)
+              "Working directory already contains %s directory; won't overwrite" % self.pipeline)
         else:
             #shutil.copytree(os.path.join(self.repository, self.pipeline), os.path.join(self.dirs.get("work"),self.pipeline))
             #
@@ -107,7 +135,8 @@ class BasicPipelineConfigurator(PipelineConfigurator):
                 # if the destination directory heirarchy doesn't exist, create all          
                 # the missing directories
                 destinationFile = tokens[len(tokens)-1]
-                for newDestinationDir in tokens[:len(tokens)-1]:                    newDir = os.path.join(destinationDir, newDestinationDir)
+                for newDestinationDir in tokens[:len(tokens)-1]:
+                    newDir = os.path.join(destinationDir, newDestinationDir)
                     if os.path.exists(newDir) == False:
                         os.mkdir(newDir)
                     destinationDir = newDir
@@ -118,14 +147,11 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:createDirs")
 
         dirPolicy = self.policy.getPolicy("platform.dir")
-        directories = Directories(dirPolicy, self.pipeline, self.runId)
+        directories = Directories(dirPolicy, self.pipeline, self.runid)
         self.dirs = directories.getDirs()
 
         for name in self.dirs.names():
-            if orca.dryrun == True:
-                print "would create ",self.dirs.get(name)
-            else:
-                if not os.path.exists(self.dirs.get(name)): os.makedirs(self.dirs.get(name))
+            if not os.path.exists(self.dirs.get(name)): os.makedirs(self.dirs.get(name))
 
 
     def setupDatabase(self):
@@ -142,18 +168,19 @@ class BasicPipelineConfigurator(PipelineConfigurator):
             elif colon > 0:
                 node = nodeentry[0:colon]
                 if len(node) < 3:
-                    #logger.log(Log.WARN, "Suspiciously short node name: " + nod
-e)
-                    self.logger.log(Log.DEBUG, "Suspiciously short node name: " 
-+ node)
+                    #logger.log(Log.WARN, "Suspiciously short node name: " + node)
+                    self.logger.log(Log.DEBUG, "Suspiciously short node name: " + node)
                 self.logger.log(Log.DEBUG, "-> nodeentry  =" + nodeentry)
                 self.logger.log(Log.DEBUG, "-> node  =" + node)
+                print "-> node  =" + node 
+                print "-> self.defaultDomain  =" , self.defaultDomain
                 node += "."+self.defaultDomain
                 nodeentry = "%s:%s" % (node, nodeentry[colon+1:])
             else:
                 nodeentry = "%s%s:1" % (node, self.defaultDomain)
+        return nodeentry
         
-   def recordChildPolicies(self, repos, policy, pipelinePolicySet):
+    def extractChildPolicies(self, repos, policy, pipelinePolicySet):
         names = policy.fileNames()
         for name in names:
             if name.rfind('.') > 0:
@@ -165,7 +192,7 @@ e)
                         filename = policyObj.getFile(field).getPath()
                         filename = os.path.join(repos, filename)
                         if (filename in self.policySet) == False:
-                            self.provenance.recordPolicy(filename)
+                            #self.provenance.recordPolicy(filename)
                             self.policySet.add(filename)
                         if (filename in pipelinePolicySet) == False:
                             pipelinePolicySet.add(filename)
@@ -178,10 +205,9 @@ e)
                     filename = policy.getFile(field).getPath()
                     filename = os.path.join(repos, filename)
                     if (filename in self.policySet) == False:
-                        self.provenance.recordPolicy(filename)
+                        #self.provenance.recordPolicy(filename)
                         self.policySet.add(filename)
                     if (filename in pipelinePolicySet) == False:
                         pipelinePolicySet.add(filename)
                     newPolicy = pol.Policy.createPolicy(filename, False)
                     self.recordChildPolicies(repos, newPolicy, pipelinePolicySet)
-

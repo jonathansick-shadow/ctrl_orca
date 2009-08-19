@@ -3,15 +3,15 @@ from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.ctrl.orca.PipelineManager import PipelineManager
 
 class ProductionRunConfigurator:
-    def __init__(self, runid, policy, logger, verbosity):
+    def __init__(self, runid, policy, repository, logger, verbosity):
         self.logger = logger
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:__init__")
         self.runid = runid
         self.policy = policy
         self.verbosity = verbosity
+        self.repository = repository
 
-
-    def createPipelineManager(self, shortName, pipelinePolicy, pipelineVerbosity):
+    def createPipelineManager(self, pipelinePolicy, configurationPolicy, pipelineVerbosity):
         # shortName - the short name for the pipeline to be configured
         # prodPolicy - the policy that describes this production run
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:createPipelineManager")
@@ -19,9 +19,8 @@ class ProductionRunConfigurator:
         #
         # we're given a pipelinePolicy, and things that need to be overridden
         #
-        print "shortName = ",shortName
 
-        pipelineManager = PipelineManager(pipelinePolicy, self.logger, self.verbosity)
+        pipelineManager = PipelineManager(self.runid, pipelinePolicy, configurationPolicy, self.repository, self.logger, self.verbosity)
         return pipelineManager
 
     def configure(self):

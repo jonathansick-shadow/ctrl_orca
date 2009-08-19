@@ -3,13 +3,17 @@ from lsst.pex.logging import Log
 import lsst.pex.policy as pol
 
 class PipelineManager:
-    def __init__(self, policy, logger, verbosity):
+    def __init__(self, runid, pipelinePolicy, configurationPolicy, repository, logger, verbosity):
         self.logger =  logger
         self.logger.log(Log.DEBUG, "PipelineManager:__init__")
+        self.runid = runid
+        self.pipelinePolicy = pipelinePolicy
+        self.configurationPolicy = configurationPolicy
+        self.repository = repository
+        self.verbosity = verbosity
+
         self.urgency = 0
         self.pipelineLauncher = None
-        self.policy = policy
-        self.verbosity = verbosity
 
     def runPipeline(self):
         self.logger.log(Log.DEBUG, "PipelineManager:runPipeline")
@@ -27,15 +31,17 @@ class PipelineManager:
         self.logger.log(Log.DEBUG, "PipelineManager:configure")
 
         self.pipelineConfigurator = self.createConfigurator()
-        self.pipelineLauncher = self.pipelineConfigurator.configure(self.policy)
+        self.pipelineLauncher = self.pipelineConfigurator.configure(self.pipelinePolicy, self.repository)
 
     def createConfigurator(self):
         self.logger.log(Log.DEBUG, "PipelineManager:createConfigurator")
-        print "create Configurator -> ",self.policy.toString()
-        className = self.policy.get("className")
+        print "create Configurator pipelinePolicy-> "
+        print self.pipelinePolicy.toString()
+        className = self.pipelinePolicy.get("configuratorClass")
         classFactory = NamedClassFactory()
+        print "className = ",className
         configuratorClass = classFactory.createClass(className)
-        configurator = configuratorClass() 
+        configurator = configuratorClass(self.runid, self.logger) 
         return configurator
 
     def isDone(self):

@@ -56,12 +56,15 @@ class ProductionRunManager:
         # configure each pipeline
         for pipelineMgr in self.pipelineManagers:
             pipelineLauncher = pipelineMgr.configure()
-            self.pipelineLaunchers.append(pipelineLauncher)
+            # XXX - next line (?)
+            #self.pipelineLaunchers.append(pipelineLauncher)
 
         # Check the configururation
-        self.checkConfiguration()
+        # TODO: add "care" parameter
+        self.checkConfiguration(0)
 
-        for pipelineMgr in self.pipelineManagers:
+
+        for pipelineManager in self.pipelineManagers:
             pipelineManager.runPipeline()
 
     ##
@@ -110,10 +113,10 @@ class ProductionRunManager:
 
         classFactory = NamedClassFactory()
         productionRunConfiguratorClass = classFactory.createClass(productionRunConfiguratorName)
-        productionRunConfigurator = productionRunConfiguratorClass(self.runid, self.policy, self.logger, self.pipelineVerbosity)
+        productionRunConfigurator = productionRunConfiguratorClass(self.runid, self.policy, self.repository, self.logger, self.pipelineVerbosity)
 
 
-        self.dbNames = productionRunConfigurator.configure(self.repository)
+        self.dbNames = productionRunConfigurator.configure()
         print "dbNames --->",self.dbNames
 
         # get pipelines
@@ -128,19 +131,21 @@ class ProductionRunManager:
             if pipelinePolicy.get("launch",1) != 0:
                 shortName = pipelinePolicy.get("shortname", policyName)
                 configuration = pipelinePolicy.getFile("configuration").getPath()
+                configuratorClassName = pipelinePolicy.get("configuratorClass")
                 # TODO: record provenance here
 
                 pipelinePolicy.loadPolicyFiles(self.repository, True)
 
                 newPolicy = self.rewritePolicy(configuration, pipelinePolicy, policyOverrides)
-                pipelineManager = productionRunConfigurator.createPipelineManager(shortName, newPolicy, self.pipelineVerbosity)
+                # TODO: write newPolicy to a file
+                pipelineManager = productionRunConfigurator.createPipelineManager(pipelinePolicy, newPolicy, self.pipelineVerbosity)
                 self.pipelineManagers.append(pipelineManager)
 
         productionRunConfigurator.recordPolicy(self.fullPolicyFilePath)
 
         return productionRunConfigurator
 
-    def rewritePolicy(self, shortName, pipelinePolicy, policyOverrides):
+    def rewritePolicy(self, configuration, pipelinePolicy, policyOverrides):
         # NOTE:  pipelinePolicy must be fully de-referenced by this point.
 
         #  read in default policy        
@@ -153,7 +158,7 @@ class ProductionRunManager:
         #  write file to self.dirs["work"]
         #  call provenance.recordPolicy()        # 
         # copy the policies to the working directory
-        polfile = os.path.join(self.repository, shortName)
+        polfile = os.path.join(self.repository, configuration)
 
         newPolicy = pol.Policy.createPolicy(polfile, False)
 
@@ -184,7 +189,7 @@ class ProductionRunManager:
         # general, the higher the number, the more checks that are made.
         self.logger.log(Log.DEBUG, "ProductionRunManager:checkConfiguration")
         for pipelineMgr in self.pipelineManagers:
-            pipelineMgr.checkConfiguration()
+            pipelineMgr.checkConfiguration(care)
 
     def stopProduction(self, urgency):
         # urgency - an indicator of how urgently to carry out the shutdown.  
