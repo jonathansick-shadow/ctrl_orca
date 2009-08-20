@@ -1,14 +1,21 @@
+import subprocess
 from lsst.pex.logging import Log
+from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.PipelineMonitor import PipelineMonitor
 
 class PipelineLauncher:
-    def __init__(self, policy, logger):
+    def __init__(self, runid, policy, pipeline, masterNode, logger, verbosity):
         self.logger = logger
         self.logger.log(Log.DEBUG, "PipelineLauncher:__init__")
+        self.runid = runid
+        self.pipeline = pipeline
         self.policy = policy
+        self.masterNode = masterNode
+        self.pipelineVerbosity = verbosity
 
     def launch(self):
         self.logger.log(Log.DEBUG, "PipelineLauncher:launch")
+
         self.pipelineMonitor = PipelineMonitor(self.logger)
         return self.pipelineMonitor # returns PipelineMonitor
 

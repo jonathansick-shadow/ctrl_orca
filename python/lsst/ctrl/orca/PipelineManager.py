@@ -31,7 +31,7 @@ class PipelineManager:
         self.logger.log(Log.DEBUG, "PipelineManager:configure")
 
         self.pipelineConfigurator = self.createConfigurator()
-        self.pipelineLauncher = self.pipelineConfigurator.configure(self.pipelinePolicy, self.repository)
+        self.pipelineLauncher = self.pipelineConfigurator.configure(self.pipelinePolicy, self.configurationPolicy, self.repository)
 
     def createConfigurator(self):
         self.logger.log(Log.DEBUG, "PipelineManager:createConfigurator")
@@ -41,7 +41,7 @@ class PipelineManager:
         classFactory = NamedClassFactory()
         print "className = ",className
         configuratorClass = classFactory.createClass(className)
-        configurator = configuratorClass(self.runid, self.logger) 
+        configurator = configuratorClass(self.runid, self.logger, self.verbosity) 
         return configurator
 
     def isDone(self):

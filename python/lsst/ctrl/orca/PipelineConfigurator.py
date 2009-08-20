@@ -4,6 +4,6 @@ class PipelineConfigurator:
         self.logger = logger
         self.logger.log(Log.DEBUG, "PipelineConfigurator:__init__")
 
-    def configure(self, pipelinePolicy, repository):
+    def configure(self, pipelinePolicy, configurationPolicy, repository):
         self.logger.log(Log.DEBUG, "PipelineConfigurator:configure")
         return 0 # return PipelineLauncher

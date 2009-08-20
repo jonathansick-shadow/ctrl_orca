@@ -7,20 +7,24 @@ from lsst.pex.logging import Log
 
 from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.PipelineConfigurator import PipelineConfigurator
-from lsst.ctrl.orca.PipelineLauncher import PipelineLauncher
+from lsst.ctrl.orca.BasicPipelineLauncher import BasicPipelineLauncher
 
 class BasicPipelineConfigurator(PipelineConfigurator):
-    def __init__(self, runid, logger):
+    def __init__(self, runid, logger, verbosity):
         self.runid = runid
         self.logger = logger
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:__init__")
+        self.verbosity = verbosity
+
         self.nodes = None
         self.dirs = None
         self.policySet = sets.Set()
 
-    def configure(self, policy, repository):
+
+    def configure(self, policy, configurationPolicy, repository):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:configure")
         self.policy = policy
+        self.configurationPolicy = configurationPolicy
         self.repository = repository
         self.pipeline = self.policy.get("shortname")
         self.nodes = self.createNodeList()
@@ -28,7 +32,7 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         self.createLaunchScript()
         self.deploySetup()
         self.setupDatabase()
-        pipelineLauncher = PipelineLauncher(policy, self.logger)
+        pipelineLauncher = BasicPipelineLauncher(self.runid, self.policy, self.pipeline, self.masterNode, self.dirs, self.script, self.logger, self.verbosity)
         return pipelineLauncher
 
     def createLaunchScript(self):
@@ -100,7 +104,7 @@ class BasicPipelineConfigurator(PipelineConfigurator):
             self.logger.log(Log.WARN, "Working directory already contains %s")
         else:
             pw = pol.PAFWriter(newPolicyFile)
-            pw.write(self.policy)
+            pw.write(self.configurationPolicy)
             pw.close()
 
         # TODO: Provenance script needs to write out newPolicyFile
@@ -197,7 +201,7 @@ class BasicPipelineConfigurator(PipelineConfigurator):
                         if (filename in pipelinePolicySet) == False:
                             pipelinePolicySet.add(filename)
                         newPolicy = pol.Policy.createPolicy(filename, False)
-                        self.recordChildPolicies(repos, newPolicy, pipelinePolicySet)
+                        self.extractChildPolicies(repos, newPolicy, pipelinePolicySet)
             else:
                 field = name
                 if policy.getValueType(field) == pol.Policy.FILE:
@@ -210,4 +214,4 @@ class BasicPipelineConfigurator(PipelineConfigurator):
                     if (filename in pipelinePolicySet) == False:
                         pipelinePolicySet.add(filename)
                     newPolicy = pol.Policy.createPolicy(filename, False)
-                    self.recordChildPolicies(repos, newPolicy, pipelinePolicySet)
+                    self.extractChildPolicies(repos, newPolicy, pipelinePolicySet)
