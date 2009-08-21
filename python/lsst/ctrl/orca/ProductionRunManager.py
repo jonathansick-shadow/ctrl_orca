@@ -64,6 +64,8 @@ class ProductionRunManager:
         self.checkConfiguration(0)
 
 
+        # TODO: spawn listener object here
+
         for pipelineManager in self.pipelineManagers:
             pipelineManager.runPipeline()
 

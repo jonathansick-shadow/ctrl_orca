@@ -6,16 +6,13 @@ from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.PipelineMonitor import PipelineMonitor
 
 class BasicPipelineLauncher:
-    def __init__(self, runid, policy, pipeline, masterNode, dirs, script, logger, verbosity):
+    def __init__(self, cmd, pipeline, logger, verbosity):
         self.logger = logger
         self.logger.log(Log.DEBUG, "BasicPipelineLauncher:__init__")
-        self.runid = runid
+        self.cmd = cmd
         self.pipeline = pipeline
-        self.policy = policy
-        self.masterNode = masterNode
-        self.dirs = dirs
-        self.script = script
         self.pipelineVerbosity = verbosity
+
 
     def launch(self):
         self.logger.log(Log.DEBUG, "BasicPipelineLauncher:launch")
@@ -36,21 +33,15 @@ class BasicPipelineLauncher:
 
         self.logger.log(Log.DEBUG, "BasicPipelineLauncher:launchPipeline")
 
-        execPath = self.policy.get("configuration.framework.exec")
-        launchcmd = EnvString.resolve(execPath)
-        # kick off the run
-
-        cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % (self.dirs.get("work"), self.script, launchcmd, self.pipeline+".paf", self.runid, self.pipelineVerbosity) ]
         if orca.dryrun == True:
             print "dryrun: would execute"
-            print cmd
+            print self.cmd
         else:
             self.logger.log(Log.DEBUG, "launching pipeline")
 
             # by convention the first node in the list is the "master" node
                        
-            self.logger.log(Log.INFO, "launching %s on %s" % (self.pipeline, self.masterNode) )
-            self.logger.log(Log.DEBUG, "executing: " + " ".join(cmd))
+            self.logger.log(Log.DEBUG, "executing: " + " ".join(self.cmd))
 
-            if subprocess.call(cmd) != 0:
+            if subprocess.call(self.cmd) != 0:
                 raise RuntimeError("Failed to launch " + self.pipeline)

@@ -32,8 +32,19 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         self.createLaunchScript()
         self.deploySetup()
         self.setupDatabase()
-        pipelineLauncher = BasicPipelineLauncher(self.runid, self.policy, self.pipeline, self.masterNode, self.dirs, self.script, self.logger, self.verbosity)
+        cmd = self.createLaunchCommand()
+        pipelineLauncher = BasicPipelineLauncher(cmd, self.pipeline, self.logger, self.verbosity)
         return pipelineLauncher
+
+    def createLaunchCommand(self):
+        self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:createLaunchCommand")
+
+        execPath = self.policy.get("configuration.framework.exec")
+        launchcmd = EnvString.resolve(execPath)
+
+        cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % (self.dirs.get("work"), self.script, launchcmd, self.pipeline+".paf", self.runid, self.verbosity) ]
+        return cmd
+
 
     def createLaunchScript(self):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:createLaunchScript")
