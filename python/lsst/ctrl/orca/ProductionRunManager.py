@@ -109,9 +109,6 @@ class ProductionRunManager:
             policyOverrides.set("execute.shutdownTopic", self.policy.get("shutdownTopic"))
 
         productionRunConfiguratorName = self.policy.get("productionRunConfiguratorClass")
-        print self.policy.toString()
-        print "---"
-        print productionRunConfiguratorName
 
         classFactory = NamedClassFactory()
         productionRunConfiguratorClass = classFactory.createClass(productionRunConfiguratorName)
@@ -119,7 +116,6 @@ class ProductionRunManager:
 
 
         self.dbNames = productionRunConfigurator.configure()
-        print "dbNames --->",self.dbNames
 
         # get pipelines
         pipelinePolicies = self.policy.get("pipelines")
@@ -180,7 +176,7 @@ class ProductionRunManager:
         newPolicy.set("execute.database.url", dbRunURL)
 
 
-        return newPolicy
+        return [ os.path.basename(polfile), newPolicy]
         
         # provenance really should be recorded here
         #self.provenance.recordPolicy(newPolicyFile)

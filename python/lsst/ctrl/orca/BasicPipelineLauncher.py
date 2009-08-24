@@ -43,5 +43,6 @@ class BasicPipelineLauncher:
                        
             self.logger.log(Log.DEBUG, "executing: " + " ".join(self.cmd))
 
+            print "cmd = ",self.cmd
             if subprocess.call(self.cmd) != 0:
                 raise RuntimeError("Failed to launch " + self.pipeline)

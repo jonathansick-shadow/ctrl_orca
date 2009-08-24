@@ -38,9 +38,6 @@ class BasicProductionRunConfigurator(ProductionRunConfigurator):
         dbRun = dbNames[0]
         dbGlobal = dbNames[1]
 
-        print "configure -"
-        print self.policy.toString()
-        print "dbFileName -> ",dbFileName
 
         self.provenance = self.createProvenanceRecorder(self.databaseConfigurator.getUser(), self.runid, dbRun, dbGlobal)
 
@@ -56,12 +53,12 @@ class BasicProductionRunConfigurator(ProductionRunConfigurator):
 
         databaseConfigPolicy = self.policy.get("databaseConfig")
         databaseConfigPolicy.loadPolicyFiles(self.repository)
-        print "dbConfigPolicy.toString() 1 "
-        print databaseConfigPolicy.toString()
+        
+       
         dbPolicy = databaseConfigPolicy.getPolicy("database")
         dbPolicy.loadPolicyFiles(self.repository)
-        print "dbPolicy.toString() 2 "
-        print dbPolicy.toString()
+      
+     
         self.databaseConfigurator =  DatabaseConfigurator(self.runid, dbPolicy, self.logger)
         dbNames = self.databaseConfigurator.setup()
 

@@ -1,4 +1,4 @@
-import os, shutil, sets
+import os, os.path, shutil, sets
 import lsst.ctrl.orca as orca
 import lsst.pex.policy as pol
 
@@ -21,15 +21,14 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         self.policySet = sets.Set()
 
 
-    def configure(self, policy, configurationPolicy, repository):
+    def configure(self, policy, configurationInfo, repository):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:configure")
         self.policy = policy
-        self.configurationPolicy = configurationPolicy
+        self.configurationInfo = configurationInfo
         self.repository = repository
         self.pipeline = self.policy.get("shortname")
         self.nodes = self.createNodeList()
         self.prepPlatform()
-        self.createLaunchScript()
         self.deploySetup()
         self.setupDatabase()
         cmd = self.createLaunchCommand()
@@ -41,22 +40,17 @@ class BasicPipelineConfigurator(PipelineConfigurator):
 
         execPath = self.policy.get("configuration.framework.exec")
         launchcmd = EnvString.resolve(execPath)
+        configurationPolicyFile =  os.path.join(self.dirs.get("work"), self.configurationInfo[0])
 
-        cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % (self.dirs.get("work"), self.script, launchcmd, self.pipeline+".paf", self.runid, self.verbosity) ]
+        cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % (self.dirs.get("work"), self.script, launchcmd, configurationPolicyFile, self.runid, self.verbosity) ]
         return cmd
 
-
-    def createLaunchScript(self):
-        self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:createLaunchScript")
-    
 
     def createNodeList(self):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:createNodeList")
         node = self.policy.getArray("platform.deploy.nodes")
         self.defaultDomain = self.policy.get("platform.deploy.defaultDomain")
 
-        print "policy ", self.policy.toString()
-        print "node ", node
         nodes = map(self.expandNodeHost, node)
         # by convention, the master node is the first node in the list
         # we use this later to launch things, so strip out the info past ":", if it's there.
@@ -110,12 +104,16 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         #  call provenance.recordPolicy()
         # 
         # copy the policies to the working directory
-        newPolicyFile = os.path.join(self.dirs.get("work"), self.pipeline+".paf")
+        
+        configurationFileName = self.configurationInfo[0]
+        print "configurationFileName = ",configurationFileName
+        configurationPolicy = self.configurationInfo[1]
+        newPolicyFile = os.path.join(self.dirs.get("work"), configurationFileName)
         if os.path.exists(newPolicyFile):
             self.logger.log(Log.WARN, "Working directory already contains %s")
         else:
             pw = pol.PAFWriter(newPolicyFile)
-            pw.write(self.configurationPolicy)
+            pw.write(configurationPolicy)
             pw.close()
 
         # TODO: Provenance script needs to write out newPolicyFile
@@ -126,8 +124,6 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         newPolicyObj = pol.Policy.createPolicy(newPolicyFile, False)
         pipelinePolicySet = sets.Set()
         self.extractChildPolicies(self.repository, newPolicyObj, pipelinePolicySet)
-        print "pipelinePolicySet"
-        print pipelinePolicySet
 
         if os.path.exists(os.path.join(self.dirs.get("work"), self.pipeline)):
             self.logger.log(Log.WARN,
@@ -187,8 +183,7 @@ class BasicPipelineConfigurator(PipelineConfigurator):
                     self.logger.log(Log.DEBUG, "Suspiciously short node name: " + node)
                 self.logger.log(Log.DEBUG, "-> nodeentry  =" + nodeentry)
                 self.logger.log(Log.DEBUG, "-> node  =" + node)
-                print "-> node  =" + node 
-                print "-> self.defaultDomain  =" , self.defaultDomain
+
                 node += "."+self.defaultDomain
                 nodeentry = "%s:%s" % (node, nodeentry[colon+1:])
             else:
