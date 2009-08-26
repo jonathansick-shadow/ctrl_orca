@@ -1,4 +1,5 @@
 import os, os.path, sets
+import lsst.daf.base as base
 import lsst.pex.policy as pol
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.pex.logging import Log
@@ -134,9 +135,8 @@ class ProductionRunManager:
 
                 pipelinePolicy.loadPolicyFiles(self.repository, True)
 
-                newPolicy = self.rewritePolicy(configuration, pipelinePolicy, policyOverrides)
-                # TODO: write newPolicy to a file
-                pipelineManager = productionRunConfigurator.createPipelineManager(pipelinePolicy, newPolicy, self.pipelineVerbosity)
+                configurationDict = self.rewritePolicy(configuration, pipelinePolicy, policyOverrides)
+                pipelineManager = productionRunConfigurator.createPipelineManager(pipelinePolicy, configurationDict, self.pipelineVerbosity)
                 self.pipelineManagers.append(pipelineManager)
 
         productionRunConfigurator.recordPolicy(self.fullPolicyFilePath)
@@ -175,8 +175,11 @@ class ProductionRunManager:
         # TODO:
         newPolicy.set("execute.database.url", dbRunURL)
 
+        propDictionary = {}
+        propDictionary["filename"] =  os.path.basename(polfile)
+        propDictionary["policy"]= newPolicy
 
-        return [ os.path.basename(polfile), newPolicy]
+        return propDictionary
         
         # provenance really should be recorded here
         #self.provenance.recordPolicy(newPolicyFile)

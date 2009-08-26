@@ -1,4 +1,4 @@
-import os, os.path, shutil, sets
+import os, os.path, shutil, sets, stat
 import lsst.ctrl.orca as orca
 import lsst.pex.policy as pol
 
@@ -21,10 +21,10 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         self.policySet = sets.Set()
 
 
-    def configure(self, policy, configurationInfo, repository):
+    def configure(self, policy, configurationDict, repository):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:configure")
         self.policy = policy
-        self.configurationInfo = configurationInfo
+        self.configurationDict = configurationDict
         self.repository = repository
         self.pipeline = self.policy.get("shortname")
         self.nodes = self.createNodeList()
@@ -39,8 +39,10 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:createLaunchCommand")
 
         execPath = self.policy.get("configuration.framework.exec")
-        launchcmd = EnvString.resolve(execPath)
-        configurationPolicyFile =  os.path.join(self.dirs.get("work"), self.configurationInfo[0])
+        #launchcmd = EnvString.resolve(execPath)
+        filename = self.configurationDict["filename"]
+        configurationPolicyFile =  os.path.join(self.dirs.get("work"), filename)
+        launchcmd =  os.path.join(self.dirs.get("work"), "orca_launch.sh")
 
         cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % (self.dirs.get("work"), self.script, launchcmd, configurationPolicyFile, self.runid, self.verbosity) ]
         return cmd
@@ -105,9 +107,9 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         # 
         # copy the policies to the working directory
         
-        configurationFileName = self.configurationInfo[0]
+        configurationFileName = self.configurationDict["filename"]
         print "configurationFileName = ",configurationFileName
-        configurationPolicy = self.configurationInfo[1]
+        configurationPolicy = self.configurationDict["policy"]
         newPolicyFile = os.path.join(self.dirs.get("work"), configurationFileName)
         if os.path.exists(newPolicyFile):
             self.logger.log(Log.WARN, "Working directory already contains %s")
@@ -153,6 +155,19 @@ class BasicPipelineConfigurator(PipelineConfigurator):
                     destinationDir = newDir
                 shutil.copyfile(filename, os.path.join(destinationDir, destinationFile))
 
+        self.createLaunchScript()
+
+    def createLaunchScript(self):
+        name = os.path.join(self.dirs.get("work"), "orca_launch.sh")
+        launcher = open(name, 'w')
+        launcher.write("#!/bin/sh\n")
+
+        launcher.write("eups list 2>/dev/null | grep Setup >eups-env.txt\n")
+        launcher.write("pipeline=`echo ${1} | sed -e 's/\..*$//'`\n")
+        launcher.write("nohup $PEX_HARNESS_DIR/bin/launchPipeline.py $* > ${pipeline}-${2}.log 2>&1  &\n")
+        launcher.close()
+        os.chmod(name, stat.S_IRWXU)
+        return
 
     def createDirs(self):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:createDirs")

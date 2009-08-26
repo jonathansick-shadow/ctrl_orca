@@ -14,6 +14,7 @@ class BasicProductionRunConfigurator(ProductionRunConfigurator):
         self.databaseConfigurator = None
         self.verbosity = verbosity
         self.repository = repository
+        self.provenanceDict = {}
 
         # these are policy settings which can be overriden from what they
         # are in the pipeline policies.
@@ -39,6 +40,11 @@ class BasicProductionRunConfigurator(ProductionRunConfigurator):
         dbGlobal = dbNames[1]
 
 
+        self.provenanceDict["user"] = self.databaseConfigurator.getUser()
+        self.provenanceDict["runid"] = self.runid
+        self.provenanceDict["dbrun"] = dbRun
+        self.provenanceDict["dbglobal"] = dbGlobal
+
         self.provenance = self.createProvenanceRecorder(self.databaseConfigurator.getUser(), self.runid, dbRun, dbGlobal)
 
         self.recordPolicy(dbFileName)
@@ -46,6 +52,9 @@ class BasicProductionRunConfigurator(ProductionRunConfigurator):
 
     def getProvenanceRecorder(self):
         return self.provenance
+
+    def getProvenanceDict(self):
+        return self.provenanceDict
 
 
     def setupDatabase(self):
