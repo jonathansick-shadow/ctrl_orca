@@ -158,6 +158,7 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         self.createLaunchScript()
 
     def createLaunchScript(self):
+        # write out the script we use to kick things off
         name = os.path.join(self.dirs.get("work"), "orca_launch.sh")
         launcher = open(name, 'w')
         launcher.write("#!/bin/sh\n")
@@ -166,6 +167,7 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         launcher.write("pipeline=`echo ${1} | sed -e 's/\..*$//'`\n")
         launcher.write("nohup $PEX_HARNESS_DIR/bin/launchPipeline.py $* > ${pipeline}-${2}.log 2>&1  &\n")
         launcher.close()
+        # make it executable
         os.chmod(name, stat.S_IRWXU)
         return
 

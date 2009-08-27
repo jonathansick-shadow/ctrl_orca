@@ -118,10 +118,14 @@ class ProductionRunManager:
 
         self.dbNames = productionRunConfigurator.configure()
 
+        productionRunConfigurator.recordPolicy(self.fullPolicyFilePath)
+
         # get pipelines
         pipelinePolicies = self.policy.get("pipelines")
         pipelinePolicyNames = pipelinePolicies.policyNames(True)
         
+
+        platformSet = sets.Set()
 
         # create a pipelineManager for each pipeline, and save it.
         for policyName in pipelinePolicyNames:
@@ -131,7 +135,13 @@ class ProductionRunManager:
                 shortName = pipelinePolicy.get("shortname", policyName)
                 configuration = pipelinePolicy.getFile("configuration").getPath()
                 configuratorClassName = pipelinePolicy.get("configuratorClass")
-                # TODO: record provenance here
+
+                # record the platform policy, if that platform hasn't been recorded yet
+                platformFilename = pipelinePolicy.getFile("platform").getPath()
+                platformFilename = os.path.join(self.repository, platformFilename)
+                if (platformFilename in platformSet) == False:
+                    productionRunConfigurator.recordPolicy(platformFilename)
+                    platformSet.add(platformFilename)
 
                 pipelinePolicy.loadPolicyFiles(self.repository, True)
 
@@ -139,7 +149,6 @@ class ProductionRunManager:
                 pipelineManager = productionRunConfigurator.createPipelineManager(pipelinePolicy, configurationDict, self.pipelineVerbosity)
                 self.pipelineManagers.append(pipelineManager)
 
-        productionRunConfigurator.recordPolicy(self.fullPolicyFilePath)
 
         return productionRunConfigurator
 
@@ -154,8 +163,6 @@ class ProductionRunManager:
         #     set: execute.database.url
         #  write new policy file with overridden values        
         #  write file to self.dirs["work"]
-        #  call provenance.recordPolicy()        # 
-        # copy the policies to the working directory
         polfile = os.path.join(self.repository, configuration)
 
         newPolicy = pol.Policy.createPolicy(polfile, False)
@@ -167,12 +174,8 @@ class ProductionRunManager:
         executeDir = pipelinePolicy.get("platform.dir")
         newPolicy.set("execute.dir", executeDir)
 
-        # TODO: clean this up.  
-        # This should be a call to productionRunConfigurator
-        
         dbRunURL = self.dbNames[1] 
 
-        # TODO:
         newPolicy.set("execute.database.url", dbRunURL)
 
         propDictionary = {}
