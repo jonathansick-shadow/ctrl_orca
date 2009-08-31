@@ -2,31 +2,26 @@ import os
 import sets
 import lsst.pex.policy as pol
 class ProvenanceRecorder:
-    def __init__(self, repository):
+    def __init__(self, provenance, repository):
         self.policySet = sets.Set()
+        self.provenance = provenance
         self.repository = repository
-        return
-
-    def configure(self, configurationDict):
         return
 
     def record(self, filename):
         # prov object init-ed here
-        # prov.recordPolicy(filename)
-        # pr = ProvenanceRecorder("/lsst/home/srp/temp_merge/ctrl_dc3pipe/branches/dc3b_proto/pipeline")
-        # policySet = pr.extractPolicies("/lsst/home/srp/temp_merge/ctrl_dc3pipe/branches/dc3b_proto/pipeline/ap-cfht-nfs.paf")
-        #for p in policySet:
-        #    prov.recordPolicy(p)
-        
-        
-        
-    def extractPolicies(self, filename):
+        provenance.recordPolicy(filename)
+        policySet = provenance._extractPolicies(filename)
+        for p in policySet:
+            provenance.recordPolicy(p)
+
+    def _extractPolicies(self, filename):
         policyObj = pol.Policy.createPolicy(filename, False)
         pipelinePolicySet = sets.Set()
-        self.extractChildPolicies(self.repository, policyObj, pipelinePolicySet)
+        self._extractChildPolicies(self.repository, policyObj, pipelinePolicySet)
         return pipelinePolicySet
 
-    def extractChildPolicies(self, repos, policy, pipelinePolicySet):
+    def _extractChildPolicies(self, repos, policy, pipelinePolicySet):
         names = policy.fileNames()
         for name in names:
             if name.rfind('.') > 0:
@@ -52,9 +47,3 @@ class ProvenanceRecorder:
                 pipelinePolicySet.add(filename)
             newPolicy = pol.Policy.createPolicy(filename, False)
             self.extractChildPolicies(repos, newPolicy, pipelinePolicySet)
-
-pr = ProvenanceRecorder("/lsst/home/srp/temp_merge/ctrl_dc3pipe/branches/dc3b_proto/pipeline")
-policySet = pr.extractPolicies("/lsst/home/srp/temp_merge/ctrl_dc3pipe/branches/dc3b_proto/pipeline/ap-cfht-nfs.paf")
-
-for p in policySet:
-    print p
