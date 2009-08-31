@@ -3,12 +3,13 @@ from lsst.pex.logging import Log
 import lsst.pex.policy as pol
 
 class PipelineManager:
-    def __init__(self, runid, pipelinePolicy, configurationDict, repository, logger, verbosity):
+    def __init__(self, runid, pipelinePolicy, configurationDict, repository, provenanceDict, logger, verbosity):
         self.logger =  logger
         self.logger.log(Log.DEBUG, "PipelineManager:__init__")
         self.runid = runid
         self.pipelinePolicy = pipelinePolicy
         self.configurationDict = configurationDict
+        self.provenanceDict = provenanceDict
         self.repository = repository
         self.verbosity = verbosity
 
@@ -31,7 +32,7 @@ class PipelineManager:
         self.logger.log(Log.DEBUG, "PipelineManager:configure")
 
         self.pipelineConfigurator = self.createConfigurator()
-        self.pipelineLauncher = self.pipelineConfigurator.configure(self.pipelinePolicy, self.configurationDict, self.repository)
+        self.pipelineLauncher = self.pipelineConfigurator.configure(self.pipelinePolicy, self.configurationDict, self.provenanceDict, self.repository)
 
     def createConfigurator(self):
         self.logger.log(Log.DEBUG, "PipelineManager:createConfigurator")

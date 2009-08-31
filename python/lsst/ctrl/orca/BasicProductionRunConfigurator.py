@@ -56,7 +56,6 @@ class BasicProductionRunConfigurator(ProductionRunConfigurator):
     def getProvenanceDict(self):
         return self.provenanceDict
 
-
     def setupDatabase(self):
         self.logger.log(Log.DEBUG, "BasicProductionConfigurator:setupBasicProduction")
 

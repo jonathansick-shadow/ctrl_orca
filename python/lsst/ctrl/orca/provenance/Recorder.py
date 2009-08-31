@@ -1,18 +1,21 @@
-import os
-import sets
+#!/usr/bin/env python
+import os, os.path, getopt, sets, sys
 import lsst.pex.policy as pol
-class ProvenanceRecorder:
+from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
+
+class Recorder:
     def __init__(self, provenance, repository):
         self.policySet = sets.Set()
         self.provenance = provenance
         self.repository = repository
         return
 
-    def record(self, filename):
+    def record(self, name):
         # prov object init-ed here
+        filename = os.path.join(self.repository,name) 
         provenance.recordPolicy(filename)
-        policySet = provenance._extractPolicies(filename)
-        for p in policySet:
+        policyNamesSet = self._extractPolicies(filename)
+        for p in policyNamesSet:
             provenance.recordPolicy(p)
 
     def _extractPolicies(self, filename):
@@ -46,4 +49,25 @@ class ProvenanceRecorder:
             if (filename in pipelinePolicySet) == False:
                 pipelinePolicySet.add(filename)
             newPolicy = pol.Policy.createPolicy(filename, False)
-            self.extractChildPolicies(repos, newPolicy, pipelinePolicySet)
+            self._extractChildPolicies(repos, newPolicy, pipelinePolicySet)
+
+if __name__ == "__main__":
+    arguments = "--type=<type> --runid=<runid> --user=<user>, --dbrun=<dbrun> --dbglobal=<dbglobal> --filename=<file> --repos=<repos>"
+    options, xarguments = getopt.getopt(sys.argv[1:], "h", ["type=", "runid=", "user=", "dbrun=", "dbglobal=", "filename=", "repos="])
+
+
+    dict = {}
+    for a,o in options:
+        print a,o
+        dict[a.lstrip('-')] = o
+
+    print "finally:"
+    print dict
+    
+    classFactory = NamedClassFactory()
+    provClass = classFactory.createClass(dict["type"])
+    provenance = provClass(dict)
+
+
+    recorder = Recorder(provenance,dict["repos"])
+    recorder.record(dict["filename"])

@@ -11,8 +11,9 @@ class ProductionRunConfigurator:
         print "prc: policy",self.policy.toString()
         self.verbosity = verbosity
         self.repository = repository
+        self.provenanceDict = {}
 
-    def createPipelineManager(self, pipelinePolicy, configurationDict, pipelineVerbosity):
+    def createPipelineManager(self, pipelinePolicy, configurationDict,  pipelineVerbosity):
         # shortName - the short name for the pipeline to be configured
         # prodPolicy - the policy that describes this production run
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:createPipelineManager")
@@ -21,8 +22,11 @@ class ProductionRunConfigurator:
         # we're given a pipelinePolicy, and things that need to be overridden
         #
 
-        pipelineManager = PipelineManager(self.runid, pipelinePolicy, configurationDict, self.repository, self.logger, self.verbosity)
+        pipelineManager = PipelineManager(self.runid, pipelinePolicy, configurationDict, self.repository, self.provenanceDict, self.logger, self.verbosity)
         return pipelineManager
+
+    def getProvenanceDict(self):
+        return None
 
     def configure(self):
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:configure")

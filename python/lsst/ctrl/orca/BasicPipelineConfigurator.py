@@ -21,10 +21,11 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         self.policySet = sets.Set()
 
 
-    def configure(self, policy, configurationDict, repository):
+    def configure(self, policy, configurationDict, provenanceDict, repository):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:configure")
         self.policy = policy
         self.configurationDict = configurationDict
+        self.provenanceDict = provenanceDict
         self.repository = repository
         self.pipeline = self.policy.get("shortname")
         self.nodes = self.createNodeList()
@@ -68,10 +69,19 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         self.writeNodeList()
 
     def writeNodeList(self):
-        nodelist = open(os.path.join(self.dirs.get("work"), "nodelist.scr"), 'w')
+        
+        #nodelist = open(os.path.join(self.dirs.get("work"), "nodelist.scr"), 'w')
+        #for node in self.nodes:
+        #    print >> nodelist, node
+        #nodelist.close()
+
+        p = pol.Policy()
+        x = 0
         for node in self.nodes:
-            print >> nodelist, node
-        nodelist.close()
+            p.set("node%d" % x, node)
+        pw = pol.PAFWriter(os.path.join(self.dirs.get("work"), "nodelist.paf"))
+        pw.write(p)
+        pw.close()
 
 
     def deploySetup(self):
@@ -160,11 +170,22 @@ class BasicPipelineConfigurator(PipelineConfigurator):
     def createLaunchScript(self):
         # write out the script we use to kick things off
         name = os.path.join(self.dirs.get("work"), "orca_launch.sh")
+
+        user = self.provenanceDict["user"]
+        runid = self.provenanceDict["runid"]
+        dbrun = self.provenanceDict["dbrun"]
+        dbglobal = self.provenanceDict["dbglobal"]
+
+        filename = os.path.join(self.dirs.get("work"), self.configurationDict["filename"])
+
+        s = "#python ProvenanceRecorder --user=%s --runid=%s --dbrun=%s --dbglobal=%s --filename=%s\n" % (user, runid, dbrun, dbglobal, filename)
+
         launcher = open(name, 'w')
         launcher.write("#!/bin/sh\n")
 
         launcher.write("eups list 2>/dev/null | grep Setup >eups-env.txt\n")
         launcher.write("pipeline=`echo ${1} | sed -e 's/\..*$//'`\n")
+        launcher.write(s)
         launcher.write("nohup $PEX_HARNESS_DIR/bin/launchPipeline.py $* > ${pipeline}-${2}.log 2>&1  &\n")
         launcher.close()
         # make it executable
