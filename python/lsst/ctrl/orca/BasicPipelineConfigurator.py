@@ -79,6 +79,7 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         x = 0
         for node in self.nodes:
             p.set("node%d" % x, node)
+            x = x + 1
         pw = pol.PAFWriter(os.path.join(self.dirs.get("work"), "nodelist.paf"))
         pw.write(p)
         pw.close()
