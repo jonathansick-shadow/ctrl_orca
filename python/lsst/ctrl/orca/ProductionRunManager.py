@@ -174,7 +174,7 @@ class ProductionRunManager:
         executeDir = pipelinePolicy.get("platform.dir")
         newPolicy.set("execute.dir", executeDir)
 
-        dbRunURL = self.dbNames[1] 
+        dbRunURL = self.dbNames[0] 
 
         newPolicy.set("execute.database.url", dbRunURL)
 

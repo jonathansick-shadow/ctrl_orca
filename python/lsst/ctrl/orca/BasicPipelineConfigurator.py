@@ -45,7 +45,7 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         configurationPolicyFile =  os.path.join(self.dirs.get("work"), filename)
         launchcmd =  os.path.join(self.dirs.get("work"), "orca_launch.sh")
 
-        cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % (self.dirs.get("work"), self.script, launchcmd, configurationPolicyFile, self.runid, self.verbosity) ]
+        cmd = ["ssh", self.masterNode, "cd %s; source %s; echo >foo.$$;%s %s %s -L %s" % (self.dirs.get("work"), self.script, launchcmd, filename, self.runid, self.verbosity) ]
         return cmd
 
 
@@ -70,10 +70,11 @@ class BasicPipelineConfigurator(PipelineConfigurator):
 
     def writeNodeList(self):
         
-        #nodelist = open(os.path.join(self.dirs.get("work"), "nodelist.scr"), 'w')
-        #for node in self.nodes:
-        #    print >> nodelist, node
-        #nodelist.close()
+        # write this only for debug
+        nodelist = open(os.path.join(self.dirs.get("work"), "nodelist.scr"), 'w')
+        for node in self.nodes:
+            print >> nodelist, node
+        nodelist.close()
 
         p = pol.Policy()
         x = 0
@@ -187,6 +188,7 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         launcher.write("eups list 2>/dev/null | grep Setup >eups-env.txt\n")
         launcher.write("pipeline=`echo ${1} | sed -e 's/\..*$//'`\n")
         launcher.write(s)
+        launcher.write("#$CTRL_ORCA_DIR/bin/writeNodeList.py %s nodelist.paf\n" % self.dirs.get("work"))
         launcher.write("nohup $PEX_HARNESS_DIR/bin/launchPipeline.py $* > ${pipeline}-${2}.log 2>&1  &\n")
         launcher.close()
         # make it executable
