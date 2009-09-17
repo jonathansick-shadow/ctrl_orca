@@ -31,7 +31,6 @@ class Recorder:
                 desc = name[0:name.rfind('.')]
                 field = name[name.rfind('.')+1:]
                 policyObjs = policy.getPolicyArray(desc)
-                print "policyObjs = ",policyObjs
                 for policyObj in policyObjs:
                     self._extract(field, repos, policyObj, pipelinePolicySet)
             else:

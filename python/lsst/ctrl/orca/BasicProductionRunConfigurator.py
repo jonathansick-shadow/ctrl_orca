@@ -36,19 +36,23 @@ class BasicProductionRunConfigurator(ProductionRunConfigurator):
 
         dbNames = self.setupDatabase()
 
-        dbRun = dbNames[0]
-        dbGlobal = dbNames[1]
+
+        dbNamesDict = {}
+        dbNamesDict["dbrun"] = dbNames[0]
+        dbNamesDict["dbglobal"] = dbNames[1]
+        #dbRun = dbNames[0]
+        #dbGlobal = dbNames[1]
 
 
         self.provenanceDict["user"] = self.databaseConfigurator.getUser()
         self.provenanceDict["runid"] = self.runid
-        self.provenanceDict["dbrun"] = dbRun
-        self.provenanceDict["dbglobal"] = dbGlobal
+        self.provenanceDict["dbrun"] = dbNamesDict["dbrun"]
+        self.provenanceDict["dbglobal"] = dbNamesDict["dbglobal"]
 
-        self.provenance = self.createProvenanceRecorder(self.databaseConfigurator.getUser(), self.runid, dbRun, dbGlobal)
+        self.provenance = self.createProvenanceRecorder(self.databaseConfigurator.getUser(), self.runid, dbNamesDict["dbrun"], dbNamesDict["dbglobal"])
 
         self.recordPolicy(dbFileName)
-        return [ dbRun, dbGlobal]
+        return dbNamesDict
 
     def getProvenanceRecorder(self):
         return self.provenance

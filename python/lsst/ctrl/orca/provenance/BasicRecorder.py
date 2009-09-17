@@ -7,10 +7,6 @@ class BasicProvenanceRecorder(ProvenanceRecorder):
         self.dbGlobal = configurationDict["dbglobal"]
 
         #    self.provenance = Provenance(self.user, self.runid, self.dbRun, self.dbGlobal)
-        print "user = ",self.user
-        print "runid = ",self.runid
-        print "dbRun = ",self.dbRun
-        print "dbGlobal = ",self.dbGlobal
         return
         
     def recordPolicy(self, filename):

@@ -8,7 +8,6 @@ class ProductionRunConfigurator:
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:__init__")
         self.runid = runid
         self.policy = policy
-        print "prc: policy",self.policy.toString()
         self.verbosity = verbosity
         self.repository = repository
         self.provenanceDict = {}
@@ -30,5 +29,5 @@ class ProductionRunConfigurator:
 
     def configure(self):
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:configure")
-        return []
+        return {}
 

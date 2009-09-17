@@ -13,8 +13,6 @@ class DatabaseConfigurator:
         @param logger    the caller's Log instance from which this manager can.
                             create a child Log
         """
-        print "***"
-        print policy
         if logger is None:  logger = orca.logger
         self.logger = Log(logger, "dbconfig")
 
@@ -28,8 +26,6 @@ class DatabaseConfigurator:
         # extract the databaseConfig.database policy to get required
         # parameters from it.
 
-        print "--**--"
-        print policy.toString()
         dbHostName = policy.get("database.authInfo.host");
         portNo = policy.get("database.authInfo.port");
         globalDbName = policy.get("database.globalSetup.globalDbName")
@@ -130,8 +126,6 @@ class DatabaseConfigurator:
     # If there is no match, an exception is thrown.
     # 
     def initAuthInfo(self, policy):
-        print "---initAuthInfo---"
-        print policy.toString()
         host = policy.get("database.authInfo.host")
         if host == None:
             raise RuntimeError("database host must be specified in policy")

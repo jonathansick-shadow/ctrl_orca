@@ -4,6 +4,8 @@ import lsst.pex.policy as pol
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.pex.logging import Log
 from lsst.ctrl.orca.EnvString import EnvString
+from lsst.ctrl.orca.EventListener import EventListener
+from lsst.ctrl.orca.EventResolver import EventResolver
 
 class ProductionRunManager:
     def __init__(self, runid, policyFileName, logger, pipelineVerbosity=None):
@@ -70,6 +72,11 @@ class ProductionRunManager:
         for pipelineManager in self.pipelineManagers:
             pipelineManager.runPipeline()
 
+        #resolver = EventResolver()
+        #listener = EventListener(self.topic, resolver)
+        #listener.start()
+        #listener.join()
+
     ##
     # @brief determine whether production is currently running
     #
@@ -111,6 +118,9 @@ class ProductionRunManager:
 
         productionRunConfiguratorName = self.policy.get("productionRunConfiguratorClass")
 
+        if productionRunConfiguratorName == None:
+            print "Couldn't find 'productionRunConfiguratorName' in:"
+            print self.policy.toString()
         classFactory = NamedClassFactory()
         productionRunConfiguratorClass = classFactory.createClass(productionRunConfiguratorName)
         productionRunConfigurator = productionRunConfiguratorClass(self.runid, self.policy, self.repository, self.logger, self.pipelineVerbosity)
@@ -174,7 +184,7 @@ class ProductionRunManager:
         executeDir = pipelinePolicy.get("platform.dir")
         newPolicy.set("execute.dir", executeDir)
 
-        dbRunURL = self.dbNames[0] 
+        dbRunURL = self.dbNames["dbrun"] 
 
         newPolicy.set("execute.database.url", dbRunURL)
 

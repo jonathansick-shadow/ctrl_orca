@@ -2,7 +2,7 @@ import os, os.path, shutil, sets, stat
 import lsst.ctrl.orca as orca
 import lsst.pex.policy as pol
 
-from lsst.pex.harness.Directories import Directories
+from lsst.ctrl.orca.Directories import Directories
 from lsst.pex.logging import Log
 
 from lsst.ctrl.orca.EnvString import EnvString
@@ -42,10 +42,10 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         execPath = self.policy.get("configuration.framework.exec")
         #launchcmd = EnvString.resolve(execPath)
         filename = self.configurationDict["filename"]
-        configurationPolicyFile =  os.path.join(self.dirs.get("work"), filename)
+        #configurationPolicyFile =  os.path.join(self.dirs.get("work"), filename)
         launchcmd =  os.path.join(self.dirs.get("work"), "orca_launch.sh")
 
-        cmd = ["ssh", self.masterNode, "cd %s; source %s; echo >foo.$$;%s %s %s -L %s" % (self.dirs.get("work"), self.script, launchcmd, filename, self.runid, self.verbosity) ]
+        cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % (self.dirs.get("work"), self.script, launchcmd, filename, self.runid, self.verbosity) ]
         return cmd
 
 
@@ -120,7 +120,7 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         # copy the policies to the working directory
         
         configurationFileName = self.configurationDict["filename"]
-        print "configurationFileName = ",configurationFileName
+        
         configurationPolicy = self.configurationDict["policy"]
         newPolicyFile = os.path.join(self.dirs.get("work"), configurationFileName)
         if os.path.exists(newPolicyFile):
