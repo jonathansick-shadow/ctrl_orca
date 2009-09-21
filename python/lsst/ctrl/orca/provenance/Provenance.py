@@ -25,11 +25,19 @@ class Provenance(object):
 
         self.globalDb.setPersistLocation(globalLoc)
 
+        # check to see if the runId is already there, and if it isn't, insert it.
         self.globalDb.startTransaction()
-        self.globalDb.setTableForInsert("prv_Run")
-        self.globalDb.setColumnString("runId", runId)
-        self.globalDb.insertRow()
-        self.globalDb.endTransaction()
+        self.globalDb.setTableForQuery("prv_Run")
+        self.globalDb.outColumn("offset")
+        self.globalDb.condParamString("runId", runId)
+        self.globalDb.setQueryWhere("runId = :runId")
+        self.globalDb.query()
+        if not self.globalDb.next() or self.globalDb.columnIsNull(0):
+            self.globalDb.startTransaction()
+            self.globalDb.setTableForInsert("prv_Run")
+            self.globalDb.setColumnString("runId", runId)
+            self.globalDb.insertRow()
+            self.globalDb.endTransaction()
 
         self.globalDb.setRetrieveLocation(globalLoc)
 
@@ -86,6 +94,7 @@ class Provenance(object):
             md5.update(line)
         f.close()
 
+        print "recording -> file",policyFile,"; id = ",self.policyFileId
         self._realRecordPolicyFile(self.db, policyFile, md5)
         self._realRecordPolicyFile(self.globalDb, policyFile, md5)
 

@@ -3,7 +3,7 @@ import os, os.path, getopt, sets, sys
 import lsst.pex.policy as pol
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 
-class Recorder:
+class ProvenanceRecorder:
     def __init__(self, provenance, repository):
         self.policySet = sets.Set()
         self.provenance = provenance
@@ -68,5 +68,5 @@ if __name__ == "__main__":
     provenance = provClass(dict)
 
 
-    recorder = Recorder(provenance,dict["repos"])
+    recorder = ProvenanceRecorder(provenance,dict["repos"])
     recorder.record(dict["filename"])

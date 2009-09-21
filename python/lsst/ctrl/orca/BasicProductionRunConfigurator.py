@@ -48,6 +48,7 @@ class BasicProductionRunConfigurator(ProductionRunConfigurator):
         self.provenanceDict["runid"] = self.runid
         self.provenanceDict["dbrun"] = dbNamesDict["dbrun"]
         self.provenanceDict["dbglobal"] = dbNamesDict["dbglobal"]
+        self.provenanceDict["repos"] = self.repository
 
         self.provenance = self.createProvenanceRecorder(self.databaseConfigurator.getUser(), self.runid, dbNamesDict["dbrun"], dbNamesDict["dbglobal"])
 

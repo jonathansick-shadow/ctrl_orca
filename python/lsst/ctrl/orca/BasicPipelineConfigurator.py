@@ -177,14 +177,16 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         runid = self.provenanceDict["runid"]
         dbrun = self.provenanceDict["dbrun"]
         dbglobal = self.provenanceDict["dbglobal"]
+        repos = self.provenanceDict["repos"]
 
         filename = os.path.join(self.dirs.get("work"), self.configurationDict["filename"])
 
-        s = "#python ProvenanceRecorder --user=%s --runid=%s --dbrun=%s --dbglobal=%s --filename=%s\n" % (user, runid, dbrun, dbglobal, filename)
+        s = "ProvenanceRecorder.py --type=%s --user=%s --runid=%s --dbrun=%s --dbglobal=%s --filename=%s --repos=%s\n" % ("lsst.ctrl.orca.provenance.BasicRecorder", user, runid, dbrun, dbglobal, filename, repos)
 
         launcher = open(name, 'w')
         launcher.write("#!/bin/sh\n")
 
+        launcher.write("echo $PATH >path.txt\n")
         launcher.write("eups list 2>/dev/null | grep Setup >eups-env.txt\n")
         launcher.write("pipeline=`echo ${1} | sed -e 's/\..*$//'`\n")
         launcher.write(s)
