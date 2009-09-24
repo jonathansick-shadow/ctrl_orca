@@ -3,7 +3,9 @@
 import eups
 import hashlib
 import os
+import socket
 import re
+import lsst.pex as pex
 from lsst.pex.policy import Policy
 from lsst.daf.persistence import DbStorage, LogicalLocation
 from lsst.daf.base import DateTime
@@ -27,28 +29,24 @@ class Provenance(object):
 
         # check to see if the runId is already there, and if it isn't, insert it.
         self.globalDb.startTransaction()
-        self.globalDb.setTableForQuery("prv_Run")
-        self.globalDb.outColumn("offset")
-        self.globalDb.condParamString("runId", runId)
-        self.globalDb.setQueryWhere("runId = :runId")
-        self.globalDb.query()
-        if not self.globalDb.next() or self.globalDb.columnIsNull(0):
-            self.globalDb.startTransaction()
-            self.globalDb.setTableForInsert("prv_Run")
-            self.globalDb.setColumnString("runId", runId)
-            self.globalDb.insertRow()
-            self.globalDb.endTransaction()
+        self.globalDb.setTableForInsert("prv_Run")
+        self.globalDb.setColumnString("runId", runId)
+        procInfo = "%s:%s" % (socket.gethostname(),os.getpid())
+        self.globalDb.setColumnString("procInfo", procInfo)
+        self.globalDb.insertRow()
+        self.globalDb.endTransaction()
 
         self.globalDb.setRetrieveLocation(globalLoc)
 
         self.globalDb.startTransaction()
         self.globalDb.setTableForQuery("prv_Run")
-        self.globalDb.outColumn("offset")
+        self.globalDb.outColumn("prvId")
         self.globalDb.condParamString("runId", runId)
-        self.globalDb.setQueryWhere("runId = :runId")
+        self.globalDb.condParamString("procInfo", procInfo)
+        self.globalDb.setQueryWhere("runId = :runId && procInfo = :procInfo")
         self.globalDb.query()
         if not self.globalDb.next() or self.globalDb.columnIsNull(0):
-            raise pex.exceptions.LsstException("runId not found")
+            raise pex.exceptions.LsstException("runId/procInfo combo not found")
         self.offset = self.globalDb.getColumnByPosInt(0) * 65536
         self.globalDb.finishQuery()
         self.globalDb.endTransaction()
