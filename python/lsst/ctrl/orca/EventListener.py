@@ -2,10 +2,12 @@ import threading
 import lsst.ctrl.events as events
 
 ##
-# @brief object that listens for incoming events, and delegates the event to be resolved
+# @brief object that listens for incoming events, and delegates the event to 
+#           be resolved
 #
-# This class listens on an LSST event "topic" and when a message is received, it hands
-# off that message to a "resolver" object which interprets the message
+# This class listens on an LSST event "topic" and when a message is received,
+# it hands off that message to a "resolver" object which interprets the 
+# message.
 #
 
 class EventListener(threading.Thread):
@@ -19,6 +21,9 @@ class EventListener(threading.Thread):
         self.topic = topic
         self.resolver = resolver
 
+    ##
+    # @brief waits for incoming messages, and calls "execute" method on
+    #            the resolver object
     def run(self):
             eventSystem = events.EventSystem.getDefaultEventSystem()
             # block on receive

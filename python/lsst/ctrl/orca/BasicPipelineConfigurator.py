@@ -9,6 +9,10 @@ from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.PipelineConfigurator import PipelineConfigurator
 from lsst.ctrl.orca.BasicPipelineLauncher import BasicPipelineLauncher
 
+##
+#
+# BasicPipelineConfigurator 
+#
 class BasicPipelineConfigurator(PipelineConfigurator):
     def __init__(self, runid, logger, verbosity):
         self.runid = runid
@@ -21,6 +25,15 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         self.policySet = sets.Set()
 
 
+    ##
+    # @brief Setup as much as possible in preparation to execute the pipeline
+    #            and return a PipelineLauncher object that will launch the
+    #            configured pipeline.
+    # @param policy the pipeline policy to use for configuration
+    # @param configurationDict a dictionary containing configuration info
+    # @param provenanceDict a dictionary containing info to record provenance
+    # @param repository policy file repository location
+    #
     def configure(self, policy, configurationDict, provenanceDict, repository):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:configure")
         self.policy = policy
@@ -33,9 +46,13 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         self.deploySetup()
         self.setupDatabase()
         cmd = self.createLaunchCommand()
-        pipelineLauncher = BasicPipelineLauncher(cmd, self.pipeline, self.logger, self.verbosity)
+        pipelineLauncher = BasicPipelineLauncher(cmd, self.pipeline, self.logger)
         return pipelineLauncher
 
+    ##
+    # @brief create the command which will launch the pipeline
+    # @return a string containing the shell commands to execute
+    #
     def createLaunchCommand(self):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:createLaunchCommand")
 
@@ -49,6 +66,10 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         return cmd
 
 
+    ##
+    # @brief creates a list of nodes from platform.deploy.nodes
+    # @return the list of nodes
+    #
     def createNodeList(self):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:createNodeList")
         node = self.policy.getArray("platform.deploy.nodes")
@@ -63,11 +84,16 @@ class BasicPipelineConfigurator(PipelineConfigurator):
             self.masterNode = self.masterNode[0:colon]
         return nodes
 
+    ##
+    # @brief prepare the platform by creating directories and writing the node list
+    #
     def prepPlatform(self):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:prepPlatform")
         self.createDirs()
-        self.writeNodeList()
 
+    ##
+    # @brief write the node list to the "work" directory
+    #
     def writeNodeList(self):
         
         # write this only for debug
@@ -86,21 +112,21 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         pw.close()
 
 
+    ##
+    # @brief 
+    #
     def deploySetup(self):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:deploySetup")
 
-       # copy /bin/sh script responsible for environment setting
+        # write the nodelist to "work"
+        self.writeNodeList()
+
+        # copy /bin/sh script responsible for environment setting
 
         setupPath = self.policy.get("configuration.framework.environment")
         if setupPath == None:
              raise RuntimeError("couldn't find configuration.framework.environment")
         self.script = EnvString.resolve(setupPath)
-
-        ## TODO: We did this same thing in DC2. We shouldn't be
-        ## depending the system we launch on to determine which version
-        ## of the setup.*sh script to run.   The remote systems aren't
-        ## guaranteed to be running the same shell as the interactive
-        ## shell from which orca was launched.
 
         if orca.envscript == None:
             print "using default setup.sh"
@@ -167,9 +193,12 @@ class BasicPipelineConfigurator(PipelineConfigurator):
                     destinationDir = newDir
                 shutil.copyfile(filename, os.path.join(destinationDir, destinationFile))
 
-        self.createLaunchScript()
+        self.writeLaunchScript()
 
-    def createLaunchScript(self):
+    ##
+    # @brief write a shell script to launch a pipeline
+    #
+    def writeLaunchScript(self):
         # write out the script we use to kick things off
         name = os.path.join(self.dirs.get("work"), "orca_launch.sh")
 
@@ -197,6 +226,9 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         os.chmod(name, stat.S_IRWXU)
         return
 
+    ##
+    # @brief create the platform.dir directories
+    #
     def createDirs(self):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:createDirs")
 
@@ -207,10 +239,15 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         for name in self.dirs.names():
             if not os.path.exists(self.dirs.get(name)): os.makedirs(self.dirs.get(name))
 
-
+    ##
+    # @brief set up this pipeline's database
+    #
     def setupDatabase(self):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:setupDatabase")
 
+    ##
+    # @brief perform a node host name expansion
+    #
     def expandNodeHost(self, nodeentry):
         """Add a default network domain to a node list entry if necessary """
 
@@ -233,6 +270,9 @@ class BasicPipelineConfigurator(PipelineConfigurator):
                 nodeentry = "%s%s:1" % (node, self.defaultDomain)
         return nodeentry
         
+    ##
+    # @brief given a policy, recursively add all child policies to a policy set
+    # 
     def extractChildPolicies(self, repos, policy, pipelinePolicySet):
         names = policy.fileNames()
         for name in names:

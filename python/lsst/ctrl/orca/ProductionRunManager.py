@@ -7,7 +7,17 @@ from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.EventListener import EventListener
 from lsst.ctrl.orca.EventResolver import EventResolver
 
+##
+# @brief configures, checks, and launches pipelines
+#
 class ProductionRunManager:
+    ##
+    # @brief initialize
+    # @param runid name of the run
+    # @param policyFileName production run policy file
+    # @param logger Log object 
+    # @param pipelineVerbosity verbosity level for the pipelines
+    #
     def __init__(self, runid, policyFileName, logger, pipelineVerbosity=None):
         self.logger = logger
         self.pipelineVerbosity = pipelineVerbosity
@@ -40,10 +50,15 @@ class ProductionRunManager:
             raise RuntimeError("specified repository "+ self.repository + ": not a directory");
 
 
-
+    ##
+    # @brief
+    #
     def getRunId(self):
         return self.runid
 
+    ##
+    # @brief
+    #
     def getPolicy(self):
         return self.policy
 
@@ -53,7 +68,7 @@ class ProductionRunManager:
     def runProduction(self):
         self.logger.log(Log.DEBUG, "ProductionRunManager:runProduction")
 
-        # create configurator
+        # create Production Run Configurator specified by the policy
         self.productionRunConfigurator = self.createConfigurator()
 
         # configure each pipeline
@@ -98,6 +113,11 @@ class ProductionRunManager:
         self.logger.log(Log.DEBUG, "ProductionRunManager:isRunnable")
         return False
 
+    ##
+    # @brief setup and create the ProductionRunConfigurator
+    # @return ProductionRunConfigurator
+    #
+    #
     def createConfigurator(self):
         # prodPolicy - the production run policy
         self.logger.log(Log.DEBUG, "ProductionRunManager:createConfigurator")
@@ -162,6 +182,9 @@ class ProductionRunManager:
 
         return productionRunConfigurator
 
+    ##
+    # @brief
+    #
     def rewritePolicy(self, configuration, pipelinePolicy, policyOverrides):
         # NOTE:  pipelinePolicy must be fully de-referenced by this point.
 
@@ -198,6 +221,9 @@ class ProductionRunManager:
         #self.provenance.recordPolicy(newPolicyFile)
 
         
+    ##
+    # @brief
+    #
     def checkConfiguration(self, care):
         # care - level of "care" in checking the configuration to take. In
         # general, the higher the number, the more checks that are made.
@@ -205,6 +231,9 @@ class ProductionRunManager:
         for pipelineMgr in self.pipelineManagers:
             pipelineMgr.checkConfiguration(care)
 
+    ##
+    # @brief
+    #
     def stopProduction(self, urgency):
         # urgency - an indicator of how urgently to carry out the shutdown.  
         #

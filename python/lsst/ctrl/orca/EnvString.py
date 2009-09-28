@@ -5,7 +5,7 @@ class EnvString:
     # given a string, look for any $ prefixed word, attempt to subsitute
     # an environment variable with that name.  
     #
-    # throw an exception if the environment variable
+    # @throw exception if the environment variable doesn't exist
     #
     # Return the resulting string
     def resolve(strVal):

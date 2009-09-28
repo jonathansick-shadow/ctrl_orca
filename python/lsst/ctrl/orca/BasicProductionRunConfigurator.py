@@ -6,6 +6,9 @@ from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
 
 class BasicProductionRunConfigurator(ProductionRunConfigurator):
+    ##
+    # @brief create a production run given 
+    #
     def __init__(self, runid, policy, repository, logger, verbosity):
         self.logger = logger
         self.logger.log(Log.DEBUG, "BasicProductionConfigurator:__init__")
@@ -30,6 +33,9 @@ class BasicProductionRunConfigurator(ProductionRunConfigurator):
                               self.policy.get("shutdownTopic"))
 
 
+    ##
+    # @brief configure this production run
+    #
     def configure(self):
         dbFileName = self.policy.getFile("databaseConfig.database").getPath()
         dbFileName = os.path.join(self.repository, dbFileName)
@@ -55,12 +61,21 @@ class BasicProductionRunConfigurator(ProductionRunConfigurator):
         self.recordPolicy(dbFileName)
         return dbNamesDict
 
+    ##
+    # @brief
+    #
     def getProvenanceRecorder(self):
         return self.provenance
 
+    ##
+    # @brief
+    #
     def getProvenanceDict(self):
         return self.provenanceDict
 
+    ##
+    # @brief
+    #
     def setupDatabase(self):
         self.logger.log(Log.DEBUG, "BasicProductionConfigurator:setupBasicProduction")
 
@@ -82,9 +97,15 @@ class BasicProductionRunConfigurator(ProductionRunConfigurator):
 
         return [ dbRun, dbGlobal]
 
+    ##
+    # @brief
+    #
     def recordPolicy(self, fileName):
         self.provenance.recordPolicy(fileName)
 
+    ##
+    # @brief
+    #
     def createProvenanceRecorder(self, user, runid, dbRun, dbGlobal):
         provenance = Provenance(self.databaseConfigurator.getUser(), self.runid, dbRun, dbGlobal)
 
