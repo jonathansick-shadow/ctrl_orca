@@ -25,10 +25,10 @@ class ProductionRunConfigurator:
         return pipelineManager
 
     ##
-    # @brief
+    # @brief return the provenance dictionary
     #
     def getProvenanceDict(self):
-        return None
+        return self.provenanceDict
 
     ##
     # @brief carry out the production-level configuration and setup. To

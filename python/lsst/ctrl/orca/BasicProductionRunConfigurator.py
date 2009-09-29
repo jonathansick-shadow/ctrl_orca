@@ -37,18 +37,11 @@ class BasicProductionRunConfigurator(ProductionRunConfigurator):
     # @brief configure this production run
     #
     def configure(self):
-        dbFileName = self.policy.getFile("databaseConfig.database").getPath()
-        dbFileName = os.path.join(self.repository, dbFileName)
-
-        dbNames = self.setupDatabase()
+        # create the database
+        dbNamesDict = self.setupDatabase()
 
 
-        dbNamesDict = {}
-        dbNamesDict["dbrun"] = dbNames[0]
-        dbNamesDict["dbglobal"] = dbNames[1]
-        #dbRun = dbNames[0]
-        #dbGlobal = dbNames[1]
-
+        # record the database filename provenance
 
         self.provenanceDict["user"] = self.databaseConfigurator.getUser()
         self.provenanceDict["runid"] = self.runid
@@ -56,25 +49,22 @@ class BasicProductionRunConfigurator(ProductionRunConfigurator):
         self.provenanceDict["dbglobal"] = dbNamesDict["dbglobal"]
         self.provenanceDict["repos"] = self.repository
 
-        self.provenance = self.createProvenanceRecorder(self.databaseConfigurator.getUser(), self.runid, dbNamesDict["dbrun"], dbNamesDict["dbglobal"])
+        self.provenance = self.createProvenanceRecorder(self.databaseConfigurator.getUser(), self.runid, dbNamesDict)
+
+        dbFileName = self.policy.getFile("databaseConfig.database").getPath()
+        dbFileName = os.path.join(self.repository, dbFileName)
 
         self.recordPolicy(dbFileName)
         return dbNamesDict
 
     ##
-    # @brief
+    # @brief return the provenance recording object
     #
     def getProvenanceRecorder(self):
         return self.provenance
 
     ##
-    # @brief
-    #
-    def getProvenanceDict(self):
-        return self.provenanceDict
-
-    ##
-    # @brief
+    # @brief setup the database for this production run
     #
     def setupDatabase(self):
         self.logger.log(Log.DEBUG, "BasicProductionConfigurator:setupBasicProduction")
@@ -90,23 +80,28 @@ class BasicProductionRunConfigurator(ProductionRunConfigurator):
         self.databaseConfigurator =  DatabaseConfigurator(self.runid, dbPolicy, self.logger)
         dbNames = self.databaseConfigurator.setup()
 
-        # record provenance for this database policy file
         dbBaseURL = self.databaseConfigurator.getHostURL()
         dbRun = dbBaseURL+"/"+dbNames[0]
         dbGlobal = dbBaseURL+"/"+dbNames[1]
 
-        return [ dbRun, dbGlobal]
+        dbNamesDict = {}
+        dbNamesDict["dbrun"] = dbRun
+        dbNamesDict["dbglobal"] = dbGlobal
+
+        return dbNamesDict
 
     ##
-    # @brief
+    # @brief record the provenance of a policy file
     #
     def recordPolicy(self, fileName):
         self.provenance.recordPolicy(fileName)
 
     ##
-    # @brief
+    # @brief create a provenance recorder
     #
-    def createProvenanceRecorder(self, user, runid, dbRun, dbGlobal):
+    def createProvenanceRecorder(self, user, runid, dbNamesDict):
+        dbRun = dbNamesDict["dbrun"]
+        dbGlobal =  dbNamesDict["dbglobal"]
         provenance = Provenance(self.databaseConfigurator.getUser(), self.runid, dbRun, dbGlobal)
 
         return provenance
