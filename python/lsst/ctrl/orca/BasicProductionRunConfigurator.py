@@ -37,6 +37,10 @@ class BasicProductionRunConfigurator(ProductionRunConfigurator):
     # @brief configure this production run
     #
     def configure(self):
+        # grab the file name of the database before we load the policy
+        dbFileName = self.policy.getFile("databaseConfig.database").getPath()
+        dbFileName = os.path.join(self.repository, dbFileName)
+
         # create the database
         dbNamesDict = self.setupDatabase()
 
@@ -50,9 +54,6 @@ class BasicProductionRunConfigurator(ProductionRunConfigurator):
         self.provenanceDict["repos"] = self.repository
 
         self.provenance = self.createProvenanceRecorder(self.databaseConfigurator.getUser(), self.runid, dbNamesDict)
-
-        dbFileName = self.policy.getFile("databaseConfig.database").getPath()
-        dbFileName = os.path.join(self.repository, dbFileName)
 
         self.recordPolicy(dbFileName)
         return dbNamesDict

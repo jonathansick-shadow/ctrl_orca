@@ -92,7 +92,6 @@ class Provenance(object):
             md5.update(line)
         f.close()
 
-        print "recording -> file",policyFile,"; id = ",self.policyFileId
         self._realRecordPolicyFile(self.db, policyFile, md5)
         self._realRecordPolicyFile(self.globalDb, policyFile, md5)
 

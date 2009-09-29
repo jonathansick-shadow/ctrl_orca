@@ -51,13 +51,13 @@ class ProductionRunManager:
 
 
     ##
-    # @brief
+    # @brief returns the runid of this production run
     #
     def getRunId(self):
         return self.runid
 
     ##
-    # @brief
+    # @brief returns the policy of this production run
     #
     def getPolicy(self):
         return self.policy

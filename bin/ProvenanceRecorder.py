@@ -57,12 +57,8 @@ if __name__ == "__main__":
 
     dict = {}
     for a,o in options:
-        print a,o
         dict[a.lstrip('-')] = o
 
-    print "finally:"
-    print dict
-    
     classFactory = NamedClassFactory()
     provClass = classFactory.createClass(dict["type"])
     provenance = provClass(dict)

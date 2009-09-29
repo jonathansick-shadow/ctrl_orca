@@ -13,7 +13,6 @@ class BasicRecorder(Recorder):
         
     def recordPolicy(self, filename):
 
-        print "recording ->",filename
         self.provenance.recordPolicy(filename)
 
         return
