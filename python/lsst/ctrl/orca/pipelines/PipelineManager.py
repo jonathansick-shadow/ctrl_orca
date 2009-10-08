@@ -51,7 +51,8 @@ class PipelineManager:
         self.prodPolicyOverrides = prodPolicyOverrides
 
         self.defaultDomain = policy.get("platform.deploy.defaultDomain")
-        self.logger.log(Log.DEBUG, "defaultDomain = "+self.defaultDomain)
+        if self.defaultDomain is not None:
+            self.logger.log(Log.DEBUG, "defaultDomain = "+self.defaultDomain)
         self.rootDir = policy.get("defRootDir")
 
         self.createDirectories()
@@ -95,10 +96,14 @@ class PipelineManager:
                     self.logger.log(Log.DEBUG, "Suspiciously short node name: " + node)
                 self.logger.log(Log.DEBUG, "-> nodeentry  =" + nodeentry)
                 self.logger.log(Log.DEBUG, "-> node  =" + node)
-                node += "."+self.defaultDomain
+                if self.defaultDomain is not None:
+                    node += "."+self.defaultDomain
                 nodeentry = "%s:%s" % (node, nodeentry[colon+1:])
             else:
-                nodeentry = "%s%s:1" % (node, self.defaultDomain)
+                if self.defaultDomain is not None:
+                    nodeentry = "%s%s:1" % (node, self.defaultDomain)
+                else:
+                    nodeentry = "%s:1" % node
 
         self.logger.log(Log.DEBUG, "returning nodeentry = " + nodeentry)
         return nodeentry
