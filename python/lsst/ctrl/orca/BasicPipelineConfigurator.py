@@ -264,10 +264,14 @@ class BasicPipelineConfigurator(PipelineConfigurator):
                 self.logger.log(Log.DEBUG, "-> nodeentry  =" + nodeentry)
                 self.logger.log(Log.DEBUG, "-> node  =" + node)
 
-                node += "."+self.defaultDomain
+                if self.defaultDomain is not None:
+                    node += "."+self.defaultDomain
                 nodeentry = "%s:%s" % (node, nodeentry[colon+1:])
             else:
-                nodeentry = "%s%s:1" % (node, self.defaultDomain)
+                if self.defaultDomain is not None:
+                    nodeentry = "%s%s:1" % (node, self.defaultDomain)
+                else:
+                    nodeentry = "%s:1" % node
         return nodeentry
         
     ##
