@@ -93,8 +93,8 @@ class AbePipelineConfigurator(PipelineConfigurator):
         self.logger.log(Log.DEBUG, "AbePipelineConfigurator:prepPlatform")
         self.createDirs()
 
-    def performGlobusCopy(self, localName, remoteName):
-        self.logger.log(Log.DEBUG, "AbePipelineConfigurator:performGlobusCopy")
+    def copyToRemote(self, localName, remoteName):
+        self.logger.log(Log.DEBUG, "AbePipelineConfigurator:copyToRemote")
         
         localNameURL = "%s%s" % ("file://",localName)
         remoteFullName = os.path.join(self.dirs.get("work"),remoteName)
@@ -132,8 +132,8 @@ class AbePipelineConfigurator(PipelineConfigurator):
         pw.close()
         self.numNodes = x
 
-        performGlobusCopy(nodelistBaseName, "nodelist.scr")
-        performGlobusCopy(os.join.path(self.repository,"nodelist.paf"),"nodelist.paf")
+        self.copyToRemote(nodelistBaseName, "nodelist.scr")
+        self.copyToRemote(os.join.path(self.repository,"nodelist.paf"),"nodelist.paf")
 
     ##
     # @brief 
@@ -161,7 +161,7 @@ class AbePipelineConfigurator(PipelineConfigurator):
         setupShortname = setupLineList[lengthLineList-1]
 
         # stage the setup script into place on the remote resource
-        performGlobusCopy(self.script, setupShortName)
+        self.copyToRemote(self.script, setupShortName)
 
         # This policy has the override values, but must be written out and
         # recorded.
@@ -173,13 +173,15 @@ class AbePipelineConfigurator(PipelineConfigurator):
         configurationFileName = self.configurationDict["filename"]
         
         configurationPolicy = self.configurationDict["policy"]
-        newPolicyFile = os.path.join(self.dirs.get("work"), configurationFileName)
+        newPolicyFile = os.path.join(self.dirs.get("work"), configurationFileName+".tmp")
         if os.path.exists(newPolicyFile):
             self.logger.log(Log.WARN, "Working directory already contains %s")
         else:
             pw = pol.PAFWriter(newPolicyFile)
             pw.write(configurationPolicy)
             pw.close()
+
+        self.copyToRemote(newPolicyFile,configurationFileName)
 
         # TODO: Provenance script needs to write out newPolicyFile
         #self.provenance.recordPolicy(newPolicyFile)
@@ -194,15 +196,6 @@ class AbePipelineConfigurator(PipelineConfigurator):
             self.logger.log(Log.WARN,
               "Working directory already contains %s directory; won't overwrite" % self.pipeline)
         else:
-            #shutil.copytree(os.path.join(self.repository, self.pipeline), os.path.join(self.dirs.get("work"),self.pipeline))
-            #
-            # instead of blindly copying the whole directory, take the set
-            # if files from policySet and copy those.
-            #
-            # This is slightly tricky, because we want to copy from the policy file     
-            # repository directory to the "work" directory, but we also want to keep    
-            # that partial directory hierarchy we're copying to as well.
-            #
             for filename  in pipelinePolicySet:
                 destinationDir = self.dirs.get("work")
                 destName = filename.replace(self.repository+"/","")
@@ -211,12 +204,14 @@ class AbePipelineConfigurator(PipelineConfigurator):
                 # if the destination directory heirarchy doesn't exist, create all          
                 # the missing directories
                 destinationFile = tokens[len(tokens)-1]
-                for newDestinationDir in tokens[:len(tokens)-1]:
-                    newDir = os.path.join(destinationDir, newDestinationDir)
-                    if os.path.exists(newDir) == False:
-                        os.mkdir(newDir)
-                    destinationDir = newDir
-                shutil.copyfile(filename, os.path.join(destinationDir, destinationFile))
+                if tokensLength > 1:
+                    for newDestinationDir in tokens[:len(tokens)-1]:
+                        newDir = os.path.join(destinationDir, newDestinationDir)
+                        destinationDir = newDir
+                    self.copyToRemote(filename, os.path.join(destinationDir, destinationFile))
+                if tokenslength == 1:
+                    self.copyToRemote(filename, os.path.join(destinationDir, destinationFile))
+                    
 
         self.writeLaunchScript()
 
@@ -237,7 +232,8 @@ class AbePipelineConfigurator(PipelineConfigurator):
 
         s = "ProvenanceRecorder.py --type=%s --user=%s --runid=%s --dbrun=%s --dbglobal=%s --filename=%s --repos=%s\n" % ("lsst.ctrl.orca.provenance.BasicRecorder", user, runid, dbrun, dbglobal, filename, repos)
 
-        launcher = open(name, 'w')
+        tempName = name+".tmp"
+        launcher = open(tempName, 'w')
         launcher.write("#!/bin/sh\n")
 
         launcher.write("echo $PATH >path.txt\n")
@@ -249,6 +245,8 @@ class AbePipelineConfigurator(PipelineConfigurator):
         launcher.close()
         # make it executable
         os.chmod(name, stat.S_IRWXU)
+
+        self.copyToRemote(tempName, name)
         return
 
     ##
