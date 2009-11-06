@@ -59,13 +59,46 @@ class AbePipelineConfigurator(PipelineConfigurator):
         self.logger.log(Log.DEBUG, "AbePipelineConfigurator:createLaunchCommand")
 
         execPath = self.policy.get("configuration.framework.exec")
-        #launchcmd = EnvString.resolve(execPath)
+       
         filename = self.configurationDict["filename"]
-        #configurationPolicyFile =  os.path.join(self.dirs.get("work"), filename)
+        
         launchcmd =  os.path.join(self.dirs.get("work"), "orca_launch.sh")
 
-        cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % (self.dirs.get("work"), self.script, launchcmd, filename, self.runid, self.verbosity) ]
-        return cmd
+        #cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % (self.dirs.get("work"), self.script, launchcmd, filename, self.runid, self.verbosity) ]
+        #return cmd
+        launchArgs = "%s %s -L %s -S %s" % \
+             (self.pipeline+".paf", self.runId, self.pipelineVerbosity, self.remoteScript)  
+
+        # Write Condor file 
+        # print "launchPipeline: Write Condor job file here"
+        condorJobfile =  self.pipeline+".condor"
+        # Let's create some data:
+        clist = []
+        clist.append("universe=globus\n")
+        clist.append("executable="+launchcmd+"\n")
+        clist.append("globusrsl = (jobtype=single)(hostcount="+str(self.numNodes)+")(maxWallTime=30)\n")
+        clist.append("arguments="+launchArgs+"\n")
+        clist.append("transfer_executable=false\n")
+        clist.append("globusscheduler=grid-abe.ncsa.teragrid.org:2119/jobmanager-pbs\n")
+        clist.append("output="+self.pipeline+"Condor.out\n")
+        clist.append("error="+self.pipeline+"Condor.err\n")
+        clist.append("log="+self.pipeline+"Condor.log\n")
+        clist.append("remote_initialdir="+self.dirs.get("work")+"\n")
+        clist.append("queue\n")
+
+        # Create a file object: in "write" mode
+        condorFILE = open(condorJobfile,"w")
+        condorFILE.writelines(clist)
+        condorFILE.close()
+
+        # kick off the run
+        cmdCondor = "condor_submit %s" % condorJobfile
+
+        self.logger.log(Log.DEBUG, "cmdCondor = "+ cmdCondor)
+        for item in clist:
+            self.logger.log(Log.DEBUG, "Condor submit file line> "+ item)
+
+        return cmdCondor
 
 
     ##
