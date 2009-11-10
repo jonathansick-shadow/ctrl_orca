@@ -137,7 +137,7 @@ class AbePipelineConfigurator(PipelineConfigurator):
         
         # perform this copy from the local machine to the remote machine
         pid = os.fork()
-        if not.pid:
+        if not pid:
             os.execvp("globus-url-copy",cmd.split())
         os.wait()[0]
 
