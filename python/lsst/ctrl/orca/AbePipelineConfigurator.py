@@ -38,6 +38,9 @@ class AbePipelineConfigurator(PipelineConfigurator):
     #
     def configure(self, policy, configurationDict, provenanceDict, repository):
         self.logger.log(Log.DEBUG, "AbePipelineConfigurator:configure")
+
+        self.remoteScript = "orca_launch.sh"
+
         self.policy = policy
         self.configurationDict = configurationDict
         self.provenanceDict = provenanceDict
@@ -48,6 +51,8 @@ class AbePipelineConfigurator(PipelineConfigurator):
         self.deploySetup()
         self.setupDatabase()
         cmd = self.createLaunchCommand()
+
+        
         pipelineLauncher = BasicPipelineLauncher(cmd, self.pipeline, self.logger)
         return pipelineLauncher
 
@@ -61,13 +66,13 @@ class AbePipelineConfigurator(PipelineConfigurator):
         execPath = self.policy.get("configuration.framework.exec")
        
         filename = self.configurationDict["filename"]
-        
-        launchcmd =  os.path.join(self.dirs.get("work"), "orca_launch.sh")
+
+        launchcmd =  os.path.join(self.dirs.get("work"), self.remoteScript)
 
         #cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % (self.dirs.get("work"), self.script, launchcmd, filename, self.runid, self.verbosity) ]
         #return cmd
         launchArgs = "%s %s -L %s -S %s" % \
-             (self.pipeline+".paf", self.runId, self.pipelineVerbosity, self.remoteScript)  
+             (self.pipeline+".paf", self.runid, self.verbosity, self.remoteScript)  
 
         # Write Condor file 
         # print "launchPipeline: Write Condor job file here"
@@ -148,7 +153,7 @@ class AbePipelineConfigurator(PipelineConfigurator):
 
         
         # write this only for debug
-        nodelistBaseName = os.join.path(self.repository, "nodelist.scr")
+        nodelistBaseName = os.path.join(self.repository, "nodelist.scr")
         nodelist = open(nodelistBaseName, 'w')
         for node in self.nodes:
             print >> nodelist, node
@@ -160,13 +165,13 @@ class AbePipelineConfigurator(PipelineConfigurator):
         for node in self.nodes:
             p.set("node%d" % x, node)
             x = x + 1
-        pw = pol.PAFWriter(os.join.path(self.repository,"nodelist.paf"))
+        pw = pol.PAFWriter(os.path.join(self.repository,"nodelist.paf"))
         pw.write(p)
         pw.close()
         self.numNodes = x
 
         self.copyToRemote(nodelistBaseName, "nodelist.scr")
-        self.copyToRemote(os.join.path(self.repository,"nodelist.paf"),"nodelist.paf")
+        self.copyToRemote(os.path.join(self.repository,"nodelist.paf"),"nodelist.paf")
 
     ##
     # @brief 
@@ -191,7 +196,7 @@ class AbePipelineConfigurator(PipelineConfigurator):
 
         setupLineList = self.script.split("/")
         lengthLineList = len(setupLineList)
-        setupShortname = setupLineList[lengthLineList-1]
+        setupShortName = setupLineList[lengthLineList-1]
 
         # stage the setup script into place on the remote resource
         self.copyToRemote(self.script, setupShortName)
@@ -206,7 +211,12 @@ class AbePipelineConfigurator(PipelineConfigurator):
         configurationFileName = self.configurationDict["filename"]
         
         configurationPolicy = self.configurationDict["policy"]
-        newPolicyFile = os.path.join(self.dirs.get("work"), configurationFileName+".tmp")
+        # This is commmented out, because the work directory doesn't exist on this side.
+        #newPolicyFile = os.path.join(self.dirs.get("work"), configurationFileName+".tmp")
+
+        # XXX - write this in the current directory;  we should probably really specify
+        # a "scratch" area to write this to instead.
+        newPolicyFile = os.path.join("/tmp", configurationFileName+".tmp."+str(os.getpid()))
         if os.path.exists(newPolicyFile):
             self.logger.log(Log.WARN, "Working directory already contains %s")
         else:
@@ -215,6 +225,8 @@ class AbePipelineConfigurator(PipelineConfigurator):
             pw.close()
 
         self.copyToRemote(newPolicyFile,configurationFileName)
+        # TODO: uncomment this and perform the remove of the temp file.
+        # os.unlink(newPolicyFile)
 
         # TODO: Provenance script needs to write out newPolicyFile
         #self.provenance.recordPolicy(newPolicyFile)
@@ -242,7 +254,7 @@ class AbePipelineConfigurator(PipelineConfigurator):
                         newDir = os.path.join(destinationDir, newDestinationDir)
                         destinationDir = newDir
                     self.copyToRemote(filename, os.path.join(destinationDir, destinationFile))
-                if tokenslength == 1:
+                if tokensLength == 1:
                     self.copyToRemote(filename, os.path.join(destinationDir, destinationFile))
                     
 
@@ -253,7 +265,8 @@ class AbePipelineConfigurator(PipelineConfigurator):
     #
     def writeLaunchScript(self):
         # write out the script we use to kick things off
-        name = os.path.join(self.dirs.get("work"), "orca_launch.sh")
+        
+        name = os.path.join(self.dirs.get("work"), self.remoteScript)
 
         user = self.provenanceDict["user"]
         runid = self.provenanceDict["runid"]
@@ -265,7 +278,10 @@ class AbePipelineConfigurator(PipelineConfigurator):
 
         s = "ProvenanceRecorder.py --type=%s --user=%s --runid=%s --dbrun=%s --dbglobal=%s --filename=%s --repos=%s\n" % ("lsst.ctrl.orca.provenance.BasicRecorder", user, runid, dbrun, dbglobal, filename, repos)
 
-        tempName = name+".tmp"
+        # we can't write to the remove directory, so name it locally first.
+        # 
+        #tempName = name+".tmp"
+        tempName = os.path.join("/tmp",os.path.basename(name)+".tmp."+str(os.getpid()))
         launcher = open(tempName, 'w')
         launcher.write("#!/bin/sh\n")
 
@@ -274,10 +290,10 @@ class AbePipelineConfigurator(PipelineConfigurator):
         launcher.write("pipeline=`echo ${1} | sed -e 's/\..*$//'`\n")
         launcher.write(s)
         launcher.write("#$CTRL_ORCA_DIR/bin/writeNodeList.py %s nodelist.paf\n" % self.dirs.get("work"))
-        launcher.write("nohup $PEX_HARNESS_DIR/bin/launchPipeline.py $* > ${pipeline}-${2}.log 2>&1  &\n")
+        launcher.write("echo nohup $PEX_HARNESS_DIR/bin/launchPipeline.py $* > ${pipeline}-${2}.log 2>&1  &\n")
         launcher.close()
         # make it executable
-        os.chmod(name, stat.S_IRWXU)
+        os.chmod(tempName, stat.S_IRWXU)
 
         self.copyToRemote(tempName, name)
         return
@@ -293,7 +309,8 @@ class AbePipelineConfigurator(PipelineConfigurator):
         self.dirs = directories.getDirs()
 
         for name in self.dirs.names():
-            if not os.path.exists(self.dirs.get(name)): os.makedirs(self.dirs.get(name))
+            #if not os.path.exists(self.dirs.get(name)): os.makedirs(self.dirs.get(name))
+            print "would have created directory : ",self.dirs.get(name)
 
     ##
     # @brief set up this pipeline's database
