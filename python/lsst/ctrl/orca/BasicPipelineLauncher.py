@@ -1,3 +1,4 @@
+import os
 import subprocess
 import lsst.ctrl.orca as orca
 
@@ -13,6 +14,7 @@ class BasicPipelineLauncher(PipelineLauncher):
     def __init__(self, cmd, pipeline, logger):
         self.logger = logger
         self.logger.log(Log.DEBUG, "BasicPipelineLauncher:__init__")
+        print "cmd = ",cmd
         self.cmd = cmd
         self.pipeline = pipeline
 
@@ -47,8 +49,17 @@ class BasicPipelineLauncher(PipelineLauncher):
                        
             self.logger.log(Log.DEBUG, "executing: " + " ".join(self.cmd))
 
-            if subprocess.call(self.cmd) != 0:
-                raise RuntimeError("Failed to launch " + self.pipeline)
+            print  "executing: ",self.cmd
+            
+            cmdArray = self.cmd.split()
+            # perform this copy from the local machine to the remote machine
+            pid = os.fork()
+            if not pid:
+               os.execvp(cmdArray[0],cmdArray)
+            os.wait()[0]
+
+            #if subprocess.call(self.cmd) != 0:
+            #    raise RuntimeError("Failed to launch " + self.pipeline)
 
         self.pipelineMonitor = PipelineMonitor(self.logger)
         return self.pipelineMonitor # returns PipelineMonitor
