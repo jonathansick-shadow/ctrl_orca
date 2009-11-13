@@ -153,7 +153,7 @@ class AbePipelineConfigurator(PipelineConfigurator):
 
         
         # write this only for debug
-        nodelistBaseName = os.path.join(self.repository, "nodelist.scr")
+        nodelistBaseName = "/tmp/nodelist.scr."+str(os.getpid())
         nodelist = open(nodelistBaseName, 'w')
         for node in self.nodes:
             print >> nodelist, node
@@ -165,13 +165,16 @@ class AbePipelineConfigurator(PipelineConfigurator):
         for node in self.nodes:
             p.set("node%d" % x, node)
             x = x + 1
-        pw = pol.PAFWriter(os.path.join(self.repository,"nodelist.paf"))
+        localPAFName = "/tmp/nodelist.paf."+str(os.getpid())
+        pw = pol.PAFWriter(localPAFName)
         pw.write(p)
         pw.close()
         self.numNodes = x
 
         self.copyToRemote(nodelistBaseName, "nodelist.scr")
-        self.copyToRemote(os.path.join(self.repository,"nodelist.paf"),"nodelist.paf")
+        self.copyToRemote(localPAFName, "nodelist.paf")
+        os.unlink(nodelistBaseName)
+        os.unlink(localPAFName)
 
     ##
     # @brief 
