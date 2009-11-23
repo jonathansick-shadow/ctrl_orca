@@ -57,10 +57,10 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:createLaunchCommand")
 
         execPath = self.policy.get("configuration.framework.exec")
-        #launchcmd = EnvString.resolve(execPath)
+        launchcmd = EnvString.resolve(execPath)
         filename = self.configurationDict["filename"]
         #configurationPolicyFile =  os.path.join(self.dirs.get("work"), filename)
-        launchcmd =  os.path.join(self.dirs.get("work"), "orca_launch.sh")
+        #launchcmd =  os.path.join(self.dirs.get("work"), "orca_launch.sh")
 
         cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % (self.dirs.get("work"), self.script, launchcmd, filename, self.runid, self.verbosity) ]
         return cmd

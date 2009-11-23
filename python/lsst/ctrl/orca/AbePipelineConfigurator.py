@@ -64,10 +64,9 @@ class AbePipelineConfigurator(PipelineConfigurator):
         self.logger.log(Log.DEBUG, "AbePipelineConfigurator:createLaunchCommand")
 
         execPath = self.policy.get("configuration.framework.exec")
+        launchcmd = EnvString.resolve(execPath)
        
-        filename = self.configurationDict["filename"]
-
-        launchcmd =  os.path.join(self.dirs.get("work"), self.remoteScript)
+        #filename = self.configurationDict["filename"]
 
         #cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % (self.dirs.get("work"), self.script, launchcmd, filename, self.runid, self.verbosity) ]
         #return cmd
@@ -76,7 +75,7 @@ class AbePipelineConfigurator(PipelineConfigurator):
 
         # Write Condor file 
         # print "launchPipeline: Write Condor job file here"
-        condorJobfile =  self.pipeline+".condor"
+        condorJobfile =  os.path.join("/tmp",self.pipeline+"_"+self.runid+".condor")
         # Let's create some data:
         clist = []
         clist.append("universe=globus\n")
@@ -153,7 +152,7 @@ class AbePipelineConfigurator(PipelineConfigurator):
 
         
         # write this only for debug
-        nodelistBaseName = "/tmp/nodelist.scr."+str(os.getpid())
+        nodelistBaseName = "/tmp/nodelist.scr."+self.runid
         nodelist = open(nodelistBaseName, 'w')
         for node in self.nodes:
             print >> nodelist, node
@@ -165,7 +164,7 @@ class AbePipelineConfigurator(PipelineConfigurator):
         for node in self.nodes:
             p.set("node%d" % x, node)
             x = x + 1
-        localPAFName = "/tmp/nodelist.paf."+str(os.getpid())
+        localPAFName = "/tmp/nodelist.paf."+self.runid
         pw = pol.PAFWriter(localPAFName)
         pw.write(p)
         pw.close()
@@ -219,7 +218,7 @@ class AbePipelineConfigurator(PipelineConfigurator):
 
         # XXX - write this in the current directory;  we should probably really specify
         # a "scratch" area to write this to instead.
-        newPolicyFile = os.path.join("/tmp", configurationFileName+".tmp."+str(os.getpid()))
+        newPolicyFile = os.path.join("/tmp", configurationFileName+".tmp."+self.runid
         if os.path.exists(newPolicyFile):
             self.logger.log(Log.WARN, "Working directory already contains %s")
         else:
@@ -284,7 +283,7 @@ class AbePipelineConfigurator(PipelineConfigurator):
         # we can't write to the remove directory, so name it locally first.
         # 
         #tempName = name+".tmp"
-        tempName = os.path.join("/tmp",os.path.basename(name)+".tmp."+str(os.getpid()))
+        tempName = os.path.join("/tmp",os.path.basename(name)+".tmp."+self.runid
         launcher = open(tempName, 'w')
         launcher.write("#!/bin/sh\n")
 
