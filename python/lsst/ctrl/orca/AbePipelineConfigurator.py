@@ -15,7 +15,9 @@ from lsst.ctrl.orca.BasicPipelineLauncher import BasicPipelineLauncher
 #
 class AbePipelineConfigurator(PipelineConfigurator):
     def __init__(self, runid, logger, verbosity):
-        self.abePrefix = "gsiftp://gridftp-abe.ncsa.teragrid.org"
+        self.abeLoginName = "login-abe.ncsa.teragrid.org"
+        self.abeFTPName = "gridftp-abe.ncsa.teragrid.org"
+        self.abePrefix = "gsiftp://"+self.abeFTPName
         self.runid = runid
         self.logger = logger
         self.logger.log(Log.DEBUG, "AbePipelineConfigurator:__init__")
@@ -64,7 +66,8 @@ class AbePipelineConfigurator(PipelineConfigurator):
         self.logger.log(Log.DEBUG, "AbePipelineConfigurator:createLaunchCommand")
 
         execPath = self.policy.get("configuration.framework.exec")
-        launchcmd = EnvString.resolve(execPath)
+        #launchcmd = EnvString.resolve(execPath)
+        launchcmd = execPath
        
         #filename = self.configurationDict["filename"]
 
@@ -145,6 +148,14 @@ class AbePipelineConfigurator(PipelineConfigurator):
             os.execvp("globus-url-copy",cmd.split())
         os.wait()[0]
 
+    def remoteMkdir(self, remoteDir):
+        cmd = "gsissh %s mkdir -p %s" % (self.abeLoginName, remoteDir)
+        print "running: "+cmd
+        pid = os.fork()
+        if not pid:
+            os.execvp("gsissh",cmd.split())
+        os.wait()[0]
+
     ##
     # @brief write the node list to a local directory
     #
@@ -218,7 +229,7 @@ class AbePipelineConfigurator(PipelineConfigurator):
 
         # XXX - write this in the current directory;  we should probably really specify
         # a "scratch" area to write this to instead.
-        newPolicyFile = os.path.join("/tmp", configurationFileName+".tmp."+self.runid
+        newPolicyFile = os.path.join("/tmp", configurationFileName+".tmp."+self.runid)
         if os.path.exists(newPolicyFile):
             self.logger.log(Log.WARN, "Working directory already contains %s")
         else:
@@ -278,19 +289,19 @@ class AbePipelineConfigurator(PipelineConfigurator):
 
         filename = os.path.join(self.dirs.get("work"), self.configurationDict["filename"])
 
-        s = "ProvenanceRecorder.py --type=%s --user=%s --runid=%s --dbrun=%s --dbglobal=%s --filename=%s --repos=%s\n" % ("lsst.ctrl.orca.provenance.BasicRecorder", user, runid, dbrun, dbglobal, filename, repos)
+        provenanceCmd = "#ProvenanceRecorder.py --type=%s --user=%s --runid=%s --dbrun=%s --dbglobal=%s --filename=%s --repos=%s\n" % ("lsst.ctrl.orca.provenance.BasicRecorder", user, runid, dbrun, dbglobal, filename, repos)
 
         # we can't write to the remove directory, so name it locally first.
         # 
         #tempName = name+".tmp"
-        tempName = os.path.join("/tmp",os.path.basename(name)+".tmp."+self.runid
+        tempName = os.path.join("/tmp",os.path.basename(name)+".tmp."+self.runid)
         launcher = open(tempName, 'w')
         launcher.write("#!/bin/sh\n")
 
         launcher.write("echo $PATH >path.txt\n")
         launcher.write("eups list 2>/dev/null | grep Setup >eups-env.txt\n")
         launcher.write("pipeline=`echo ${1} | sed -e 's/\..*$//'`\n")
-        launcher.write(s)
+        launcher.write(provenanceCmd)
         launcher.write("#$CTRL_ORCA_DIR/bin/writeNodeList.py %s nodelist.paf\n" % self.dirs.get("work"))
         launcher.write("echo nohup $PEX_HARNESS_DIR/bin/launchPipeline.py $* > ${pipeline}-${2}.log 2>&1  &\n")
         launcher.close()
@@ -312,7 +323,7 @@ class AbePipelineConfigurator(PipelineConfigurator):
 
         for name in self.dirs.names():
             #if not os.path.exists(self.dirs.get(name)): os.makedirs(self.dirs.get(name))
-            print "would have created directory : ",self.dirs.get(name)
+            self.remoteMkdir(self.dirs.get(name))
 
     ##
     # @brief set up this pipeline's database
