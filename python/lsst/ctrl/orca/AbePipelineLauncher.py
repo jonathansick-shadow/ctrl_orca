@@ -7,6 +7,10 @@ from lsst.ctrl.orca.PipelineMonitor import PipelineMonitor
 from lsst.ctrl.orca.PipelineLauncher import PipelineLauncher
 
 ##
+# TODO: THIS IS GOING AWAY....We can use BasicPipelineLauncher instead
+#
+
+##
 # @brief used to launch on a local cluster
 #
 class AbePipelineLauncher(PipelineLauncher):
