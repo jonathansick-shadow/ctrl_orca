@@ -28,6 +28,10 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         self.dirs = None
         self.policySet = sets.Set()
 
+        self.tmpdir = os.path.join("/tmp",self.runid)
+        if not os.path.exists(self.tmpdir):
+            os.makedir(self.tmpdir)
+
 
     ##
     # @brief Setup as much as possible in preparation to execute the pipeline
@@ -72,7 +76,7 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
              (self.pipeline+".paf", self.runid, self.verbosity, self.remoteScript)  
 
         # Write Condor file 
-        condorJobfile =  os.path.join("/tmp",self.pipeline+"_"+self.runid+".condor")
+        condorJobfile =  os.path.join(self.tmpdir, ,self.pipeline+"_"+self.runid+".condor")
         # Let's create some data:
         clist = []
         clist.append("universe=vanilla\n")
@@ -155,7 +159,7 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
 
         
         # write this only for debug
-        nodelistBaseName = "/tmp/nodelist.scr."+self.runid
+        nodelistBaseName = os.path.join(self.tmpdir, "nodelist.scr."+self.runid)
         nodelist = open(nodelistBaseName, 'w')
         for node in self.nodes:
             print >> nodelist, node
@@ -167,7 +171,7 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         for node in self.nodes:
             p.set("node%d" % x, node)
             x = x + 1
-        localPAFName = "/tmp/nodelist.paf."+self.runid
+        localPAFName = os.path.join(self.tmpdir, "nodelist.paf."+self.runid)
         pw = pol.PAFWriter(localPAFName)
         pw.write(p)
         pw.close()
@@ -221,7 +225,7 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
 
         # XXX - write this in the current directory;  we should probably really specify
         # a "scratch" area to write this to instead.
-        newPolicyFile = os.path.join("/tmp", configurationFileName+".tmp."+self.runid)
+        newPolicyFile = os.path.join(self.tmpdir, configurationFileName+".tmp."+self.runid)
         if os.path.exists(newPolicyFile):
             self.logger.log(Log.WARN, "Working directory already contains %s")
         else:
@@ -286,7 +290,7 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         # we can't write to the remove directory, so name it locally first.
         # 
         #tempName = name+".tmp"
-        tempName = os.path.join("/tmp",os.path.basename(name)+".tmp."+self.runid)
+        tempName = os.path.join(self.tmpdir, os.path.basename(name)+".tmp."+self.runid)
         launcher = open(tempName, 'w')
         launcher.write("#!/bin/sh\n")
 
