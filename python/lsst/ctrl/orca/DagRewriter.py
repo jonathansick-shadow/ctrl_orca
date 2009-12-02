@@ -1,9 +1,11 @@
 import re,os
 class DagRewriter:
 
+    def __init__(self, runid):
+        self.tmpdir = os.path.join("/tmp", runid)
 
-    def helpme(self, match ):
-      return match.group(1) + ".condor"
+    def helpme(self, match):
+      return os.path.join(self.tmpdir, match.group(1) + ".condor")
 
     def rewrite(self, inFile, outFile):
         input = open(inFile,"r")
@@ -19,5 +21,5 @@ class DagRewriter:
         
 
 if __name__ == "__main__":
-    dagre = DAGRewriter()
+    dagre = DagRewriter("foobar")
     dagre.rewrite("dagsample.dag","/tmp/dagoutput.txt")
