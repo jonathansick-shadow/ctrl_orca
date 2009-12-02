@@ -84,8 +84,20 @@ class ProductionRunManager:
 
         # TODO: spawn listener object here
 
-        for pipelineManager in self.pipelineManagers:
-            pipelineManager.runPipeline()
+        # create ProductionRunner
+        productionRunnerName = self.policy.get("productionRunnerClass")
+
+        if productionRunnerName == None:
+            print "Couldn't find 'productionRunnerName' in:"
+            print self.policy.toString()
+        classFactory = NamedClassFactory()
+        productionRunConfiguratorClass = classFactory.createClass(productionRunnerName)
+        productionRunner = productionRunnerClass(self.pipelineManagers)
+
+        # 12/2/09 - DC3a - 
+        #for pipelineManager in self.pipelineManagers:
+        #    pipelineManager.runPipeline()
+        productionRunner.runPipelines()
 
         #resolver = EventResolver()
         #listener = EventListener(self.topic, resolver)
@@ -153,7 +165,6 @@ class ProductionRunManager:
         # get pipelines
         pipelinePolicies = self.policy.get("pipelines")
         pipelinePolicyNames = pipelinePolicies.policyNames(True)
-        
 
         platformSet = sets.Set()
 
@@ -178,6 +189,8 @@ class ProductionRunManager:
                 configurationDict = self.rewritePolicy(configuration, pipelinePolicy, policyOverrides)
                 pipelineManager = productionRunConfigurator.createPipelineManager(pipelinePolicy, configurationDict, self.pipelineVerbosity)
                 self.pipelineManagers.append(pipelineManager)
+
+        productionRunConfigurator.finalize(self.pipelineManagers)
 
 
         return productionRunConfigurator
