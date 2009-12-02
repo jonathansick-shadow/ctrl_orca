@@ -33,6 +33,9 @@ class PipelineManager:
         self.pipelineLauncher.launch()
         self.cleanUp()
 
+    def getCPUCount():
+        return self.pipelineConfigurator.getCPUCount()
+
     ##
     # @brief stop the pipeline.
     #
