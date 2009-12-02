@@ -54,19 +54,28 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         self.pipeline = self.policy.get("shortname")
         self.nodes = self.createNodeList()
         self.prepPlatform()
+        self.createLaunchScript()
         self.deploySetup()
         self.setupDatabase()
-        condorFile = self.createCondorFile()
+
+        condorFile = self.writeCondorFile()
         
         pipelineLauncher = BasicPipelineLauncher(cmd, self.pipeline, self.logger)
         return pipelineLauncher
+
+    def finalize(self, pipelineManagers):
+        self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:finalize")
+        dagre = DagRewriter(self.runid)
+        dagre.rewrite(inputfile, outputfile)
+        return
+        
 
     ##
     # @brief create the command which will launch the pipeline
     # @return a string containing the shell commands to execute
     #
-    def createCondorFile(self):
-        self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:createLaunchCommand")
+    def writeCondorFile(self):
+        self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:writeCondorFile")
 
         execPath = self.policy.get("configuration.framework.exec")
         #launchcmd = EnvString.resolve(execPath)
@@ -76,7 +85,7 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
              (self.pipeline+".paf", self.runid, self.verbosity, self.remoteScript)  
 
         # Write Condor file 
-        condorJobfile =  os.path.join(self.tmpdir, ,self.pipeline+"_"+self.runid+".condor")
+        condorJobfile =  os.path.join(self.tmpdir, ,self.pipeline+".condor")
         # Let's create some data:
         clist = []
         clist.append("universe=vanilla\n")
@@ -94,14 +103,7 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         condorFILE.writelines(clist)
         condorFILE.close()
 
-        # kick off the run
-        cmdCondor = "condor_submit %s" % condorJobfile
-
-        self.logger.log(Log.DEBUG, "cmdCondor = "+ cmdCondor)
-        for item in clist:
-            self.logger.log(Log.DEBUG, "Condor submit file line> "+ item)
-
-        return cmdCondor
+        return
 
 
     ##
@@ -265,18 +267,19 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
                     self.copyToRemote(filename, os.path.join(destinationDir, destinationFile))
                 if tokensLength == 1:
                     self.copyToRemote(filename, os.path.join(destinationDir, destinationFile))
-                    
 
-        self.writeLaunchScript()
+        #
+        # copy the launcher script to the remote directory
+        #
+        name = os.path.join(self.dirs.get("work"), self.remoteScript)
+        self.copyToRemote(self.launcherScript, name)
 
     ##
     # @brief write a shell script to launch a pipeline
     #
-    def writeLaunchScript(self):
+    def createLaunchScript(self):
         # write out the script we use to kick things off
         
-        name = os.path.join(self.dirs.get("work"), self.remoteScript)
-
         user = self.provenanceDict["user"]
         runid = self.provenanceDict["runid"]
         dbrun = self.provenanceDict["dbrun"]
@@ -290,7 +293,7 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         # we can't write to the remove directory, so name it locally first.
         # 
         #tempName = name+".tmp"
-        tempName = os.path.join(self.tmpdir, os.path.basename(name)+".tmp."+self.runid)
+        tempName = os.path.join(self.tmpdir, self.remoteScript+".tmp."+self.runid)
         launcher = open(tempName, 'w')
         launcher.write("#!/bin/sh\n")
 
@@ -300,11 +303,12 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         launcher.write(provenanceCmd)
         launcher.write("echo nohup $PEX_HARNESS_DIR/bin/launchPipeline.py $* > ${pipeline}-${2}.log 2>&1  &\n")
         launcher.close()
+
         # make it executable
         os.chmod(tempName, stat.S_IRWXU)
 
-        self.copyToRemote(tempName, name)
-        return
+        self.launcherScript = tempName
+        return tempName
 
     ##
     # @brief create the platform.dir directories
