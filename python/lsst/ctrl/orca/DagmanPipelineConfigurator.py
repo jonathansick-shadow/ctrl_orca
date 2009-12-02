@@ -63,13 +63,6 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         pipelineLauncher = BasicPipelineLauncher(cmd, self.pipeline, self.logger)
         return pipelineLauncher
 
-    def finalize(self, pipelineManagers):
-        self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:finalize")
-        dagre = DagRewriter(self.runid)
-        dagre.rewrite(inputfile, outputfile)
-        return
-        
-
     ##
     # @brief create the command which will launch the pipeline
     # @return a string containing the shell commands to execute
@@ -105,6 +98,8 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
 
         return
 
+    def getCPUCount(self):
+        return len(self.nodes)
 
     ##
     # @brief creates a list of nodes from platform.deploy.nodes

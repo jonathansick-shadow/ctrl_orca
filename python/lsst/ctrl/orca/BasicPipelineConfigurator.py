@@ -84,6 +84,9 @@ class BasicPipelineConfigurator(PipelineConfigurator):
             self.masterNode = self.masterNode[0:colon]
         return nodes
 
+   def getNodeCount(self):
+        return len(self.nodes)
+
     ##
     # @brief prepare the platform by creating directories and writing the node list
     #
