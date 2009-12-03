@@ -6,13 +6,15 @@ class DagConfigurator:
         self.pipelineManagers = pipelineManagers
         self.totalNodeCount = 0
 
+    
     def helpme(self, match):
         name = match.group(1)
         print "name = "+name
+        # this counts the number of nodes when a pipeline is substituted.
         for pipelineManager in self.pipelineManagers:
             if pipelineManager.getPipelineName == name:
-                totalNodeCount = totalNodeCount + pipelineManager.getNodeCount()
-        return os.path.join(self.tmpdir, match.group(1) + ".condor")
+                self.totalNodeCount = self.totalNodeCount + pipelineManager.getNodeCount()
+        return os.path.join(self.tmpdir, name + ".condor")
 
     def rewrite(self, inFile, outFile):
         self.totalNodeCount = 0
