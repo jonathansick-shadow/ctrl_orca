@@ -33,8 +33,11 @@ class PipelineManager:
         self.pipelineLauncher.launch()
         self.cleanUp()
 
-    def getCPUCount():
-        return self.pipelineConfigurator.getCPUCount()
+    def getPipelineName():
+        return self.pipelineConfigurator.getPipelineName()
+
+    def getNodeCount():
+        return self.pipelineConfigurator.getNodeCount()
 
     ##
     # @brief stop the pipeline.

@@ -15,13 +15,10 @@ class DagmanProductionRunConfigurator(BasicProductionRunConfigurator):
 
         dagmanTemplate = self.policy.get("dagmanTemplate")
 
-        #totalCPUCount = 0
-        #for pipelineManager in pipelineManagers:
-        #    totalCPUCount = totalCPUCount + pipelineManager.getCPUCount()
-        dagre = DagRewriter(self.runid)
+        dagConfigurator = DagConfigurator(self.runid, pipelineManagers)
         
         tempdir = os.path.join("/tmp", self.runid)
 
         dagmanFile = os.path.join(self.tempdir,"dagman_"+self.runid"+.dag")
-        dagre.rewrite(dagmanTemplate, dagmanFile)
-        return
+        dagConfigurator.rewrite(dagmanTemplate, dagmanFile)
+        return dagConfigurator.totalNodeCount()

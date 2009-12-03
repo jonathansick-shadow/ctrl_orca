@@ -84,7 +84,10 @@ class BasicPipelineConfigurator(PipelineConfigurator):
             self.masterNode = self.masterNode[0:colon]
         return nodes
 
-   def getNodeCount(self):
+    def getPipelineName(self):
+        return self.pipeline
+    
+    def getNodeCount(self):
         return len(self.nodes)
 
     ##

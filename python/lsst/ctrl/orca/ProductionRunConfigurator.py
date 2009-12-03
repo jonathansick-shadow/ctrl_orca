@@ -22,6 +22,7 @@ class ProductionRunConfigurator:
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:createPipelineManager")
 
         pipelineManager = PipelineManager(self.runid, prodPolicy, configurationDict, self.repository, self.provenanceDict, self.logger, self.verbosity)
+        self.totalNodeCount = self.totalNodeCount + pipelineManager.getTotalNodeCount();
         return pipelineManager
 
     ##
@@ -39,3 +40,13 @@ class ProductionRunConfigurator:
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:configure")
         return {}
 
+    ##
+    # @brief finalize anything necessary for the production run
+    #
+    def finalize(self, pipelineManagers):
+        self.logger.log(Log.DEBUG, "ProductionRunConfigurator:finalize")
+        # not much to do here, but total the number of nodes requested.
+        totalNodeCount = 0
+        for pipelineManager in pipelineManagers:
+            totalNodeCount = totalNodeCount + pipelineManager.getTotalNodeCount()
+        return totalNodeCount

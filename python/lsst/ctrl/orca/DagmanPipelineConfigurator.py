@@ -98,7 +98,7 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
 
         return
 
-    def getCPUCount(self):
+    def getNodeCount(self):
         return len(self.nodes)
 
     ##
