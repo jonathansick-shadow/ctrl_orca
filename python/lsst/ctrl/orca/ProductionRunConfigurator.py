@@ -22,7 +22,6 @@ class ProductionRunConfigurator:
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:createPipelineManager")
 
         pipelineManager = PipelineManager(self.runid, prodPolicy, configurationDict, self.repository, self.provenanceDict, self.logger, self.verbosity)
-        self.totalNodeCount = self.totalNodeCount + pipelineManager.getTotalNodeCount();
         return pipelineManager
 
     ##
