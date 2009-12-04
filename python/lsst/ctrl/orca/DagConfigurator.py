@@ -1,4 +1,5 @@
 import re,os
+import sys
 class DagConfigurator:
 
     def __init__(self, runid, pipelineManagers):
@@ -12,8 +13,9 @@ class DagConfigurator:
         print "name = "+name
         # this counts the number of nodes when a pipeline is substituted.
         for pipelineManager in self.pipelineManagers:
-            if pipelineManager.getPipelineName == name:
+            if pipelineManager.getPipelineName() == name:
                 self.totalNodeCount = self.totalNodeCount + pipelineManager.getNodeCount()
+                print "pipelineManager.getNodeCount = %d" % pipelineManager.getNodeCount()
         return os.path.join(self.tmpdir, name + ".condor")
 
     def rewrite(self, inFile, outFile):
@@ -28,6 +30,7 @@ class DagConfigurator:
             output.write(rewritten[0])
         input.close()
         output.close()
+        print "totalNodeCount after rewrite = %d" % self.totalNodeCount
 
     def getTotalNodeCount(self):
         return self.totalNodeCount
