@@ -7,7 +7,7 @@ from lsst.pex.logging import Log
 
 from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.PipelineConfigurator import PipelineConfigurator
-from lsst.ctrl.orca.BasicPipelineLauncher import BasicPipelineLauncher
+from lsst.ctrl.orca.DagmanPipelineLauncher import DagmanPipelineLauncher
 
 ##
 #
@@ -60,7 +60,7 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
 
         condorFile = self.writeCondorFile()
         
-        pipelineLauncher = BasicPipelineLauncher(cmd, self.pipeline, self.logger)
+        pipelineLauncher = DagmanPipelineLauncher("", self.pipeline, self.logger)
         return pipelineLauncher
 
     ##
@@ -78,7 +78,7 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
              (self.pipeline+".paf", self.runid, self.verbosity, self.remoteScript)  
 
         # Write Condor file 
-        condorJobfile =  os.path.join(self.tmpdir, ,self.pipeline+".condor")
+        condorJobfile =  os.path.join(self.tmpdir, self.pipeline+".condor")
         # Let's create some data:
         clist = []
         clist.append("universe=vanilla\n")
@@ -97,6 +97,9 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         condorFILE.close()
 
         return
+
+    def getPipelineName(self):
+        return self.pipeline
 
     def getNodeCount(self):
         return len(self.nodes)
