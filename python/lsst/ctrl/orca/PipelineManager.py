@@ -33,10 +33,10 @@ class PipelineManager:
         self.pipelineLauncher.launch()
         self.cleanUp()
 
-    def getPipelineName():
+    def getPipelineName(self):
         return self.pipelineConfigurator.getPipelineName()
 
-    def getNodeCount():
+    def getNodeCount(self):
         return self.pipelineConfigurator.getNodeCount()
 
     ##
