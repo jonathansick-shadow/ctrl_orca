@@ -78,6 +78,9 @@ class ProductionRunManager:
             # XXX - next line (?)
             #self.pipelineLaunchers.append(pipelineLauncher)
 
+        # finalize configuration
+        self.totalNodeCount = self.productionRunConfigurator.finalize(self.pipelineManagers)
+
         # Check the configururation
         # TODO: add "care" parameter
         self.checkConfiguration(0)
@@ -92,8 +95,8 @@ class ProductionRunManager:
             print "Couldn't find 'productionRunnerName' in:"
             print self.policy.toString()
         classFactory = NamedClassFactory()
-        productionRunConfiguratorClass = classFactory.createClass(productionRunnerName)
-        productionRunner = productionRunnerClass(self.totalNodeCount, self.pipelineManagers)
+        productionRunnerClass = classFactory.createClass(productionRunnerName)
+        productionRunner = productionRunnerClass(self.runid, self.totalNodeCount, self.pipelineManagers)
 
         # 12/2/09 - DC3a - 
         #for pipelineManager in self.pipelineManagers:
@@ -191,7 +194,6 @@ class ProductionRunManager:
                 pipelineManager = productionRunConfigurator.createPipelineManager(pipelinePolicy, configurationDict, self.pipelineVerbosity)
                 self.pipelineManagers.append(pipelineManager)
 
-        self.totalNodeCount = productionRunConfigurator.finalize(self.pipelineManagers)
 
 
         return productionRunConfigurator
