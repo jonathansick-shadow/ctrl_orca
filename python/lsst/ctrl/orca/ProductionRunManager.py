@@ -78,8 +78,12 @@ class ProductionRunManager:
             # XXX - next line (?)
             #self.pipelineLaunchers.append(pipelineLauncher)
 
+        # XXX - we were going to do it this way, but now the number of nodes
+        # for this dag is specified, rather than calculated. 
         # finalize configuration
-        self.totalNodeCount = self.productionRunConfigurator.finalize(self.pipelineManagers)
+        #self.totalNodeCount = self.productionRunConfigurator.finalize(self.pipelineManagers)
+
+        self.totalNodeCount = self.policy.get("nodeCount")
 
         # Check the configururation
         # TODO: add "care" parameter
@@ -176,8 +180,13 @@ class ProductionRunManager:
         for policyName in pipelinePolicyNames:
             self.logger.log(Log.DEBUG, "policyName --> "+policyName)
             pipelinePolicy = pipelinePolicies.get(policyName)
-            if pipelinePolicy.get("launch",1) != 0:
-                shortName = pipelinePolicy.get("shortname", policyName)
+            # - pex.policy api change fix - if pipelinePolicy.get("launch",1) != 0:
+            doLaunch = pipelinePolicy.get("launch")
+            if doLaunch != 0:
+                # - pex.policy api change fix - shortName = pipelinePolicy.get("shortname", policyName)
+                shortName = pipelinePolicy.get("shortname")
+                if shortName == None:
+                    shortName = policyName
                 configuration = pipelinePolicy.getFile("configuration").getPath()
                 configuratorClassName = pipelinePolicy.get("configuratorClass")
 

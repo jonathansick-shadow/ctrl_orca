@@ -57,6 +57,7 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         self.createLaunchScript()
         self.deploySetup()
         self.setupDatabase()
+        self.condorscript = "condorlaunch.sh"
 
         condorFile = self.writeCondorFile()
         
@@ -77,14 +78,24 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         launchArgs = "%s %s -L %s -S %s" % \
              (self.pipeline+".paf", self.runid, self.verbosity, self.remoteScript)  
 
+
+        # we need a count of the number of nodes for this condor file, so
+        # count 'em up.
+        nodelist = self.policy.getArray("platform.deploy.nodes")
+        nodecount = 0
+        for node in nodelist:
+            nodecount = nodecount + 1
+        
         # Write Condor file 
         condorJobfile =  os.path.join(self.tmpdir, self.pipeline+".condor")
-        # Let's create some data:
+
         clist = []
-        clist.append("universe=vanilla\n")
-        clist.append("executable="+launchcmd+"\n")
-        clist.append("arguments="+launchArgs+"\n")
+        clist.append("universe=parallel\n")
+        clist.append("executable="+condorscript+"\n")
+        clist.append("arguments="+launchcmd+" "+launchArgs+"\n")
         clist.append("transfer_executable=false\n")
+        clist.append("should_transfer_files = no\n")
+        clist.append("machine_count = "+str(nodecount))
         clist.append("output="+self.pipeline+"Condor.out\n")
         clist.append("error="+self.pipeline+"Condor.err\n")
         clist.append("log="+self.pipeline+"Condor.log\n")
@@ -272,6 +283,13 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         name = os.path.join(self.dirs.get("work"), self.remoteScript)
         self.copyToRemote(self.launcherScript, name)
 
+        #
+        # copy the condor scrip to the remote directory
+        #
+        condorscriptpath = os.path.join(os.environ['CTRL_ORCA_DIR'], self.condorscript)
+        name = os.path.join(self.dirs.get("work"), self.condorscript)
+        self.copyToRemote(condorscriptpath, name)
+
     ##
     # @brief write a shell script to launch a pipeline
     #
@@ -295,11 +313,8 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         launcher = open(tempName, 'w')
         launcher.write("#!/bin/sh\n")
 
-        launcher.write("echo $PATH >path.txt\n")
-        launcher.write("eups list 2>/dev/null | grep Setup >eups-env.txt\n")
-        launcher.write("pipeline=`echo ${1} | sed -e 's/\..*$//'`\n")
         launcher.write(provenanceCmd)
-        launcher.write("echo nohup $PEX_HARNESS_DIR/bin/launchPipeline.py $* > ${pipeline}-${2}.log 2>&1  &\n")
+        launcher.write("launchPipelineAbe.sh $@\n")
         launcher.close()
 
         # make it executable
