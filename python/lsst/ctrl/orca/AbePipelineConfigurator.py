@@ -289,6 +289,7 @@ class AbePipelineConfigurator(PipelineConfigurator):
 
         filename = os.path.join(self.dirs.get("work"), self.configurationDict["filename"])
 
+        # TODO: BasicRecorder needs to be moved out of orca
         provenanceCmd = "#ProvenanceRecorder.py --type=%s --user=%s --runid=%s --dbrun=%s --dbglobal=%s --filename=%s --repos=%s\n" % ("lsst.ctrl.orca.provenance.BasicRecorder", user, runid, dbrun, dbglobal, filename, repos)
 
         # we can't write to the remove directory, so name it locally first.
@@ -298,12 +299,8 @@ class AbePipelineConfigurator(PipelineConfigurator):
         launcher = open(tempName, 'w')
         launcher.write("#!/bin/sh\n")
 
-        launcher.write("echo $PATH >path.txt\n")
-        launcher.write("eups list 2>/dev/null | grep Setup >eups-env.txt\n")
-        launcher.write("pipeline=`echo ${1} | sed -e 's/\..*$//'`\n")
-        launcher.write(provenanceCmd)
-        launcher.write("#$CTRL_ORCA_DIR/bin/writeNodeList.py %s nodelist.paf\n" % self.dirs.get("work"))
-        launcher.write("echo nohup $PEX_HARNESS_DIR/bin/launchPipeline.py $* > ${pipeline}-${2}.log 2>&1  &\n")
+        launcher.write(provenanceCmd);
+        launcher.write("launchPipelineAbe.sh $@\n")
         launcher.close()
         # make it executable
         os.chmod(tempName, stat.S_IRWXU)
