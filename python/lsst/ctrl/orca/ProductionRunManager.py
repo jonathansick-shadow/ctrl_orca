@@ -78,12 +78,9 @@ class ProductionRunManager:
             # XXX - next line (?)
             #self.pipelineLaunchers.append(pipelineLauncher)
 
-        # XXX - we were going to do it this way, but now the number of nodes
-        # for this dag is specified, rather than calculated. 
-        # finalize configuration
-        #self.totalNodeCount = self.productionRunConfigurator.finalize(self.pipelineManagers)
-
-        self.totalNodeCount = self.policy.get("nodeCount")
+        # now that we have the list of pipelines, we can finalize the run (for example,
+        # rewrite the DAG file)
+        self.productionRunConfigurator.finalize(self.pipelineManagers)
 
         # Check the configururation
         # TODO: add "care" parameter
@@ -99,8 +96,11 @@ class ProductionRunManager:
             print "Couldn't find 'productionRunnerName' in:"
             print self.policy.toString()
         classFactory = NamedClassFactory()
+
+        productionRunnerPolicy = self.policy.getPolicy("productionRunner")
+
         productionRunnerClass = classFactory.createClass(productionRunnerName)
-        productionRunner = productionRunnerClass(self.runid, self.totalNodeCount, self.pipelineManagers)
+        productionRunner = productionRunnerClass(self.runid, productionRunnerPolicy, self.pipelineManagers)
 
         # 12/2/09 - DC3a - 
         #for pipelineManager in self.pipelineManagers:
