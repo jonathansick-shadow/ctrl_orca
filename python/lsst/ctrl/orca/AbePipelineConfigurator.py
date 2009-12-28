@@ -74,7 +74,7 @@ class AbePipelineConfigurator(PipelineConfigurator):
         #cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % (self.dirs.get("work"), self.script, launchcmd, filename, self.runid, self.verbosity) ]
         #return cmd
         launchArgs = "%s %s -L %s -S %s" % \
-             (self.pipeline+".paf", self.runid, self.verbosity, self.remoteScript)  
+             (self.pipeline+".paf", self.runid, self.verbosity, self.script)  
 
         # Write Condor file 
         # print "launchPipeline: Write Condor job file here"
