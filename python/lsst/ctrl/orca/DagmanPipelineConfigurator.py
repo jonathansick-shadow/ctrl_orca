@@ -15,6 +15,7 @@ from lsst.ctrl.orca.DagmanPipelineLauncher import DagmanPipelineLauncher
 #
 class DagmanPipelineConfigurator(PipelineConfigurator):
     def __init__(self, runid, logger, verbosity):
+        # TODO: these should be in the .paf file
         self.abeLoginName = "login-abe.ncsa.teragrid.org"
         self.abeFTPName = "gridftp-abe.ncsa.teragrid.org"
         self.abePrefix = "gsiftp://"+self.abeFTPName
@@ -57,7 +58,6 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         self.createLaunchScript()
         self.deploySetup()
         self.setupDatabase()
-        self.condorscript = "condorlaunch.sh"
 
         condorFile = self.writeCondorFile()
         
@@ -74,9 +74,13 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         execPath = self.policy.get("configuration.framework.exec")
         #launchcmd = EnvString.resolve(execPath)
         launchcmd = execPath
+
+        setupScriptBasename = os.path.basename(self.script)
+        remoteSetupScriptName = os.path.join(self.dirs.get("work"), setupScriptBasename)
        
         launchArgs = "%s %s -L %s -S %s" % \
-             (self.pipeline+".paf", self.runid, self.verbosity, self.remoteScript)  
+             (self.pipeline+".paf", self.runid, self.verbosity, remoteSetupScriptName)
+        print "launchArgs = %s",launchArgs
 
 
         # we need a count of the number of nodes for this condor file, so
@@ -90,16 +94,17 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         condorJobfile =  os.path.join(self.tmpdir, self.pipeline+".condor")
 
         clist = []
-        clist.append("universe=parallel\n")
-        clist.append("executable="+condorscript+"\n")
+        clist.append("universe=vanilla\n")
+        clist.append("executable="+self.remoteScript+"\n")
         clist.append("arguments="+launchcmd+" "+launchArgs+"\n")
         clist.append("transfer_executable=false\n")
-        clist.append("should_transfer_files = no\n")
-        clist.append("machine_count = "+str(nodecount))
-        clist.append("output="+self.pipeline+"Condor.out\n")
-        clist.append("error="+self.pipeline+"Condor.err\n")
-        clist.append("log="+self.pipeline+"Condor.log\n")
+        clist.append("output="+self.pipeline+"_Condor.out\n")
+        clist.append("error="+self.pipeline+"_Condor.err\n")
+        clist.append("log="+self.pipeline+"_Condor.log\n")
+        clist.append("should_transfer_files = YES\n")
+        clist.append("when_to_transfer_output = ON_EXIT\n")
         clist.append("remote_initialdir="+self.dirs.get("work")+"\n")
+        clist.append("Requirements = (FileSystemDomain != \"dummy\") && (Arch != \"dummy\") && (OpSys != \"dummy\") && (Disk != -1) && (Memory != -1)\n")
         clist.append("queue\n")
 
         # Create a file object: in "write" mode
@@ -155,7 +160,17 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
             os.execvp("globus-url-copy",cmd.split())
         os.wait()[0]
 
+    def remoteChmodX(self, remoteName):
+        self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:remoteChmodX")
+        cmd = "gsissh %s chmod +x %s" % (self.abeLoginName, remoteName)
+        pid = os.fork()
+        if not pid:
+            os.execvp("gsissh",cmd.split())
+        os.wait()[0]
+
+
     def remoteMkdir(self, remoteDir):
+        self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:remoteMkdir")
         cmd = "gsissh %s mkdir -p %s" % (self.abeLoginName, remoteDir)
         print "running: "+cmd
         pid = os.fork()
@@ -283,13 +298,6 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         name = os.path.join(self.dirs.get("work"), self.remoteScript)
         self.copyToRemote(self.launcherScript, name)
 
-        #
-        # copy the condor scrip to the remote directory
-        #
-        condorscriptpath = os.path.join(os.environ['CTRL_ORCA_DIR'], self.condorscript)
-        name = os.path.join(self.dirs.get("work"), self.condorscript)
-        self.copyToRemote(condorscriptpath, name)
-
     ##
     # @brief write a shell script to launch a pipeline
     #
@@ -312,16 +320,18 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         tempName = os.path.join(self.tmpdir, self.remoteScript+".tmp."+self.runid)
         launcher = open(tempName, 'w')
         launcher.write("#!/bin/sh\n")
-
         launcher.write(provenanceCmd)
-        launcher.write("launchPipelineAbe.sh $@\n")
+        launcher.write("echo \"Running SimpleLaunch\"\n")
+        launcher.write("echo \"would have run:\"\n")
+        launcher.write("echo $@\n")
         launcher.close()
+
 
         # make it executable
         os.chmod(tempName, stat.S_IRWXU)
 
         self.launcherScript = tempName
-        return tempName
+        return
 
     ##
     # @brief create the platform.dir directories
