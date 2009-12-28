@@ -14,7 +14,6 @@ class DagmanPipelineLauncher(PipelineLauncher):
     def __init__(self, cmd, pipeline, logger):
         self.logger = logger
         self.logger.log(Log.DEBUG, "DagmanPipelineLauncher:__init__")
-        print "cmd = ",cmd
         self.cmd = cmd
         self.pipeline = pipeline
 
