@@ -2,9 +2,9 @@
 # @brief launches pipelines
 #
 class BasicProductionRunner:
-    def __init__(self, runid, nodeCount, pipelineManagers):
+    def __init__(self, runid, policy, pipelineManagers):
         self.runid = runid
-        self.nodeCount = nodeCount
+        self.policy = policy
         self.pipelineManagers = pipelineManagers
 
     def runPipelines(self):
