@@ -12,7 +12,7 @@ class DagmanProductionRunConfigurator(BasicProductionRunConfigurator):
     def finalize(self, pipelineManagers):
         self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:finalize")
 
-        dagmanTemplate = self.policy.get("dagmanTemplate")
+        dagmanTemplate = self.policy.get("productionRunConfigurator.dagmanTemplate")
 
         dagConfigurator = DagConfigurator(self.runid, pipelineManagers)
         
@@ -20,7 +20,7 @@ class DagmanProductionRunConfigurator(BasicProductionRunConfigurator):
 
         dagmanFile = os.path.join(tempdir,"dagman_"+self.runid+".dag")
         dagConfigurator.rewrite(dagmanTemplate, dagmanFile)
-        return dagConfigurator.getTotalNodeCount()
+        return
 
 
     ##
