@@ -3,9 +3,9 @@ import os
 # @brief launches pipelines
 #
 class DagmanProductionRunner:
-    def __init__(self, runid, nodeCount, pipelineManagers):
+    def __init__(self, runid, policy, pipelineManagers):
         self.runid = runid
-        self.nodeCount = nodeCount
+        self.policy = policy
         self.pipelineManagers = pipelineManagers
         self.donotrun = False
         self.verbose = True
@@ -14,7 +14,14 @@ class DagmanProductionRunner:
 
         # perform the glide-in
 
-        cmd = "condor_glidein -count %d -setup_jobmanager=jobmanager-fork -arch=7.4.0-i686-pc-Linux-2.4 -idletime 5 grid-abe.ncsa.teragrid.org/jobmanager-pbs" % self.nodeCount
+        nodeCount = self.policy.get("nodeCount")
+        idleTime = self.policy.get("idleTime")
+        queueName = self.policy.get("queueName")
+
+        tmpdir = os.path.join("/tmp",self.runid)
+        os.chdir(tmpdir)
+
+        cmd = "condor_glidein -count %d -setup_jobmanager=jobmanager-fork -arch=7.4.0-i686-pc-Linux-2.4 -idletime %d %s" % (nodeCount, idleTime, queueName)
         print "running cmd = "+cmd
 
         if self.verbose == True:
@@ -29,15 +36,12 @@ class DagmanProductionRunner:
 
         # get the name of the already created "dagman_<runid>.dag" file
 
-        tmpdir = os.path.join("/tmp",self.runid)
         dagmanFile = os.path.join(tmpdir,"dagman_"+self.runid+".dag")
 
         # launch the submit
         cmd = "condor_submit_dag "+dagmanFile
         print "running cmd = "+cmd
 
-        if self.verbose == True:
-            print "would run: "+cmd
         if self.donotrun == False:
             cmdArray = cmd.split()
             pid = os.fork()
