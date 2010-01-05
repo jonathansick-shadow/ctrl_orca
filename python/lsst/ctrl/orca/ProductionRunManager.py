@@ -90,17 +90,17 @@ class ProductionRunManager:
         # TODO: spawn listener object here
 
         # create ProductionRunner
-        productionRunnerName = self.policy.get("productionRunnerClass")
+        productionPolicy = self.policy.getPolicy("production")
+        productionRunnerName = productionPolicy.get("productionRunnerClass")
 
         if productionRunnerName == None:
             print "Couldn't find 'productionRunnerName' in:"
             print self.policy.toString()
         classFactory = NamedClassFactory()
 
-        productionRunnerPolicy = self.policy.getPolicy("productionRunner")
 
         productionRunnerClass = classFactory.createClass(productionRunnerName)
-        productionRunner = productionRunnerClass(self.runid, productionRunnerPolicy, self.pipelineManagers)
+        productionRunner = productionRunnerClass(self.runid, productionPolicy, self.pipelineManagers)
 
         # 12/2/09 - DC3a - 
         #for pipelineManager in self.pipelineManagers:
@@ -156,10 +156,10 @@ class ProductionRunManager:
         if self.policy.exists("shutdownTopic"):            
             policyOverrides.set("execute.shutdownTopic", self.policy.get("shutdownTopic"))
 
-        productionRunConfiguratorName = self.policy.get("productionRunConfiguratorClass")
+        productionRunConfiguratorName = self.policy.get("production.productionRunConfiguratorClass")
 
         if productionRunConfiguratorName == None:
-            print "Couldn't find 'productionRunConfiguratorName' in:"
+            print "Couldn't find 'production.productionRunConfiguratorClass' in:"
             print self.policy.toString()
         classFactory = NamedClassFactory()
         productionRunConfiguratorClass = classFactory.createClass(productionRunConfiguratorName)
