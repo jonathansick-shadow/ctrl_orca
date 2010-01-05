@@ -12,11 +12,12 @@ class DagmanProductionRunConfigurator(BasicProductionRunConfigurator):
     def finalize(self, pipelineManagers):
         self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:finalize")
 
-        dagmanTemplate = self.policy.get("productionRunConfigurator.dagmanTemplate")
+        dagmanTemplate = self.policy.get("production.productionRunConfigurator.dagmanTemplate")
+        localScratch = self.policy.get("production.localScratch")
 
-        dagConfigurator = DagConfigurator(self.runid, pipelineManagers)
+        dagConfigurator = DagConfigurator(self.runid, localScratch, pipelineManagers)
         
-        tempdir = os.path.join("/tmp", self.runid)
+        tempdir = os.path.join(localScratch, self.runid)
 
         dagmanFile = os.path.join(tempdir,"dagman_"+self.runid+".dag")
         dagConfigurator.rewrite(dagmanTemplate, dagmanFile)
@@ -27,9 +28,11 @@ class DagmanProductionRunConfigurator(BasicProductionRunConfigurator):
     # @brief configure this production run
     #
     def configure(self):
+        self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:configure")
 
         # create temporary directory for dagman-related files
-        tempdir = os.path.join("/tmp", self.runid)
+        localScratchName = self.policy.get("production.localScratch")
+        tempdir = os.path.join(localScratchName, self.runid)
         os.mkdir(tempdir)
 
         # grab the file name of the database before we load the policy
