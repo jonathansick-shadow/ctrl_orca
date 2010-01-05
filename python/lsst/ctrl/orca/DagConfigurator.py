@@ -2,8 +2,8 @@ import re,os
 import sys
 class DagConfigurator:
 
-    def __init__(self, runid, pipelineManagers):
-        self.tmpdir = os.path.join("/tmp", runid)
+    def __init__(self, runid, localScratch, pipelineManagers):
+        self.tmpdir = os.path.join(localScratch, runid)
         self.pipelineManagers = pipelineManagers
         self.totalNodeCount = 0
 
