@@ -16,9 +16,9 @@ from lsst.ctrl.orca.DagmanPipelineLauncher import DagmanPipelineLauncher
 class DagmanPipelineConfigurator(PipelineConfigurator):
     def __init__(self, runid, logger, verbosity):
         # TODO: these should be in the .paf file
-        self.abeLoginName = "login-abe.ncsa.teragrid.org"
-        self.abeFTPName = "gridftp-abe.ncsa.teragrid.org"
-        self.abePrefix = "gsiftp://"+self.abeFTPName
+        #self.abeLoginName = "login-abe.ncsa.teragrid.org"
+        #self.abeFTPName = "gridftp-abe.ncsa.teragrid.org"
+        #self.abePrefix = "gsiftp://"+self.abeFTPName
         self.runid = runid
         self.logger = logger
         self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:__init__")
@@ -29,9 +29,9 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         self.dirs = None
         self.policySet = sets.Set()
 
-        self.tmpdir = os.path.join("/tmp",self.runid)
-        if not os.path.exists(self.tmpdir):
-            os.makedir(self.tmpdir)
+        #self.tmpdir = os.path.join("/tmp",self.runid)
+        #if not os.path.exists(self.tmpdir):
+        #    os.makedir(self.tmpdir)
 
 
     ##
@@ -45,10 +45,19 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
     #
     def configure(self, policy, configurationDict, provenanceDict, repository):
         self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:configure")
+        self.policy = policy
+
+        self.abeLoginName = self.policy.get("configurator.loginNode")
+        self.abeFTPName = self.policy.get("configurator.ftpNode")
+        self.abePrefix = self.policy.get("configurator.transferProtocol")+"://"+self.abeFTPName
+        self.localScratch = self.policy.get("configurator.localScratch")
+
+        self.tmpdir = os.path.join(self.localScratch,self.runid)
+        if not os.path.exists(self.tmpdir):
+            os.makedir(self.tmpdir)
 
         self.remoteScript = "orca_launch.sh"
 
-        self.policy = policy
         self.configurationDict = configurationDict
         self.provenanceDict = provenanceDict
         self.repository = repository
@@ -251,15 +260,18 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
 
         # XXX - write this in the current directory;  we should probably really specify
         # a "scratch" area to write this to instead.
-        newPolicyFile = os.path.join(self.tmpdir, configurationFileName+".tmp."+self.runid)
+        # XXX - 01/04/10 - srp - use pipeline name to avoid conflicts with other original pipeline names
+        #newPolicyFile = os.path.join(self.tmpdir, configurationFileName+".tmp."+self.runid)
+        newPolicyFile = os.path.join(self.tmpdir, self.pipeline+".paf.tmp")
         if os.path.exists(newPolicyFile):
-            self.logger.log(Log.WARN, "Working directory already contains %s")
+            self.logger.log(Log.WARN, "Working directory already contains %s" % newPolicyFile)
         else:
             pw = pol.PAFWriter(newPolicyFile)
             pw.write(configurationPolicy)
             pw.close()
-
-        self.copyToRemote(newPolicyFile,configurationFileName)
+        # XXX - srp - 01/04/10 - copy to pipeline name instead
+        #self.copyToRemote(newPolicyFile,configurationFileName)
+        self.copyToRemote(newPolicyFile,self.pipeline+".paf")
         # TODO: uncomment this and perform the remove of the temp file.
         # os.unlink(newPolicyFile)
 
@@ -293,10 +305,31 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
                     self.copyToRemote(filename, os.path.join(destinationDir, destinationFile))
 
         #
-        # copy the launcher script to the remote directory
+        # copy the launcher script to the remote directory, and make it executable
         #
         name = os.path.join(self.dirs.get("work"), self.remoteScript)
         self.copyToRemote(self.launcherScript, name)
+        self.remoteChmodX(name)
+
+        #
+        # copy the provenance python files
+        filelist = [
+                 ('bin/ProvenanceRecorder.py','python/ProvenanceRecorder.py'),
+                 ('python/lsst/ctrl/orca/provenance/BasicRecorder.py', 'python/lsst/ctrl/orca/provenance/BasicRecorder.py'),
+                 ('python/lsst/ctrl/orca/provenance/Recorder.py', 'python/lsst/ctrl/orca/provenance/Recorder.py'),
+                 ('python/lsst/ctrl/orca/provenance/Provenance.py', 'python/lsst/ctrl/orca/provenance/Provenance.py'),
+                 ('python/lsst/ctrl/orca/provenance/__init__.py', 'python/lsst/ctrl/orca/provenance/__init__.py'),
+                 ('python/lsst/ctrl/orca/NamedClassFactory.py', 'python/lsst/ctrl/orca/NamedClassFactory.py')
+                ]
+        ctrl_orca_dir = os.getenv('CTRL_ORCA_DIR', None)
+        if ctrl_orca_dir == None:
+            raise RuntimeError("couldn't find CTRL_ORCA_DIR environment variable")
+
+        for files in filelist:
+            localFile = os.path.join(ctrl_orca_dir,files[0])
+            remoteFile = os.path.join(self.dirs.get("work"),files[0])
+            self.copyToRemote(localFile, remoteFile)
+            
 
     ##
     # @brief write a shell script to launch a pipeline
@@ -311,8 +344,9 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         repos = self.provenanceDict["repos"]
 
         filename = os.path.join(self.dirs.get("work"), self.configurationDict["filename"])
+        remoterepos = os.path.join(self.dirs.get("work"),self.pipeline)
 
-        provenanceCmd = "#ProvenanceRecorder.py --type=%s --user=%s --runid=%s --dbrun=%s --dbglobal=%s --filename=%s --repos=%s\n" % ("lsst.ctrl.orca.provenance.BasicRecorder", user, runid, dbrun, dbglobal, filename, repos)
+        provenanceCmd = "#ProvenanceRecorder.py --type=%s --user=%s --runid=%s --dbrun=%s --dbglobal=%s --filename=%s --repos=%s\n" % ("lsst.ctrl.orca.provenance.BasicRecorder", user, runid, dbrun, dbglobal, filename, remoterepos)
 
         # we can't write to the remove directory, so name it locally first.
         # 
@@ -320,6 +354,7 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         tempName = os.path.join(self.tmpdir, self.remoteScript+".tmp."+self.runid)
         launcher = open(tempName, 'w')
         launcher.write("#!/bin/sh\n")
+        launcher.write("PYTHONPATH=$PWD/python:$PYTHONPATH\n")
         launcher.write(provenanceCmd)
         launcher.write("echo \"Running SimpleLaunch\"\n")
         launcher.write("echo \"would have run:\"\n")
@@ -346,6 +381,9 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         for name in self.dirs.names():
             #if not os.path.exists(self.dirs.get(name)): os.makedirs(self.dirs.get(name))
             self.remoteMkdir(self.dirs.get(name))
+
+        # mkdir under "work" for the provenance directory
+        self.remoteMkdir(os.path.join(self.dirs.get("work"),"python"))
 
     ##
     # @brief set up this pipeline's database
