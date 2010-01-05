@@ -14,14 +14,17 @@ class DagmanProductionRunner:
 
         # perform the glide-in
 
-        nodeCount = self.policy.get("nodeCount")
-        idleTime = self.policy.get("idleTime")
-        queueName = self.policy.get("queueName")
+        nodeCount = self.policy.get("productionRunner.nodeCount")
+        idleTime = self.policy.get("productionRunner.idleTime")
+        queueName = self.policy.get("productionRunner.queueName")
+        localScratch = self.policy.get("localScratch")
+        arch = self.policy.get("productionRunner.arch")
 
-        tmpdir = os.path.join("/tmp",self.runid)
+        tmpdir = os.path.join(localScratch,self.runid)
         os.chdir(tmpdir)
 
-        cmd = "condor_glidein -count %d -setup_jobmanager=jobmanager-fork -arch=7.4.0-i686-pc-Linux-2.4 -idletime %d %s" % (nodeCount, idleTime, queueName)
+        #cmd = "condor_glidein -count %d -setup_jobmanager=jobmanager-fork -arch=7.4.0-i686-pc-Linux-2.4 -idletime %d %s" % (nodeCount, idleTime, queueName)
+        cmd = "condor_glidein -count %d -setup_jobmanager=jobmanager-fork -arch=%s -idletime %d %s" % (nodeCount, arch, idleTime, queueName)
         print "running cmd = "+cmd
 
         if self.verbose == True:
