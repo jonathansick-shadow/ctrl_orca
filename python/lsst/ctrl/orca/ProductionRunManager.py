@@ -179,31 +179,30 @@ class ProductionRunManager:
         # create a pipelineManager for each pipeline, and save it.
         for policyName in pipelinePolicyNames:
             self.logger.log(Log.DEBUG, "policyName --> "+policyName)
-            pipelinePolicy = pipelinePolicies.get(policyName)
-            # - pex.policy api change fix - if pipelinePolicy.get("launch",1) != 0:
-            doLaunch = pipelinePolicy.get("launch")
-            if doLaunch != 0:
-                # - pex.policy api change fix - shortName = pipelinePolicy.get("shortname", policyName)
-                shortName = pipelinePolicy.get("shortname")
-                if shortName == None:
-                    shortName = policyName
-                configuration = pipelinePolicy.getFile("configuration").getPath()
-                configuratorClassName = pipelinePolicy.get("configuratorClass")
+            pipelinePolicyArray = pipelinePolicies.getArray(policyName)
+            for pipelinePolicy in pipelinePolicyArray:
+                # - pex.policy api change fix - if pipelinePolicy.get("launch",1) != 0:
+                doLaunch = pipelinePolicy.get("launch")
+                if doLaunch != 0:
+                    # - pex.policy api change fix - shortName = pipelinePolicy.get("shortname", policyName)
+                    shortName = pipelinePolicy.get("shortname")
+                    if shortName == None:
+                        shortName = policyName
+                    configuration = pipelinePolicy.getFile("configuration").getPath()
+                    configuratorClassName = pipelinePolicy.get("configuratorClass")
 
-                # record the platform policy, if that platform hasn't been recorded yet
-                platformFilename = pipelinePolicy.getFile("platform").getPath()
-                platformFilename = os.path.join(self.repository, platformFilename)
-                if (platformFilename in platformSet) == False:
-                    productionRunConfigurator.recordPolicy(platformFilename)
-                    platformSet.add(platformFilename)
+                    # record the platform policy, if that platform hasn't been recorded yet
+                    platformFilename = pipelinePolicy.getFile("platform").getPath()
+                    platformFilename = os.path.join(self.repository, platformFilename)
+                    if (platformFilename in platformSet) == False:
+                        productionRunConfigurator.recordPolicy(platformFilename)
+                        platformSet.add(platformFilename)
 
-                pipelinePolicy.loadPolicyFiles(self.repository, True)
+                    pipelinePolicy.loadPolicyFiles(self.repository, True)
 
-                configurationDict = self.rewritePolicy(configuration, pipelinePolicy, policyOverrides)
-                pipelineManager = productionRunConfigurator.createPipelineManager(pipelinePolicy, configurationDict, self.pipelineVerbosity)
-                self.pipelineManagers.append(pipelineManager)
-
-
+                    configurationDict = self.rewritePolicy(configuration, pipelinePolicy, policyOverrides)
+                    pipelineManager = productionRunConfigurator.createPipelineManager(pipelinePolicy, configurationDict, self.pipelineVerbosity)
+                    self.pipelineManagers.append(pipelineManager)
 
         return productionRunConfigurator
 
