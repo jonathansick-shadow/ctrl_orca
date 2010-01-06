@@ -62,7 +62,8 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         self.provenanceDict = provenanceDict
         self.repository = repository
         self.pipeline = self.policy.get("shortname")
-        self.nodes = self.createNodeList()
+        # unused in the condor vanilla universe
+        #self.nodes = self.createNodeList()
         self.prepPlatform()
         self.createLaunchScript()
         self.deploySetup()
@@ -126,8 +127,10 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
     def getPipelineName(self):
         return self.pipeline
 
+    
     def getNodeCount(self):
-        return len(self.nodes)
+        # unused in this case
+        return -1
 
     ##
     # @brief creates a list of nodes from platform.deploy.nodes
@@ -224,7 +227,8 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:deploySetup")
 
         # write the nodelist to "work"
-        self.writeNodeList()
+        # unused in the condor vanilla universe
+        #self.writeNodeList()
 
         # copy /bin/sh script responsible for environment setting
 
