@@ -47,7 +47,7 @@ class AbePipelineConfigurator(PipelineConfigurator):
         self.configurationDict = configurationDict
         self.provenanceDict = provenanceDict
         self.repository = repository
-        self.pipeline = self.policy.get("shortname")
+        self.pipeline = self.policy.get("shortName")
         self.nodes = self.createNodeList()
         self.prepPlatform()
         self.deploySetup()

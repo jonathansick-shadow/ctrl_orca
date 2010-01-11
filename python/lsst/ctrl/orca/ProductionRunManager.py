@@ -184,8 +184,8 @@ class ProductionRunManager:
                 # - pex.policy api change fix - if pipelinePolicy.get("launch",1) != 0:
                 doLaunch = pipelinePolicy.get("launch")
                 if doLaunch != 0:
-                    # - pex.policy api change fix - shortName = pipelinePolicy.get("shortname", policyName)
-                    shortName = pipelinePolicy.get("shortname")
+                    # - pex.policy api change fix - shortName = pipelinePolicy.get("shortName", policyName)
+                    shortName = pipelinePolicy.get("shortName")
                     if shortName == None:
                         shortName = policyName
                     configuration = pipelinePolicy.getFile("configuration").getPath()
@@ -198,6 +198,8 @@ class ProductionRunManager:
                         productionRunConfigurator.recordPolicy(platformFilename)
                         platformSet.add(platformFilename)
 
+                    
+                    #self.logger.log(Log.DEBUG, ":createConfigurator platformFileName = %s, repository = %s" % (platformFilename, self.repository))
                     pipelinePolicy.loadPolicyFiles(self.repository, True)
 
                     configurationDict = self.rewritePolicy(configuration, pipelinePolicy, policyOverrides)
