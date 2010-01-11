@@ -202,7 +202,7 @@ class ProductionRunManager:
                     #self.logger.log(Log.DEBUG, ":createConfigurator platformFileName = %s, repository = %s" % (platformFilename, self.repository))
                     pipelinePolicy.loadPolicyFiles(self.repository, True)
 
-                    configurationDict = self.rewritePolicy(configuration, pipelinePolicy, policyOverrides)
+                    configurationDict = self.rewritePolicy(configuration, shortName, pipelinePolicy, policyOverrides)
                     pipelineManager = productionRunConfigurator.createPipelineManager(pipelinePolicy, configurationDict, self.pipelineVerbosity)
                     self.pipelineManagers.append(pipelineManager)
 
@@ -211,7 +211,7 @@ class ProductionRunManager:
     ##
     # @brief
     #
-    def rewritePolicy(self, configuration, pipelinePolicy, policyOverrides):
+    def rewritePolicy(self, configuration, shortName, pipelinePolicy, policyOverrides):
         # NOTE:  pipelinePolicy must be fully de-referenced by this point.
 
         #  read in default policy        
@@ -229,6 +229,9 @@ class ProductionRunManager:
         if policyOverrides is not None:
             for name in policyOverrides.paramNames():
                 newPolicy.set(name, policyOverrides.get(name))
+
+
+        newPolicy.set("execute.shortName", shortName)
 
         executeDir = pipelinePolicy.get("platform.dir")
         newPolicy.set("execute.dir", executeDir)
