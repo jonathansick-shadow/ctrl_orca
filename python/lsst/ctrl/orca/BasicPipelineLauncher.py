@@ -51,11 +51,11 @@ class BasicPipelineLauncher(PipelineLauncher):
 
             print  "executing: ",self.cmd
             
-            cmdArray = self.cmd.split()
+            #cmdArray = self.cmd.split()
             # perform this copy from the local machine to the remote machine
             pid = os.fork()
             if not pid:
-               os.execvp(cmdArray[0],cmdArray)
+               os.execvp(self.cmd[0], self.cmd)
             os.wait()[0]
 
             #if subprocess.call(self.cmd) != 0:
