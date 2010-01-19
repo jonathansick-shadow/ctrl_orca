@@ -11,9 +11,9 @@ from lsst.ctrl.orca.DagmanPipelineLauncher import DagmanPipelineLauncher
 
 ##
 #
-# DagmanPipelineConfigurator 
+# VanillaPipelineConfigurator 
 #
-class DagmanPipelineConfigurator(PipelineConfigurator):
+class VanillaPipelineConfigurator(PipelineConfigurator):
     def __init__(self, runid, logger, verbosity):
         # TODO: these should be in the .paf file
         #self.abeLoginName = "login-abe.ncsa.teragrid.org"
@@ -21,7 +21,7 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         #self.abePrefix = "gsiftp://"+self.abeFTPName
         self.runid = runid
         self.logger = logger
-        self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:__init__")
+        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:__init__")
         self.verbosity = verbosity
 
         self.nodes = None
@@ -44,7 +44,7 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
     # @param repository policy file repository location
     #
     def configure(self, policy, configurationDict, provenanceDict, repository):
-        self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:configure")
+        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:configure")
         self.policy = policy
 
         self.abeLoginName = self.policy.get("configurator.loginNode")
@@ -79,7 +79,7 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
     # @return a string containing the shell commands to execute
     #
     def writeCondorFile(self):
-        self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:writeCondorFile")
+        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:writeCondorFile")
 
         execPath = self.policy.get("configuration.framework.exec")
         #launchcmd = EnvString.resolve(execPath)
@@ -137,7 +137,7 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
     # @return the list of nodes
     #
     def createNodeList(self):
-        self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:createNodeList")
+        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:createNodeList")
         node = self.policy.getArray("platform.deploy.nodes")
         self.defaultDomain = self.policy.get("platform.deploy.defaultDomain")
 
@@ -154,11 +154,11 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
     # @brief prepare the platform by creating directories and writing the node list
     #
     def prepPlatform(self):
-        self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:prepPlatform")
+        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:prepPlatform")
         self.createDirs()
 
     def copyToRemote(self, localName, remoteName):
-        self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:copyToRemote")
+        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:copyToRemote")
         
         localNameURL = "%s%s" % ("file://",localName)
         remoteFullName = os.path.join(self.dirs.get("work"),remoteName)
@@ -173,7 +173,7 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
         os.wait()[0]
 
     def remoteChmodX(self, remoteName):
-        self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:remoteChmodX")
+        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:remoteChmodX")
         cmd = "gsissh %s chmod +x %s" % (self.abeLoginName, remoteName)
         pid = os.fork()
         if not pid:
@@ -182,7 +182,7 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
 
 
     def remoteMkdir(self, remoteDir):
-        self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:remoteMkdir")
+        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:remoteMkdir")
         cmd = "gsissh %s mkdir -p %s" % (self.abeLoginName, remoteDir)
         print "running: "+cmd
         pid = os.fork()
@@ -224,7 +224,7 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
     # @brief 
     #
     def deploySetup(self):
-        self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:deploySetup")
+        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:deploySetup")
 
         # write the nodelist to "work"
         # unused in the condor vanilla universe
@@ -376,7 +376,7 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
     # @brief create the platform.dir directories
     #
     def createDirs(self):
-        self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:createDirs")
+        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:createDirs")
 
         dirPolicy = self.policy.getPolicy("platform.dir")
         directories = Directories(dirPolicy, self.pipeline, self.runid)
@@ -393,7 +393,7 @@ class DagmanPipelineConfigurator(PipelineConfigurator):
     # @brief set up this pipeline's database
     #
     def setupDatabase(self):
-        self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:setupDatabase")
+        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:setupDatabase")
 
     ##
     # @brief perform a node host name expansion
