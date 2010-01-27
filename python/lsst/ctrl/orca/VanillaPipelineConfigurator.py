@@ -24,6 +24,7 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
         self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:__init__")
         self.verbosity = verbosity
 
+        self.directories = None
         self.nodes = None
         self.numNodes = None
         self.dirs = None
@@ -157,7 +158,62 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
         self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:prepPlatform")
         self.createDirs()
 
+    def stageLocally(self, localName, remoteName):
+        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:stageLocally")
+
+        print "local name  = "+localName
+        print "remote name  = "+remoteName
+        localStageDir = os.path.join(self.tmpdir, self.pipeline)
+
+        print "localStageDir = "+localStageDir
+
+        localStageName = os.path.join(localStageDir, remoteName)
+
+        print "localName = %s, localStageName = %s\n",(localName,localStageName)
+        if os.path.exists(os.path.dirname(localStageName)) == False:
+            os.makedirs(os.path.dirname(localStageName))
+        shutil.copyfile(localName, localStageName)
+
+    def stageLocallyOLD(self, localName, remoteName):
+        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:stageLocally")
+
+        print "local name  = "+localName
+        print "remote name  = "+remoteName
+        localStageDir = os.path.join(self.tmpdir, self.pipeline)
+
+        #print "self.tmpdir = "+self.tmpdir
+        print "localStageDir = "+localStageDir
+        #print "defaultRoot = "+self.directories.getDefaultRunDir()
+
+
+        splitname = remoteName.split(self.directories.getDefaultRunDir())
+        
+        print "self.tmpdir = "+self.tmpdir
+        print "localStageDir = "+localStageDir
+        print "remote name  = "+remoteName
+        print "defaultRunDir = "+self.directories.getDefaultRunDir()
+        print "defaultRootDir = "+self.directories.getDefaultRootDir()
+        localStageName = os.path.join(localStageDir, splitname[1])
+
+
+        print "localName = %s, localStageName = %s\n",(localName,localStageName)
+        shutil.copyfile(localName, localStageName)
+        
     def copyToRemote(self, localName, remoteName):
+        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:copyToRemote")
+        
+        localNameURL = "%s%s" % ("file://",localName)
+        remoteNameURL = "%s%s" % (self.abePrefix, remoteName)
+
+        cmd = "globus-url-copy -r -vb -cd %s %s " % (localNameURL, remoteNameURL)
+        
+        # perform this copy from the local machine to the remote machine
+        pid = os.fork()
+        if not pid:
+            os.execvp("globus-url-copy",cmd.split())
+        os.wait()[0]
+
+    def copyToRemote_ORIG(self, localName, remoteName):
         self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:copyToRemote")
         
         localNameURL = "%s%s" % ("file://",localName)
@@ -170,7 +226,6 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
         pid = os.fork()
         if not pid:
             os.execvp("globus-url-copy",cmd.split())
-        os.wait()[0]
 
     def remoteChmodX(self, remoteName):
         self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:remoteChmodX")
@@ -215,10 +270,13 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
         pw.close()
         self.numNodes = x
 
-        self.copyToRemote(nodelistBaseName, "nodelist.scr")
-        self.copyToRemote(localPAFName, "nodelist.paf")
-        os.unlink(nodelistBaseName)
-        os.unlink(localPAFName)
+        # srp
+        #self.copyToRemote(nodelistBaseName, "nodelist.scr")
+        #self.copyToRemote(localPAFName, "nodelist.paf")
+        #os.unlink(nodelistBaseName)
+        #os.unlink(localPAFName)
+        self.stageLocally(nodelistBaseName, "nodelist.scr")
+        self.stageLocally(localPAFName, "nodelist.paf")
 
     ##
     # @brief 
@@ -245,9 +303,12 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
         setupLineList = self.script.split("/")
         lengthLineList = len(setupLineList)
         setupShortName = setupLineList[lengthLineList-1]
+        setupShortName = os.path.join("work",setupShortName)
 
         # stage the setup script into place on the remote resource
-        self.copyToRemote(self.script, setupShortName)
+        # srp
+        #self.copyToRemote(self.script, setupShortName)
+        self.stageLocally(self.script, setupShortName)
 
         # This policy has the override values, but must be written out and
         # recorded.
@@ -266,7 +327,9 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
         # a "scratch" area to write this to instead.
         # XXX - 01/04/10 - srp - use pipeline name to avoid conflicts with other original pipeline names
         #newPolicyFile = os.path.join(self.tmpdir, configurationFileName+".tmp."+self.runid)
-        newPolicyFile = os.path.join(self.tmpdir, self.pipeline+".paf.tmp")
+        newPolicyDir = os.path.join(self.tmpdir, self.pipeline)
+        newPolicyDir = os.path.join(newPolicyDir, "work")
+        newPolicyFile = os.path.join(newPolicyDir, self.pipeline+".paf")
         if os.path.exists(newPolicyFile):
             self.logger.log(Log.WARN, "Working directory already contains %s" % newPolicyFile)
         else:
@@ -275,7 +338,9 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
             pw.close()
         # XXX - srp - 01/04/10 - copy to pipeline name instead
         #self.copyToRemote(newPolicyFile,configurationFileName)
-        self.copyToRemote(newPolicyFile,self.pipeline+".paf")
+        # srp - 01/27/10
+        #self.copyToRemote(newPolicyFile,self.pipeline+".paf")
+        #self.stageLocally(newPolicyFile,self.pipeline+".paf")
         # TODO: uncomment this and perform the remove of the temp file.
         # os.unlink(newPolicyFile)
 
@@ -293,37 +358,49 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
               "Working directory already contains %s directory; won't overwrite" % self.pipeline)
         else:
             for filename  in pipelinePolicySet:
-                destinationDir = self.dirs.get("work")
-                destName = filename.replace(self.repository+"/","")
-                tokens = destName.split('/')
-                tokensLength = len(tokens)
-                # if the destination directory heirarchy doesn't exist, create all          
-                # the missing directories
-                destinationFile = tokens[len(tokens)-1]
-                if tokensLength > 1:
-                    for newDestinationDir in tokens[:len(tokens)-1]:
-                        newDir = os.path.join(destinationDir, newDestinationDir)
-                        destinationDir = newDir
-                    self.copyToRemote(filename, os.path.join(destinationDir, destinationFile))
-                if tokensLength == 1:
-                    self.copyToRemote(filename, os.path.join(destinationDir, destinationFile))
+                print "working on filename = "+filename
+                print "working on repository = "+self.repository
+
+                localStageNames = filename.split(self.repository)
+                localStageName = "work"+localStageNames[1]
+                print "localStageName = "+localStageName
+                self.stageLocally(filename, localStageName)
+                #destinationDir = self.dirs.get("work")
+                #print "++ destinationDir = "+destinationDir
+                #destName = filename.replace(self.repository+"/","")
+                #tokens = destName.split('/')
+                #tokensLength = len(tokens)
+                ## if the destination directory heirarchy doesn't exist, create all          
+                ## the missing directories
+                #destinationFile = tokens[len(tokens)-1]
+                #if tokensLength > 1:
+                #    for newDestinationDir in tokens[:len(tokens)-1]:
+                #        newDir = os.path.join(destinationDir, newDestinationDir)
+                #        destinationDir = newDir
+                #    # srp
+                #    #self.copyToRemote(filename, os.path.join(destinationDir, destinationFile))
+                #    print "destinationDir = "+destinationDir
+                #    print "destinationFile = "+destinationFile
+                #    self.stageLocally(filename, os.path.join(destinationDir, destinationFile))
+                #if tokensLength == 1:
+                #    # srp
+                #    #self.copyToRemote(filename, os.path.join(destinationDir, destinationFile))
+                #    self.stageLocally(filename, os.path.join(destinationDir, destinationFile))
 
         #
-        # copy the launcher script to the remote directory, and make it executable
+        # make the launcher executable
         #
-        name = os.path.join(self.dirs.get("work"), self.remoteScript)
-        self.copyToRemote(self.launcherScript, name)
-        self.remoteChmodX(name)
+        #self.remoteChmodX(name)
 
         #
         # copy the provenance python files
         filelist = [
-                 ('bin/ProvenanceRecorder.py','python/ProvenanceRecorder.py'),
-                 ('python/lsst/ctrl/orca/provenance/BasicRecorder.py', 'python/lsst/ctrl/orca/provenance/BasicRecorder.py'),
-                 ('python/lsst/ctrl/orca/provenance/Recorder.py', 'python/lsst/ctrl/orca/provenance/Recorder.py'),
-                 ('python/lsst/ctrl/orca/provenance/Provenance.py', 'python/lsst/ctrl/orca/provenance/Provenance.py'),
-                 ('python/lsst/ctrl/orca/provenance/__init__.py', 'python/lsst/ctrl/orca/provenance/__init__.py'),
-                 ('python/lsst/ctrl/orca/NamedClassFactory.py', 'python/lsst/ctrl/orca/NamedClassFactory.py')
+                 ('bin/ProvenanceRecorder.py','work/python/ProvenanceRecorder.py'),
+                 ('python/lsst/ctrl/orca/provenance/BasicRecorder.py', 'work/python/lsst/ctrl/orca/provenance/BasicRecorder.py'),
+                 ('python/lsst/ctrl/orca/provenance/Recorder.py', 'work/python/lsst/ctrl/orca/provenance/Recorder.py'),
+                 ('python/lsst/ctrl/orca/provenance/Provenance.py', 'work/python/lsst/ctrl/orca/provenance/Provenance.py'),
+                 ('python/lsst/ctrl/orca/provenance/__init__.py', 'work/python/lsst/ctrl/orca/provenance/__init__.py'),
+                 ('python/lsst/ctrl/orca/NamedClassFactory.py', 'work/python/lsst/ctrl/orca/NamedClassFactory.py')
                 ]
         ctrl_orca_dir = os.getenv('CTRL_ORCA_DIR', None)
         if ctrl_orca_dir == None:
@@ -331,9 +408,13 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
 
         for files in filelist:
             localFile = os.path.join(ctrl_orca_dir,files[0])
-            remoteFile = os.path.join(self.dirs.get("work"),files[0])
-            self.copyToRemote(localFile, remoteFile)
-            
+            remoteFile = files[1]
+            # srp
+            #self.copyToRemote(localFile, remoteFile)
+            self.stageLocally(localFile, remoteFile)
+        print "copy from: "+self.tmpdir
+        print "copy to: "+os.path.join(self.directories.getDefaultRootDir(), self.runid)
+        self.copyToRemote(self.tmpdir+"/", os.path.join(self.directories.getDefaultRootDir(), self.runid)+"/")
 
     ##
     # @brief write a shell script to launch a pipeline
@@ -355,7 +436,11 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
         # we can't write to the remove directory, so name it locally first.
         # 
         #tempName = name+".tmp"
-        tempName = os.path.join(self.tmpdir, self.remoteScript+".tmp."+self.runid)
+        localWorkDir = os.path.join(self.tmpdir, self.pipeline)
+        localWorkDir = os.path.join(localWorkDir, "work")
+        if os.path.exists(localWorkDir) == False:
+            os.path.makedirs(localWorkDir)
+        tempName = os.path.join(localWorkDir, self.remoteScript)
         launcher = open(tempName, 'w')
         launcher.write("#!/bin/sh\n")
         launcher.write("PYTHONPATH=$PWD/python:$PYTHONPATH\n")
@@ -379,15 +464,20 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
         self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:createDirs")
 
         dirPolicy = self.policy.getPolicy("platform.dir")
-        directories = Directories(dirPolicy, self.pipeline, self.runid)
-        self.dirs = directories.getDirs()
+        self.directories = Directories(dirPolicy, self.pipeline, self.runid)
+        self.dirs = self.directories.getDirs()
 
+        localStageDir = os.path.join(self.tmpdir,self.pipeline)
         for name in self.dirs.names():
             #if not os.path.exists(self.dirs.get(name)): os.makedirs(self.dirs.get(name))
-            self.remoteMkdir(self.dirs.get(name))
+            #self.remoteMkdir(self.dirs.get(name))
+            print "making "+os.path.join(localStageDir, name)
+            os.makedirs(os.path.join(localStageDir, name))
 
         # mkdir under "work" for the provenance directory
-        self.remoteMkdir(os.path.join(self.dirs.get("work"),"python"))
+        #self.remoteMkdir(os.path.join(self.dirs.get("work"),"python"))
+        work  = os.path.join(localStageDir, "work")
+        os.makedirs(os.path.join(work,"python"))
 
     ##
     # @brief set up this pipeline's database
