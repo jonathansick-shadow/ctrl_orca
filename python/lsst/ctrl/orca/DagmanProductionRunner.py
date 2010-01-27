@@ -25,10 +25,9 @@ class DagmanProductionRunner:
 
         #cmd = "condor_glidein -count %d -setup_jobmanager=jobmanager-fork -arch=7.4.0-i686-pc-Linux-2.4 -idletime %d %s" % (nodeCount, idleTime, queueName)
         cmd = "condor_glidein -count %d -setup_jobmanager=jobmanager-fork -arch=%s -idletime %d %s" % (nodeCount, arch, idleTime, queueName)
-        print "running cmd = "+cmd
 
         if self.verbose == True:
-            print "would run: "+cmd
+            print "running cmd = "+cmd
         if self.donotrun == False:
             cmdArray = cmd.split()
             pid = os.fork()
