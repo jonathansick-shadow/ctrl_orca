@@ -15,10 +15,6 @@ from lsst.ctrl.orca.DagmanPipelineLauncher import DagmanPipelineLauncher
 #
 class VanillaPipelineConfigurator(PipelineConfigurator):
     def __init__(self, runid, logger, verbosity):
-        # TODO: these should be in the .paf file
-        #self.abeLoginName = "login-abe.ncsa.teragrid.org"
-        #self.abeFTPName = "gridftp-abe.ncsa.teragrid.org"
-        #self.abePrefix = "gsiftp://"+self.abeFTPName
         self.runid = runid
         self.logger = logger
         self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:__init__")
@@ -29,11 +25,6 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
         self.numNodes = None
         self.dirs = None
         self.policySet = sets.Set()
-
-        #self.tmpdir = os.path.join("/tmp",self.runid)
-        #if not os.path.exists(self.tmpdir):
-        #    os.makedir(self.tmpdir)
-
 
     ##
     # @brief Setup as much as possible in preparation to execute the pipeline
@@ -48,9 +39,9 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
         self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:configure")
         self.policy = policy
 
-        self.abeLoginName = self.policy.get("configurator.loginNode")
-        self.abeFTPName = self.policy.get("configurator.ftpNode")
-        self.abePrefix = self.policy.get("configurator.transferProtocol")+"://"+self.abeFTPName
+        self.remoteLoginName = self.policy.get("configurator.loginNode")
+        self.remoteFTPName = self.policy.get("configurator.ftpNode")
+        self.transferProtocolPrefix = self.policy.get("configurator.transferProtocol")+"://"+self.remoteFTPName
         self.localScratch = self.policy.get("configurator.localScratch")
 
         self.tmpdir = os.path.join(self.localScratch,self.runid)
@@ -174,36 +165,11 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
             os.makedirs(os.path.dirname(localStageName))
         shutil.copyfile(localName, localStageName)
 
-    def stageLocallyOLD(self, localName, remoteName):
-        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:stageLocally")
-
-        print "local name  = "+localName
-        print "remote name  = "+remoteName
-        localStageDir = os.path.join(self.tmpdir, self.pipeline)
-
-        #print "self.tmpdir = "+self.tmpdir
-        print "localStageDir = "+localStageDir
-        #print "defaultRoot = "+self.directories.getDefaultRunDir()
-
-
-        splitname = remoteName.split(self.directories.getDefaultRunDir())
-        
-        print "self.tmpdir = "+self.tmpdir
-        print "localStageDir = "+localStageDir
-        print "remote name  = "+remoteName
-        print "defaultRunDir = "+self.directories.getDefaultRunDir()
-        print "defaultRootDir = "+self.directories.getDefaultRootDir()
-        localStageName = os.path.join(localStageDir, splitname[1])
-
-
-        print "localName = %s, localStageName = %s\n",(localName,localStageName)
-        shutil.copyfile(localName, localStageName)
-        
     def copyToRemote(self, localName, remoteName):
         self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:copyToRemote")
         
         localNameURL = "%s%s" % ("file://",localName)
-        remoteNameURL = "%s%s" % (self.abePrefix, remoteName)
+        remoteNameURL = "%s%s" % (self.transferProtocolPrefix, remoteName)
 
         cmd = "globus-url-copy -r -vb -cd %s %s " % (localNameURL, remoteNameURL)
         
@@ -213,23 +179,9 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
             os.execvp("globus-url-copy",cmd.split())
         os.wait()[0]
 
-    def copyToRemote_ORIG(self, localName, remoteName):
-        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:copyToRemote")
-        
-        localNameURL = "%s%s" % ("file://",localName)
-        remoteFullName = os.path.join(self.dirs.get("work"),remoteName)
-        remoteNameURL = "%s%s" % (self.abePrefix, remoteFullName)
-
-        cmd = "globus-url-copy -vb -cd %s %s " % (localNameURL, remoteNameURL)
-        
-        # perform this copy from the local machine to the remote machine
-        pid = os.fork()
-        if not pid:
-            os.execvp("globus-url-copy",cmd.split())
-
     def remoteChmodX(self, remoteName):
         self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:remoteChmodX")
-        cmd = "gsissh %s chmod +x %s" % (self.abeLoginName, remoteName)
+        cmd = "gsissh %s chmod +x %s" % (self.remoteLoginName, remoteName)
         pid = os.fork()
         if not pid:
             os.execvp("gsissh",cmd.split())
@@ -238,7 +190,7 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
 
     def remoteMkdir(self, remoteDir):
         self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:remoteMkdir")
-        cmd = "gsissh %s mkdir -p %s" % (self.abeLoginName, remoteDir)
+        cmd = "gsissh %s mkdir -p %s" % (self.remoteLoginName, remoteDir)
         print "running: "+cmd
         pid = os.fork()
         if not pid:
@@ -415,6 +367,8 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
         print "copy from: "+self.tmpdir
         print "copy to: "+os.path.join(self.directories.getDefaultRootDir(), self.runid)
         self.copyToRemote(self.tmpdir+"/", os.path.join(self.directories.getDefaultRootDir(), self.runid)+"/")
+        filename = os.path.join(self.dirs.get("work"), self.remoteScript)
+        self.remoteChmodX(filename)
 
     ##
     # @brief write a shell script to launch a pipeline
@@ -446,8 +400,9 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
         launcher.write("PYTHONPATH=$PWD/python:$PYTHONPATH\n")
         launcher.write(provenanceCmd)
         launcher.write("echo \"Running SimpleLaunch\"\n")
-        launcher.write("echo \"would have run:\"\n")
+        launcher.write("echo \"running:\"\n")
         launcher.write("echo $@\n")
+        launcher.write("$@\n")
         launcher.close()
 
 

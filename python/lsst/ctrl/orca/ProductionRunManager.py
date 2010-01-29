@@ -87,7 +87,6 @@ class ProductionRunManager:
         self.checkConfiguration(0)
 
 
-        # TODO: spawn listener object here
 
         # create ProductionRunner
         productionPolicy = self.policy.getPolicy("production")
@@ -102,11 +101,10 @@ class ProductionRunManager:
         productionRunnerClass = classFactory.createClass(productionRunnerName)
         productionRunner = productionRunnerClass(self.runid, productionPolicy, self.pipelineManagers)
 
-        # 12/2/09 - DC3a - 
-        #for pipelineManager in self.pipelineManagers:
-        #    pipelineManager.runPipeline()
+
         productionRunner.runPipelines()
 
+        # TODO: spawn listener object here
         #resolver = EventResolver()
         #listener = EventListener(self.topic, resolver)
         #listener.start()

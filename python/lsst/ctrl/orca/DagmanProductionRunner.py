@@ -1,8 +1,10 @@
 import os
+from lsst.ctrl.orca.ProductionRunner import ProductionRunner
+
 ##
 # @brief launches pipelines
 #
-class DagmanProductionRunner:
+class DagmanProductionRunner(ProductionRunner):
     def __init__(self, runid, policy, pipelineManagers):
         self.runid = runid
         self.policy = policy
