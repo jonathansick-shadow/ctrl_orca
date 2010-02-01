@@ -20,7 +20,7 @@ class PipelineMonitor:
     ##
     # @brief stop the pipeline
     #
-    def stopPipeline(self, timeout):
+    def stopPipeline(self, urgency):
         self.logger.log(Log.DEBUG, "PipelineMonitor:stopPipeline")
 
     ##
