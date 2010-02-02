@@ -1,37 +1,37 @@
 import subprocess
 from lsst.pex.logging import Log
 from lsst.ctrl.orca.EnvString import EnvString
-from lsst.ctrl.orca.PipelineMonitor import PipelineMonitor
+from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
 
-class PipelineLauncher:
+class WorkflowLauncher:
     ##
     # @brief
     #
-    def __init__(self, cmd, pipeline, logger):
+    def __init__(self, cmd, workflow, logger):
         self.logger = logger
-        self.logger.log(Log.DEBUG, "PipelineLauncher:__init__")
+        self.logger.log(Log.DEBUG, "WorkflowLauncher:__init__")
         self.cmd = cmd
-        self.pipeline = pipeline
+        self.workflow = workflow
 
     ##
-    # @brief launch this pipeline
+    # @brief launch this workflow
     #
     def launch(self):
-        self.logger.log(Log.DEBUG, "PipelineLauncher:launch")
+        self.logger.log(Log.DEBUG, "WorkflowLauncher:launch")
 
-        self.pipelineMonitor = PipelineMonitor(self.logger)
-        return self.pipelineMonitor # returns PipelineMonitor
+        self.workflowMonitor = WorkflowMonitor(self.logger)
+        return self.workflowMonitor # returns WorkflowMonitor
 
     ##
-    # @brief perform cleanup after pipeline has ended.
+    # @brief perform cleanup after workflow has ended.
     #
     def cleanUp(self):
-        self.logger.log(Log.DEBUG, "PipelineLauncher:cleanUp")
+        self.logger.log(Log.DEBUG, "WorkflowLauncher:cleanUp")
 
     ##
-    # @brief perform checks on validity of configuration of this pipeline
+    # @brief perform checks on validity of configuration of this workflow
     #
     def checkConfiguration(self, care):
         # the level of care taken in the checks.  In general, the higher
         # the number of checks that will be done.
-        self.logger.log(Log.DEBUG, "PipelineLauncher:checkConfiguration")
+        self.logger.log(Log.DEBUG, "WorkflowLauncher:checkConfiguration")

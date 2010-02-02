@@ -8,7 +8,7 @@ from lsst.ctrl.orca.EventListener import EventListener
 from lsst.ctrl.orca.EventResolver import EventResolver
 
 ##
-# @brief configures, checks, and launches pipelines
+# @brief configures, checks, and launches workflows
 #
 class ProductionRunManager:
     ##
@@ -16,14 +16,14 @@ class ProductionRunManager:
     # @param runid name of the run
     # @param policyFileName production run policy file
     # @param logger Log object 
-    # @param pipelineVerbosity verbosity level for the pipelines
+    # @param workflowVerbosity verbosity level for the workflows
     #
-    def __init__(self, runid, policyFileName, logger, pipelineVerbosity=None):
+    def __init__(self, runid, policyFileName, logger, workflowVerbosity=None):
         self.logger = logger
-        self.pipelineVerbosity = pipelineVerbosity
+        self.workflowVerbosity = workflowVerbosity
         self.logger.log(Log.DEBUG, "ProductionRunManager:__init__")
         self.runid = runid
-        self.pipelineManagers = []
+        self.workflowManagers = []
         self.dbNames = []
         self.totalNodeCount = 0
 
@@ -72,15 +72,15 @@ class ProductionRunManager:
         # create Production Run Configurator specified by the policy
         self.productionRunConfigurator = self.createConfigurator()
 
-        # configure each pipeline
-        for pipelineMgr in self.pipelineManagers:
-            pipelineLauncher = pipelineMgr.configure()
+        # configure each workflow
+        for workflowMgr in self.workflowManagers:
+            workflowLauncher = workflowMgr.configure()
             # XXX - next line (?)
-            #self.pipelineLaunchers.append(pipelineLauncher)
+            #self.workflowLaunchers.append(workflowLauncher)
 
-        # now that we have the list of pipelines, we can finalize the run (for example,
+        # now that we have the list of workflows, we can finalize the run (for example,
         # rewrite the DAG file)
-        self.productionRunConfigurator.finalize(self.pipelineManagers)
+        self.productionRunConfigurator.finalize(self.workflowManagers)
 
         # Check the configururation
         # TODO: add "care" parameter
@@ -99,10 +99,10 @@ class ProductionRunManager:
 
 
         productionRunnerClass = classFactory.createClass(productionRunnerName)
-        productionRunner = productionRunnerClass(self.runid, productionPolicy, self.pipelineManagers)
+        productionRunner = productionRunnerClass(self.runid, productionPolicy, self.workflowManagers)
 
 
-        productionRunner.runPipelines()
+        productionRunner.runWorkflows()
 
         # TODO: spawn listener object here
         #resolver = EventResolver()
@@ -141,8 +141,8 @@ class ProductionRunManager:
         self.logger.log(Log.DEBUG, "ProductionRunManager:createConfigurator")
 
         # these are policy settings which can be overriden from what they
-        # are in the pipeline policies. Save them for when we create the
-        # PipelineManager, and let the PipelineManger use these overrides
+        # are in the workflow policies. Save them for when we create the
+        # WorkflowManager, and let the WorkflowManger use these overrides
         # as it sees fit to do so.
         policyOverrides = pol.Policy()
         if self.policy.exists("eventBrokerHost"):
@@ -161,36 +161,36 @@ class ProductionRunManager:
             print self.policy.toString()
         classFactory = NamedClassFactory()
         productionRunConfiguratorClass = classFactory.createClass(productionRunConfiguratorName)
-        productionRunConfigurator = productionRunConfiguratorClass(self.runid, self.policy, self.repository, self.logger, self.pipelineVerbosity)
+        productionRunConfigurator = productionRunConfiguratorClass(self.runid, self.policy, self.repository, self.logger, self.workflowVerbosity)
 
 
         self.dbNames = productionRunConfigurator.configure()
 
         productionRunConfigurator.recordPolicy(self.fullPolicyFilePath)
 
-        # get pipelines
-        pipelinePolicies = self.policy.get("pipelines")
-        pipelinePolicyNames = pipelinePolicies.policyNames(True)
+        # get workflows
+        workflowPolicies = self.policy.get("workflows")
+        workflowPolicyNames = workflowPolicies.policyNames(True)
 
         platformSet = sets.Set()
 
-        # create a pipelineManager for each pipeline, and save it.
-        for policyName in pipelinePolicyNames:
+        # create a workflowManager for each workflow, and save it.
+        for policyName in workflowPolicyNames:
             self.logger.log(Log.DEBUG, "policyName --> "+policyName)
-            pipelinePolicyArray = pipelinePolicies.getArray(policyName)
-            for pipelinePolicy in pipelinePolicyArray:
-                # - pex.policy api change fix - if pipelinePolicy.get("launch",1) != 0:
-                doLaunch = pipelinePolicy.get("launch")
+            workflowPolicyArray = workflowPolicies.getArray(policyName)
+            for workflowPolicy in workflowPolicyArray:
+                # - pex.policy api change fix - if workflowPolicy.get("launch",1) != 0:
+                doLaunch = workflowPolicy.get("launch")
                 if doLaunch != 0:
-                    # - pex.policy api change fix - shortName = pipelinePolicy.get("shortName", policyName)
-                    shortName = pipelinePolicy.get("shortName")
+                    # - pex.policy api change fix - shortName = workflowPolicy.get("shortName", policyName)
+                    shortName = workflowPolicy.get("shortName")
                     if shortName == None:
                         shortName = policyName
-                    configuration = pipelinePolicy.getFile("configuration").getPath()
-                    configuratorClassName = pipelinePolicy.get("configuratorClass")
+                    configuration = workflowPolicy.getFile("configuration").getPath()
+                    configuratorClassName = workflowPolicy.get("configuratorClass")
 
                     # record the platform policy, if that platform hasn't been recorded yet
-                    platformFilename = pipelinePolicy.getFile("platform").getPath()
+                    platformFilename = workflowPolicy.getFile("platform").getPath()
                     platformFilename = os.path.join(self.repository, platformFilename)
                     if (platformFilename in platformSet) == False:
                         productionRunConfigurator.recordPolicy(platformFilename)
@@ -198,19 +198,19 @@ class ProductionRunManager:
 
                     
                     #self.logger.log(Log.DEBUG, ":createConfigurator platformFileName = %s, repository = %s" % (platformFilename, self.repository))
-                    pipelinePolicy.loadPolicyFiles(self.repository, True)
+                    workflowPolicy.loadPolicyFiles(self.repository, True)
 
-                    configurationDict = self.rewritePolicy(configuration, shortName, pipelinePolicy, policyOverrides)
-                    pipelineManager = productionRunConfigurator.createPipelineManager(pipelinePolicy, configurationDict, self.pipelineVerbosity)
-                    self.pipelineManagers.append(pipelineManager)
+                    configurationDict = self.rewritePolicy(configuration, shortName, workflowPolicy, policyOverrides)
+                    workflowManager = productionRunConfigurator.createWorkflowManager(workflowPolicy, configurationDict, self.workflowVerbosity)
+                    self.workflowManagers.append(workflowManager)
 
         return productionRunConfigurator
 
     ##
     # @brief
     #
-    def rewritePolicy(self, configuration, shortName, pipelinePolicy, policyOverrides):
-        # NOTE:  pipelinePolicy must be fully de-referenced by this point.
+    def rewritePolicy(self, configuration, shortName, workflowPolicy, policyOverrides):
+        # NOTE:  workflowPolicy must be fully de-referenced by this point.
 
         #  read in default policy        
         #  read in given policy
@@ -231,7 +231,7 @@ class ProductionRunManager:
 
         newPolicy.set("execute.shortName", shortName)
 
-        executeDir = pipelinePolicy.get("platform.dir")
+        executeDir = workflowPolicy.get("platform.dir")
         newPolicy.set("execute.dir", executeDir)
 
         dbRunURL = self.dbNames["dbrun"] 
@@ -255,8 +255,8 @@ class ProductionRunManager:
         # care - level of "care" in checking the configuration to take. In
         # general, the higher the number, the more checks that are made.
         self.logger.log(Log.DEBUG, "ProductionRunManager:checkConfiguration")
-        for pipelineMgr in self.pipelineManagers:
-            pipelineMgr.checkConfiguration(care)
+        for workflowMgr in self.workflowManagers:
+            workflowMgr.checkConfiguration(care)
 
     ##
     # @brief
@@ -273,6 +273,6 @@ class ProductionRunManager:
         #   NOW                 - end as soon as possible, forgoing any 
         #                         checkpointing
         self.logger.log(Log.DEBUG, "ProductionRunManager:stopProduction")
-        for pipelineMgr in self.pipelineManagers:
-            pipelineMgr.stopProduction(urgency)
+        for workflowMgr in self.workflowManagers:
+            workflowMgr.stopProduction(urgency)
             

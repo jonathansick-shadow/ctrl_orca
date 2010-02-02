@@ -20,7 +20,7 @@ class BasicProductionRunConfigurator(ProductionRunConfigurator):
         self.provenanceDict = {}
 
         # these are policy settings which can be overriden from what they
-        # are in the pipeline policies.
+        # are in the workflow policies.
         self.policyOverrides = Policy() 
         if self.policy.exists("eventBrokerHost"):
             self.policyOverrides.set("execute.eventBrokerHost",

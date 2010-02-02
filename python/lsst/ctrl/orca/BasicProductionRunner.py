@@ -1,14 +1,14 @@
 from lsst.ctrl.orca.ProductionRunner import ProductionRunner
 
 ##
-# @brief launches pipelines
+# @brief launches workflows
 #
 class BasicProductionRunner(ProductionRunner):
-    def __init__(self, runid, policy, pipelineManagers):
+    def __init__(self, runid, policy, workflowManagers):
         self.runid = runid
         self.policy = policy
-        self.pipelineManagers = pipelineManagers
+        self.workflowManagers = workflowManagers
 
-    def runPipelines(self):
-        for pipelineManager in self.pipelineManagers:
-            pipelineManager.runPipeline()
+    def runWorkflows(self):
+        for workflowManager in self.workflowManagers:
+            workflowManager.runWorkflow()

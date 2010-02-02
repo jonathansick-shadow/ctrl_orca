@@ -1,6 +1,6 @@
 from lsst.pex.logging import Log
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
-from lsst.ctrl.orca.PipelineManager import PipelineManager
+from lsst.ctrl.orca.WorkflowManager import WorkflowManager
 
 class ProductionRunConfigurator:
     ##
@@ -16,13 +16,13 @@ class ProductionRunConfigurator:
         self.provenanceDict = {}
 
     ##
-    # @brief create the PipelineManager for the pipelien with the given shortName
+    # @brief create the WorkflowManager for the pipelien with the given shortName
     #
-    def createPipelineManager(self, prodPolicy, configurationDict,  pipelineVerbosity):
-        self.logger.log(Log.DEBUG, "ProductionRunConfigurator:createPipelineManager")
+    def createWorkflowManager(self, prodPolicy, configurationDict,  workflowVerbosity):
+        self.logger.log(Log.DEBUG, "ProductionRunConfigurator:createWorkflowManager")
 
-        pipelineManager = PipelineManager(self.runid, prodPolicy, configurationDict, self.repository, self.provenanceDict, self.logger, self.verbosity)
-        return pipelineManager
+        workflowManager = WorkflowManager(self.runid, prodPolicy, configurationDict, self.repository, self.provenanceDict, self.logger, self.verbosity)
+        return workflowManager
 
     ##
     # @brief return the provenance dictionary
@@ -32,8 +32,8 @@ class ProductionRunConfigurator:
 
     ##
     # @brief carry out the production-level configuration and setup. To
-    #            complete the configuration, the createPipelineManager()
-    #            method must be called to create each of the pipeline managers
+    #            complete the configuration, the createWorkflowManager()
+    #            method must be called to create each of the workflow managers
     #
     def configure(self):
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:configure")
@@ -42,5 +42,5 @@ class ProductionRunConfigurator:
     ##
     # @brief finalize anything necessary for the production run
     #
-    def finalize(self, pipelineManagers):
+    def finalize(self, workflowManagers):
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:finalize")

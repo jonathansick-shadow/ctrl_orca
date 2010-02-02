@@ -2,17 +2,17 @@ import os
 from lsst.ctrl.orca.ProductionRunner import ProductionRunner
 
 ##
-# @brief launches pipelines
+# @brief launches workflows
 #
 class DagmanProductionRunner(ProductionRunner):
-    def __init__(self, runid, policy, pipelineManagers):
+    def __init__(self, runid, policy, workflowManagers):
         self.runid = runid
         self.policy = policy
-        self.pipelineManagers = pipelineManagers
+        self.workflowManagers = workflowManagers
         self.donotrun = False
         self.verbose = True
 
-    def runPipelines(self):
+    def runWorkflows(self):
 
         # perform the glide-in
 

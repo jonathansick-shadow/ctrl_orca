@@ -3,51 +3,51 @@ import lsst.ctrl.orca as orca
 
 from lsst.pex.logging import Log
 from lsst.ctrl.orca.EnvString import EnvString
-from lsst.ctrl.orca.PipelineMonitor import PipelineMonitor
-from lsst.ctrl.orca.PipelineLauncher import PipelineLauncher
+from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
+from lsst.ctrl.orca.WorkflowLauncher import WorkflowLauncher
 
 ##
-# TODO: THIS IS GOING AWAY....We can use BasicPipelineLauncher instead
+# TODO: THIS IS GOING AWAY....We can use BasicWorkflowLauncher instead
 #
 
 ##
 # @brief used to launch on a local cluster
 #
-class AbePipelineLauncher(PipelineLauncher):
-    def __init__(self, cmd, pipeline, logger):
+class AbeWorkflowLauncher(WorkflowLauncher):
+    def __init__(self, cmd, workflow, logger):
         self.logger = logger
-        self.logger.log(Log.DEBUG, "AbePipelineLauncher:__init__")
+        self.logger.log(Log.DEBUG, "AbeWorkflowLauncher:__init__")
         self.cmd = cmd
-        self.pipeline = pipeline
+        self.workflow = workflow
 
 
     ##
-    # @brief perform cleanup after pipeline has ended.
+    # @brief perform cleanup after workflow has ended.
     #
     def cleanUp(self):
-        self.logger.log(Log.DEBUG, "AbePipelineLauncher:cleanUp")
+        self.logger.log(Log.DEBUG, "AbeWorkflowLauncher:cleanUp")
 
     ##
-    # @brief perform checks on validity of configuration of this pipeline
+    # @brief perform checks on validity of configuration of this workflow
     #
     def checkConfiguration(self, care):
         # the level of care taken in the checks.  In general, the higher
         # the number of checks that will be done.
-        self.logger.log(Log.DEBUG, "AbePipelineLauncher:checkConfiguration")
+        self.logger.log(Log.DEBUG, "AbeWorkflowLauncher:checkConfiguration")
 
     ##
-    # @brief launch this pipeline
+    # @brief launch this workflow
     #
     def launch(self):
-        self.logger.log(Log.DEBUG, "AbePipelineLauncher:launch")
+        self.logger.log(Log.DEBUG, "AbeWorkflowLauncher:launch")
 
         if orca.dryrun == True:
             print "dryrun: would execute"
             print self.cmd
-            self.pipelineMonitor = PipelineMonitor(self.logger)
-            return self.pipelineMonitor # returns PipelineMonitor
+            self.workflowMonitor = WorkflowMonitor(self.logger)
+            return self.workflowMonitor # returns WorkflowMonitor
             return
-        self.logger.log(Log.DEBUG, "launching pipeline")
+        self.logger.log(Log.DEBUG, "launching workflow")
 
         # by convention the first node in the list is the "master" node
                        
@@ -59,5 +59,5 @@ class AbePipelineLauncher(PipelineLauncher):
         os.wait()[0]
         self.logger.log(Log.INFO, "Condor job submitted.")
 
-        self.pipelineMonitor = PipelineMonitor(self.logger)
-        return self.pipelineMonitor # returns PipelineMonitor
+        self.workflowMonitor = WorkflowMonitor(self.logger)
+        return self.workflowMonitor # returns WorkflowMonitor

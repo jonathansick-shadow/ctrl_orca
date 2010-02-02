@@ -9,13 +9,13 @@ class DagmanProductionRunConfigurator(BasicProductionRunConfigurator):
     # @brief finalize this production run, by creating a dagman file from
     # the template supplied in the policy file
     #
-    def finalize(self, pipelineManagers):
-        self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:finalize")
+    def finalize(self, workflowManagers):
+        self.logger.log(Log.DEBUG, "DagmanWorkflowConfigurator:finalize")
 
         dagmanTemplate = self.policy.get("production.productionRunConfigurator.dagmanTemplate")
         localScratch = self.policy.get("production.localScratch")
 
-        dagConfigurator = DagConfigurator(self.runid, localScratch, pipelineManagers)
+        dagConfigurator = DagConfigurator(self.runid, localScratch, workflowManagers)
         
         tempdir = os.path.join(localScratch, self.runid)
 
@@ -28,7 +28,7 @@ class DagmanProductionRunConfigurator(BasicProductionRunConfigurator):
     # @brief configure this production run
     #
     def configure(self):
-        self.logger.log(Log.DEBUG, "DagmanPipelineConfigurator:configure")
+        self.logger.log(Log.DEBUG, "DagmanWorkflowConfigurator:configure")
 
         # create temporary directory for dagman-related files
         localScratchName = self.policy.get("production.localScratch")

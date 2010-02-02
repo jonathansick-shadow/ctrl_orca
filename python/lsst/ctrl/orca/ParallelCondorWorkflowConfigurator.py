@@ -6,14 +6,14 @@ from lsst.ctrl.orca.Directories import Directories
 from lsst.pex.logging import Log
 
 from lsst.ctrl.orca.EnvString import EnvString
-from lsst.ctrl.orca.PipelineConfigurator import PipelineConfigurator
-from lsst.ctrl.orca.DagmanPipelineLauncher import DagmanPipelineLauncher
+from lsst.ctrl.orca.WorkflowConfigurator import WorkflowConfigurator
+from lsst.ctrl.orca.DagmanWorkflowLauncher import DagmanWorkflowLauncher
 
 ##
 #
-# DagmanPipelineConfigurator 
+# DagmanWorkflowConfigurator 
 #
-class ParallelPipelineConfigurator(PipelineConfigurator):
+class ParallelWorkflowConfigurator(WorkflowConfigurator):
     def __init__(self, runid, logger, verbosity):
         # TODO: these should be in the .paf file
         #self.abeLoginName = "login-abe.ncsa.teragrid.org"
@@ -21,8 +21,8 @@ class ParallelPipelineConfigurator(PipelineConfigurator):
         #self.abePrefix = "gsiftp://"+self.abeFTPName
         self.runid = runid
         self.logger = logger
-        self.logger.log(Log.DEBUG, "ParallelPipelineConfigurator:__init__")
-        self.logger.log(Log.DEBUG, "ParallelPipelineConfigurator: This object is under development, and probably doesn't work yet...")
+        self.logger.log(Log.DEBUG, "ParallelWorkflowConfigurator:__init__")
+        self.logger.log(Log.DEBUG, "ParallelWorkflowConfigurator: This object is under development, and probably doesn't work yet...")
         self.verbosity = verbosity
 
         self.nodes = None
@@ -36,16 +36,16 @@ class ParallelPipelineConfigurator(PipelineConfigurator):
 
 
     ##
-    # @brief Setup as much as possible in preparation to execute the pipeline
-    #            and return a PipelineLauncher object that will launch the
-    #            configured pipeline.
-    # @param policy the pipeline policy to use for configuration
+    # @brief Setup as much as possible in preparation to execute the workflow
+    #            and return a WorkflowLauncher object that will launch the
+    #            configured workflow.
+    # @param policy the workflow policy to use for configuration
     # @param configurationDict a dictionary containing configuration info
     # @param provenanceDict a dictionary containing info to record provenance
     # @param repository policy file repository location
     #
     def configure(self, policy, configurationDict, provenanceDict, repository):
-        self.logger.log(Log.DEBUG, "ParallelPipelineConfigurator:configure")
+        self.logger.log(Log.DEBUG, "ParallelWorkflowConfigurator:configure")
         self.policy = policy
 
         self.abeLoginName = self.policy.get("configurator.loginNode")
@@ -62,7 +62,7 @@ class ParallelPipelineConfigurator(PipelineConfigurator):
         self.configurationDict = configurationDict
         self.provenanceDict = provenanceDict
         self.repository = repository
-        self.pipeline = self.policy.get("shortName")
+        self.workflow = self.policy.get("shortName")
         self.nodes = self.createNodeList()
         self.prepPlatform()
         self.createLaunchScript()
@@ -71,15 +71,15 @@ class ParallelPipelineConfigurator(PipelineConfigurator):
 
         condorFile = self.writeCondorFile()
         
-        pipelineLauncher = DagmanPipelineLauncher("", self.pipeline, self.logger)
-        return pipelineLauncher
+        workflowLauncher = DagmanWorkflowLauncher("", self.workflow, self.logger)
+        return workflowLauncher
 
     ##
-    # @brief create the command which will launch the pipeline
+    # @brief create the command which will launch the workflow
     # @return a string containing the shell commands to execute
     #
     def writeCondorFile(self):
-        self.logger.log(Log.DEBUG, "ParallelPipelineConfigurator:writeCondorFile")
+        self.logger.log(Log.DEBUG, "ParallelWorkflowConfigurator:writeCondorFile")
 
         execPath = self.policy.get("configuration.framework.exec")
         #launchcmd = EnvString.resolve(execPath)
@@ -89,7 +89,7 @@ class ParallelPipelineConfigurator(PipelineConfigurator):
         remoteSetupScriptName = os.path.join(self.dirs.get("work"), setupScriptBasename)
        
         launchArgs = "%s %s -L %s -S %s" % \
-             (self.pipeline+".paf", self.runid, self.verbosity, remoteSetupScriptName)
+             (self.workflow+".paf", self.runid, self.verbosity, remoteSetupScriptName)
         print "launchArgs = %s",launchArgs
 
 
@@ -101,16 +101,16 @@ class ParallelPipelineConfigurator(PipelineConfigurator):
             nodecount = nodecount + 1
         
         # Write Condor file 
-        condorJobfile =  os.path.join(self.tmpdir, self.pipeline+".condor")
+        condorJobfile =  os.path.join(self.tmpdir, self.workflow+".condor")
 
         clist = []
         clist.append("universe=parallel\n")
         clist.append("executable="+self.remoteScript+"\n")
         clist.append("arguments="+launchcmd+" "+launchArgs+"\n")
         clist.append("transfer_executable=false\n")
-        clist.append("output="+self.pipeline+"_Condor.out\n")
-        clist.append("error="+self.pipeline+"_Condor.err\n")
-        clist.append("log="+self.pipeline+"_Condor.log\n")
+        clist.append("output="+self.workflow+"_Condor.out\n")
+        clist.append("error="+self.workflow+"_Condor.err\n")
+        clist.append("log="+self.workflow+"_Condor.log\n")
         clist.append("should_transfer_files = YES\n")
         clist.append("when_to_transfer_output = ON_EXIT\n")
         clist.append("remote_initialdir="+self.dirs.get("work")+"\n")
@@ -124,8 +124,8 @@ class ParallelPipelineConfigurator(PipelineConfigurator):
 
         return
 
-    def getPipelineName(self):
-        return self.pipeline
+    def getWorkflowName(self):
+        return self.workflow
 
     
     def getNodeCount(self):
@@ -137,7 +137,7 @@ class ParallelPipelineConfigurator(PipelineConfigurator):
     # @return the list of nodes
     #
     def createNodeList(self):
-        self.logger.log(Log.DEBUG, "ParallelPipelineConfigurator:createNodeList")
+        self.logger.log(Log.DEBUG, "ParallelWorkflowConfigurator:createNodeList")
         node = self.policy.getArray("platform.deploy.nodes")
         self.defaultDomain = self.policy.get("platform.deploy.defaultDomain")
 
@@ -154,11 +154,11 @@ class ParallelPipelineConfigurator(PipelineConfigurator):
     # @brief prepare the platform by creating directories and writing the node list
     #
     def prepPlatform(self):
-        self.logger.log(Log.DEBUG, "ParallelPipelineConfigurator:prepPlatform")
+        self.logger.log(Log.DEBUG, "ParallelWorkflowConfigurator:prepPlatform")
         self.createDirs()
 
     def copyToRemote(self, localName, remoteName):
-        self.logger.log(Log.DEBUG, "ParallelPipelineConfigurator:copyToRemote")
+        self.logger.log(Log.DEBUG, "ParallelWorkflowConfigurator:copyToRemote")
         
         localNameURL = "%s%s" % ("file://",localName)
         remoteFullName = os.path.join(self.dirs.get("work"),remoteName)
@@ -173,7 +173,7 @@ class ParallelPipelineConfigurator(PipelineConfigurator):
         os.wait()[0]
 
     def remoteChmodX(self, remoteName):
-        self.logger.log(Log.DEBUG, "ParallelPipelineConfigurator:remoteChmodX")
+        self.logger.log(Log.DEBUG, "ParallelWorkflowConfigurator:remoteChmodX")
         cmd = "gsissh %s chmod +x %s" % (self.abeLoginName, remoteName)
         pid = os.fork()
         if not pid:
@@ -182,7 +182,7 @@ class ParallelPipelineConfigurator(PipelineConfigurator):
 
 
     def remoteMkdir(self, remoteDir):
-        self.logger.log(Log.DEBUG, "ParallelPipelineConfigurator:remoteMkdir")
+        self.logger.log(Log.DEBUG, "ParallelWorkflowConfigurator:remoteMkdir")
         cmd = "gsissh %s mkdir -p %s" % (self.abeLoginName, remoteDir)
         print "running: "+cmd
         pid = os.fork()
@@ -224,7 +224,7 @@ class ParallelPipelineConfigurator(PipelineConfigurator):
     # @brief 
     #
     def deploySetup(self):
-        self.logger.log(Log.DEBUG, "ParallelPipelineConfigurator:deploySetup")
+        self.logger.log(Log.DEBUG, "ParallelWorkflowConfigurator:deploySetup")
 
         # write the nodelist to "work"
         # unused in the condor vanilla universe
@@ -264,14 +264,14 @@ class ParallelPipelineConfigurator(PipelineConfigurator):
 
         # XXX - write this in the current directory;  we should probably really specify
         # a "scratch" area to write this to instead.
-        newPolicyFile = os.path.join(self.tmpdir, self.pipeline+".paf.tmp")
+        newPolicyFile = os.path.join(self.tmpdir, self.workflow+".paf.tmp")
         if os.path.exists(newPolicyFile):
             self.logger.log(Log.WARN, "Working directory already contains %s" % newPolicyFile)
         else:
             pw = pol.PAFWriter(newPolicyFile)
             pw.write(configurationPolicy)
             pw.close()
-        self.copyToRemote(newPolicyFile,self.pipeline+".paf")
+        self.copyToRemote(newPolicyFile,self.workflow+".paf")
 
         # TODO: Provenance script needs to write out newPolicyFile
         #self.provenance.recordPolicy(newPolicyFile)
@@ -279,14 +279,14 @@ class ParallelPipelineConfigurator(PipelineConfigurator):
 
         # TODO: cont'd - also needs to writeout child policies
         newPolicyObj = pol.Policy.createPolicy(newPolicyFile, False)
-        pipelinePolicySet = sets.Set()
-        self.extractChildPolicies(self.repository, newPolicyObj, pipelinePolicySet)
+        workflowPolicySet = sets.Set()
+        self.extractChildPolicies(self.repository, newPolicyObj, workflowPolicySet)
 
-        if os.path.exists(os.path.join(self.dirs.get("work"), self.pipeline)):
+        if os.path.exists(os.path.join(self.dirs.get("work"), self.workflow)):
             self.logger.log(Log.WARN,
-              "Working directory already contains %s directory; won't overwrite" % self.pipeline)
+              "Working directory already contains %s directory; won't overwrite" % self.workflow)
         else:
-            for filename  in pipelinePolicySet:
+            for filename  in workflowPolicySet:
                 destinationDir = self.dirs.get("work")
                 destName = filename.replace(self.repository+"/","")
                 tokens = destName.split('/')
@@ -330,7 +330,7 @@ class ParallelPipelineConfigurator(PipelineConfigurator):
             
 
     ##
-    # @brief write a shell script to launch a pipeline
+    # @brief write a shell script to launch a workflow
     #
     def createLaunchScript(self):
         # write out the script we use to kick things off
@@ -342,7 +342,7 @@ class ParallelPipelineConfigurator(PipelineConfigurator):
         repos = self.provenanceDict["repos"]
 
         filename = os.path.join(self.dirs.get("work"), self.configurationDict["filename"])
-        remoterepos = os.path.join(self.dirs.get("work"),self.pipeline)
+        remoterepos = os.path.join(self.dirs.get("work"),self.workflow)
 
         provenanceCmd = "#ProvenanceRecorder.py --type=%s --user=%s --runid=%s --dbrun=%s --dbglobal=%s --filename=%s --repos=%s\n" % ("lsst.ctrl.orca.provenance.BasicRecorder", user, runid, dbrun, dbglobal, filename, remoterepos)
 
@@ -370,10 +370,10 @@ class ParallelPipelineConfigurator(PipelineConfigurator):
     # @brief create the platform.dir directories
     #
     def createDirs(self):
-        self.logger.log(Log.DEBUG, "ParallelPipelineConfigurator:createDirs")
+        self.logger.log(Log.DEBUG, "ParallelWorkflowConfigurator:createDirs")
 
         dirPolicy = self.policy.getPolicy("platform.dir")
-        directories = Directories(dirPolicy, self.pipeline, self.runid)
+        directories = Directories(dirPolicy, self.workflow, self.runid)
         self.dirs = directories.getDirs()
 
         for name in self.dirs.names():
@@ -384,10 +384,10 @@ class ParallelPipelineConfigurator(PipelineConfigurator):
         self.remoteMkdir(os.path.join(self.dirs.get("work"),"python"))
 
     ##
-    # @brief set up this pipeline's database
+    # @brief set up this workflow's database
     #
     def setupDatabase(self):
-        self.logger.log(Log.DEBUG, "ParallelPipelineConfigurator:setupDatabase")
+        self.logger.log(Log.DEBUG, "ParallelWorkflowConfigurator:setupDatabase")
 
     ##
     # @brief perform a node host name expansion
@@ -421,7 +421,7 @@ class ParallelPipelineConfigurator(PipelineConfigurator):
     ##
     # @brief given a policy, recursively add all child policies to a policy set
     # 
-    def extractChildPolicies(self, repos, policy, pipelinePolicySet):
+    def extractChildPolicies(self, repos, policy, workflowPolicySet):
         names = policy.fileNames()
         for name in names:
             if name.rfind('.') > 0:
@@ -435,10 +435,10 @@ class ParallelPipelineConfigurator(PipelineConfigurator):
                         if (filename in self.policySet) == False:
                             #self.provenance.recordPolicy(filename)
                             self.policySet.add(filename)
-                        if (filename in pipelinePolicySet) == False:
-                            pipelinePolicySet.add(filename)
+                        if (filename in workflowPolicySet) == False:
+                            workflowPolicySet.add(filename)
                         newPolicy = pol.Policy.createPolicy(filename, False)
-                        self.extractChildPolicies(repos, newPolicy, pipelinePolicySet)
+                        self.extractChildPolicies(repos, newPolicy, workflowPolicySet)
             else:
                 field = name
                 if policy.getValueType(field) == pol.Policy.FILE:
@@ -448,7 +448,7 @@ class ParallelPipelineConfigurator(PipelineConfigurator):
                     if (filename in self.policySet) == False:
                         #self.provenance.recordPolicy(filename)
                         self.policySet.add(filename)
-                    if (filename in pipelinePolicySet) == False:
-                        pipelinePolicySet.add(filename)
+                    if (filename in workflowPolicySet) == False:
+                        workflowPolicySet.add(filename)
                     newPolicy = pol.Policy.createPolicy(filename, False)
-                    self.extractChildPolicies(repos, newPolicy, pipelinePolicySet)
+                    self.extractChildPolicies(repos, newPolicy, workflowPolicySet)

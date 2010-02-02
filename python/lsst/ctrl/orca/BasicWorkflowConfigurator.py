@@ -6,18 +6,18 @@ from lsst.ctrl.orca.Directories import Directories
 from lsst.pex.logging import Log
 
 from lsst.ctrl.orca.EnvString import EnvString
-from lsst.ctrl.orca.PipelineConfigurator import PipelineConfigurator
-from lsst.ctrl.orca.BasicPipelineLauncher import BasicPipelineLauncher
+from lsst.ctrl.orca.WorkflowConfigurator import WorkflowConfigurator
+from lsst.ctrl.orca.BasicWorkflowLauncher import BasicWorkflowLauncher
 
 ##
 #
-# BasicPipelineConfigurator 
+# BasicWorkflowConfigurator 
 #
-class BasicPipelineConfigurator(PipelineConfigurator):
+class BasicWorkflowConfigurator(WorkflowConfigurator):
     def __init__(self, runid, logger, verbosity):
         self.runid = runid
         self.logger = logger
-        self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:__init__")
+        self.logger.log(Log.DEBUG, "BasicWorkflowConfigurator:__init__")
         self.verbosity = verbosity
 
         self.nodes = None
@@ -26,35 +26,35 @@ class BasicPipelineConfigurator(PipelineConfigurator):
 
 
     ##
-    # @brief Setup as much as possible in preparation to execute the pipeline
-    #            and return a PipelineLauncher object that will launch the
-    #            configured pipeline.
-    # @param policy the pipeline policy to use for configuration
+    # @brief Setup as much as possible in preparation to execute the workflow
+    #            and return a WorkflowLauncher object that will launch the
+    #            configured workflow.
+    # @param policy the workflow policy to use for configuration
     # @param configurationDict a dictionary containing configuration info
     # @param provenanceDict a dictionary containing info to record provenance
     # @param repository policy file repository location
     #
     def configure(self, policy, configurationDict, provenanceDict, repository):
-        self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:configure")
+        self.logger.log(Log.DEBUG, "BasicWorkflowConfigurator:configure")
         self.policy = policy
         self.configurationDict = configurationDict
         self.provenanceDict = provenanceDict
         self.repository = repository
-        self.pipeline = self.policy.get("shortName")
+        self.workflow = self.policy.get("shortName")
         self.nodes = self.createNodeList()
         self.prepPlatform()
         self.deploySetup()
         self.setupDatabase()
         cmd = self.createLaunchCommand()
-        pipelineLauncher = BasicPipelineLauncher(cmd, self.pipeline, self.logger)
-        return pipelineLauncher
+        workflowLauncher = BasicWorkflowLauncher(cmd, self.workflow, self.logger)
+        return workflowLauncher
 
     ##
-    # @brief create the command which will launch the pipeline
+    # @brief create the command which will launch the workflow
     # @return a string containing the shell commands to execute
     #
     def createLaunchCommand(self):
-        self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:createLaunchCommand")
+        self.logger.log(Log.DEBUG, "BasicWorkflowConfigurator:createLaunchCommand")
 
         execPath = self.policy.get("configuration.framework.exec")
         launchcmd = EnvString.resolve(execPath)
@@ -71,7 +71,7 @@ class BasicPipelineConfigurator(PipelineConfigurator):
     # @return the list of nodes
     #
     def createNodeList(self):
-        self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:createNodeList")
+        self.logger.log(Log.DEBUG, "BasicWorkflowConfigurator:createNodeList")
         node = self.policy.getArray("platform.deploy.nodes")
         self.defaultDomain = self.policy.get("platform.deploy.defaultDomain")
 
@@ -84,8 +84,8 @@ class BasicPipelineConfigurator(PipelineConfigurator):
             self.masterNode = self.masterNode[0:colon]
         return nodes
 
-    def getPipelineName(self):
-        return self.pipeline
+    def getWorkflowName(self):
+        return self.workflow
     
     def getNodeCount(self):
         return len(self.nodes)
@@ -94,7 +94,7 @@ class BasicPipelineConfigurator(PipelineConfigurator):
     # @brief prepare the platform by creating directories and writing the node list
     #
     def prepPlatform(self):
-        self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:prepPlatform")
+        self.logger.log(Log.DEBUG, "BasicWorkflowConfigurator:prepPlatform")
         self.createDirs()
 
     ##
@@ -122,7 +122,7 @@ class BasicPipelineConfigurator(PipelineConfigurator):
     # @brief 
     #
     def deploySetup(self):
-        self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:deploySetup")
+        self.logger.log(Log.DEBUG, "BasicWorkflowConfigurator:deploySetup")
 
         # write the nodelist to "work"
         self.writeNodeList()
@@ -168,14 +168,14 @@ class BasicPipelineConfigurator(PipelineConfigurator):
 
         # TODO: cont'd - also needs to writeout child policies
         newPolicyObj = pol.Policy.createPolicy(newPolicyFile, False)
-        pipelinePolicySet = sets.Set()
-        self.extractChildPolicies(self.repository, newPolicyObj, pipelinePolicySet)
+        workflowPolicySet = sets.Set()
+        self.extractChildPolicies(self.repository, newPolicyObj, workflowPolicySet)
 
-        if os.path.exists(os.path.join(self.dirs.get("work"), self.pipeline)):
+        if os.path.exists(os.path.join(self.dirs.get("work"), self.workflow)):
             self.logger.log(Log.WARN,
-              "Working directory already contains %s directory; won't overwrite" % self.pipeline)
+              "Working directory already contains %s directory; won't overwrite" % self.workflow)
         else:
-            #shutil.copytree(os.path.join(self.repository, self.pipeline), os.path.join(self.dirs.get("work"),self.pipeline))
+            #shutil.copytree(os.path.join(self.repository, self.workflow), os.path.join(self.dirs.get("work"),self.workflow))
             #
             # instead of blindly copying the whole directory, take the set
             # if files from policySet and copy those.
@@ -184,7 +184,7 @@ class BasicPipelineConfigurator(PipelineConfigurator):
             # repository directory to the "work" directory, but we also want to keep    
             # that partial directory hierarchy we're copying to as well.
             #
-            for filename  in pipelinePolicySet:
+            for filename  in workflowPolicySet:
                 destinationDir = self.dirs.get("work")
                 destName = filename.replace(self.repository+"/","")
                 tokens = destName.split('/')
@@ -202,7 +202,7 @@ class BasicPipelineConfigurator(PipelineConfigurator):
         self.writeLaunchScript()
 
     ##
-    # @brief write a shell script to launch a pipeline
+    # @brief write a shell script to launch a workflow
     #
     def writeLaunchScript(self):
         # write out the script we use to kick things off
@@ -223,10 +223,10 @@ class BasicPipelineConfigurator(PipelineConfigurator):
 
         launcher.write("echo $PATH >path.txt\n")
         launcher.write("eups list 2>/dev/null | grep Setup >eups-env.txt\n")
-        launcher.write("pipeline=`echo ${1} | sed -e 's/\..*$//'`\n")
+        launcher.write("workflow=`echo ${1} | sed -e 's/\..*$//'`\n")
         launcher.write(s)
         launcher.write("#$CTRL_ORCA_DIR/bin/writeNodeList.py %s nodelist.paf\n" % self.dirs.get("work"))
-        launcher.write("nohup $PEX_HARNESS_DIR/bin/launchPipeline.py $* > ${pipeline}-${2}.log 2>&1  &\n")
+        launcher.write("nohup $PEX_HARNESS_DIR/bin/launchWorkflow.py $* > ${workflow}-${2}.log 2>&1  &\n")
         launcher.close()
         # make it executable
         os.chmod(name, stat.S_IRWXU)
@@ -236,20 +236,20 @@ class BasicPipelineConfigurator(PipelineConfigurator):
     # @brief create the platform.dir directories
     #
     def createDirs(self):
-        self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:createDirs")
+        self.logger.log(Log.DEBUG, "BasicWorkflowConfigurator:createDirs")
 
         dirPolicy = self.policy.getPolicy("platform.dir")
-        directories = Directories(dirPolicy, self.pipeline, self.runid)
+        directories = Directories(dirPolicy, self.workflow, self.runid)
         self.dirs = directories.getDirs()
 
         for name in self.dirs.names():
             if not os.path.exists(self.dirs.get(name)): os.makedirs(self.dirs.get(name))
 
     ##
-    # @brief set up this pipeline's database
+    # @brief set up this workflow's database
     #
     def setupDatabase(self):
-        self.logger.log(Log.DEBUG, "BasicPipelineConfigurator:setupDatabase")
+        self.logger.log(Log.DEBUG, "BasicWorkflowConfigurator:setupDatabase")
 
     ##
     # @brief perform a node host name expansion
@@ -283,7 +283,7 @@ class BasicPipelineConfigurator(PipelineConfigurator):
     ##
     # @brief given a policy, recursively add all child policies to a policy set
     # 
-    def extractChildPolicies(self, repos, policy, pipelinePolicySet):
+    def extractChildPolicies(self, repos, policy, workflowPolicySet):
         names = policy.fileNames()
         for name in names:
             if name.rfind('.') > 0:
@@ -297,10 +297,10 @@ class BasicPipelineConfigurator(PipelineConfigurator):
                         if (filename in self.policySet) == False:
                             #self.provenance.recordPolicy(filename)
                             self.policySet.add(filename)
-                        if (filename in pipelinePolicySet) == False:
-                            pipelinePolicySet.add(filename)
+                        if (filename in workflowPolicySet) == False:
+                            workflowPolicySet.add(filename)
                         newPolicy = pol.Policy.createPolicy(filename, False)
-                        self.extractChildPolicies(repos, newPolicy, pipelinePolicySet)
+                        self.extractChildPolicies(repos, newPolicy, workflowPolicySet)
             else:
                 field = name
                 if policy.getValueType(field) == pol.Policy.FILE:
@@ -310,7 +310,7 @@ class BasicPipelineConfigurator(PipelineConfigurator):
                     if (filename in self.policySet) == False:
                         #self.provenance.recordPolicy(filename)
                         self.policySet.add(filename)
-                    if (filename in pipelinePolicySet) == False:
-                        pipelinePolicySet.add(filename)
+                    if (filename in workflowPolicySet) == False:
+                        workflowPolicySet.add(filename)
                     newPolicy = pol.Policy.createPolicy(filename, False)
-                    self.extractChildPolicies(repos, newPolicy, pipelinePolicySet)
+                    self.extractChildPolicies(repos, newPolicy, workflowPolicySet)

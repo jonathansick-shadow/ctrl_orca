@@ -6,18 +6,18 @@ from lsst.ctrl.orca.Directories import Directories
 from lsst.pex.logging import Log
 
 from lsst.ctrl.orca.EnvString import EnvString
-from lsst.ctrl.orca.PipelineConfigurator import PipelineConfigurator
-from lsst.ctrl.orca.DagmanPipelineLauncher import DagmanPipelineLauncher
+from lsst.ctrl.orca.WorkflowConfigurator import WorkflowConfigurator
+from lsst.ctrl.orca.DagmanWorkflowLauncher import DagmanWorkflowLauncher
 
 ##
 #
-# VanillaPipelineConfigurator 
+# VanillaCondorWorkflowConfigurator 
 #
-class VanillaPipelineConfigurator(PipelineConfigurator):
+class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
     def __init__(self, runid, logger, verbosity):
         self.runid = runid
         self.logger = logger
-        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:__init__")
+        self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:__init__")
         self.verbosity = verbosity
 
         self.directories = None
@@ -27,16 +27,16 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
         self.policySet = sets.Set()
 
     ##
-    # @brief Setup as much as possible in preparation to execute the pipeline
-    #            and return a PipelineLauncher object that will launch the
-    #            configured pipeline.
-    # @param policy the pipeline policy to use for configuration
+    # @brief Setup as much as possible in preparation to execute the workflow
+    #            and return a WorkflowLauncher object that will launch the
+    #            configured workflow.
+    # @param policy the workflow policy to use for configuration
     # @param configurationDict a dictionary containing configuration info
     # @param provenanceDict a dictionary containing info to record provenance
     # @param repository policy file repository location
     #
     def configure(self, policy, configurationDict, provenanceDict, repository):
-        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:configure")
+        self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:configure")
         self.policy = policy
 
         self.remoteLoginName = self.policy.get("configurator.loginNode")
@@ -53,7 +53,7 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
         self.configurationDict = configurationDict
         self.provenanceDict = provenanceDict
         self.repository = repository
-        self.pipeline = self.policy.get("shortName")
+        self.workflow = self.policy.get("shortName")
         # unused in the condor vanilla universe
         #self.nodes = self.createNodeList()
         self.prepPlatform()
@@ -63,15 +63,15 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
 
         condorFile = self.writeCondorFile()
         
-        pipelineLauncher = DagmanPipelineLauncher("", self.pipeline, self.logger)
-        return pipelineLauncher
+        workflowLauncher = DagmanWorkflowLauncher("", self.workflow, self.logger)
+        return workflowLauncher
 
     ##
-    # @brief create the command which will launch the pipeline
+    # @brief create the command which will launch the workflow
     # @return a string containing the shell commands to execute
     #
     def writeCondorFile(self):
-        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:writeCondorFile")
+        self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:writeCondorFile")
 
         execPath = self.policy.get("configuration.framework.exec")
         #launchcmd = EnvString.resolve(execPath)
@@ -81,7 +81,7 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
         remoteSetupScriptName = os.path.join(self.dirs.get("work"), setupScriptBasename)
        
         launchArgs = "%s %s -L %s -S %s" % \
-             (self.pipeline+".paf", self.runid, self.verbosity, remoteSetupScriptName)
+             (self.workflow+".paf", self.runid, self.verbosity, remoteSetupScriptName)
         print "launchArgs = %s",launchArgs
 
 
@@ -93,16 +93,16 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
             nodecount = nodecount + 1
         
         # Write Condor file 
-        condorJobfile =  os.path.join(self.tmpdir, self.pipeline+".condor")
+        condorJobfile =  os.path.join(self.tmpdir, self.workflow+".condor")
 
         clist = []
         clist.append("universe=vanilla\n")
         clist.append("executable="+self.remoteScript+"\n")
         clist.append("arguments="+launchcmd+" "+launchArgs+"\n")
         clist.append("transfer_executable=false\n")
-        clist.append("output="+self.pipeline+"_Condor.out\n")
-        clist.append("error="+self.pipeline+"_Condor.err\n")
-        clist.append("log="+self.pipeline+"_Condor.log\n")
+        clist.append("output="+self.workflow+"_Condor.out\n")
+        clist.append("error="+self.workflow+"_Condor.err\n")
+        clist.append("log="+self.workflow+"_Condor.log\n")
         clist.append("should_transfer_files = YES\n")
         clist.append("when_to_transfer_output = ON_EXIT\n")
         clist.append("remote_initialdir="+self.dirs.get("work")+"\n")
@@ -116,8 +116,8 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
 
         return
 
-    def getPipelineName(self):
-        return self.pipeline
+    def getWorkflowName(self):
+        return self.workflow
 
     
     def getNodeCount(self):
@@ -129,7 +129,7 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
     # @return the list of nodes
     #
     def createNodeList(self):
-        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:createNodeList")
+        self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:createNodeList")
         node = self.policy.getArray("platform.deploy.nodes")
         self.defaultDomain = self.policy.get("platform.deploy.defaultDomain")
 
@@ -146,15 +146,15 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
     # @brief prepare the platform by creating directories and writing the node list
     #
     def prepPlatform(self):
-        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:prepPlatform")
+        self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:prepPlatform")
         self.createDirs()
 
     def stageLocally(self, localName, remoteName):
-        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:stageLocally")
+        self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:stageLocally")
 
         print "local name  = "+localName
         print "remote name  = "+remoteName
-        localStageDir = os.path.join(self.tmpdir, self.pipeline)
+        localStageDir = os.path.join(self.tmpdir, self.workflow)
 
         print "localStageDir = "+localStageDir
 
@@ -166,7 +166,7 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
         shutil.copyfile(localName, localStageName)
 
     def copyToRemote(self, localName, remoteName):
-        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:copyToRemote")
+        self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:copyToRemote")
         
         localNameURL = "%s%s" % ("file://",localName)
         remoteNameURL = "%s%s" % (self.transferProtocolPrefix, remoteName)
@@ -180,7 +180,7 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
         os.wait()[0]
 
     def remoteChmodX(self, remoteName):
-        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:remoteChmodX")
+        self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:remoteChmodX")
         cmd = "gsissh %s chmod +x %s" % (self.remoteLoginName, remoteName)
         pid = os.fork()
         if not pid:
@@ -189,7 +189,7 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
 
 
     def remoteMkdir(self, remoteDir):
-        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:remoteMkdir")
+        self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:remoteMkdir")
         cmd = "gsissh %s mkdir -p %s" % (self.remoteLoginName, remoteDir)
         print "running: "+cmd
         pid = os.fork()
@@ -234,7 +234,7 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
     # @brief 
     #
     def deploySetup(self):
-        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:deploySetup")
+        self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:deploySetup")
 
         # write the nodelist to "work"
         # unused in the condor vanilla universe
@@ -277,22 +277,22 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
 
         # XXX - write this in the current directory;  we should probably really specify
         # a "scratch" area to write this to instead.
-        # XXX - 01/04/10 - srp - use pipeline name to avoid conflicts with other original pipeline names
+        # XXX - 01/04/10 - srp - use workflow name to avoid conflicts with other original workflow names
         #newPolicyFile = os.path.join(self.tmpdir, configurationFileName+".tmp."+self.runid)
-        newPolicyDir = os.path.join(self.tmpdir, self.pipeline)
+        newPolicyDir = os.path.join(self.tmpdir, self.workflow)
         newPolicyDir = os.path.join(newPolicyDir, "work")
-        newPolicyFile = os.path.join(newPolicyDir, self.pipeline+".paf")
+        newPolicyFile = os.path.join(newPolicyDir, self.workflow+".paf")
         if os.path.exists(newPolicyFile):
             self.logger.log(Log.WARN, "Working directory already contains %s" % newPolicyFile)
         else:
             pw = pol.PAFWriter(newPolicyFile)
             pw.write(configurationPolicy)
             pw.close()
-        # XXX - srp - 01/04/10 - copy to pipeline name instead
+        # XXX - srp - 01/04/10 - copy to workflow name instead
         #self.copyToRemote(newPolicyFile,configurationFileName)
         # srp - 01/27/10
-        #self.copyToRemote(newPolicyFile,self.pipeline+".paf")
-        #self.stageLocally(newPolicyFile,self.pipeline+".paf")
+        #self.copyToRemote(newPolicyFile,self.workflow+".paf")
+        #self.stageLocally(newPolicyFile,self.workflow+".paf")
         # TODO: uncomment this and perform the remove of the temp file.
         # os.unlink(newPolicyFile)
 
@@ -302,14 +302,14 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
 
         # TODO: cont'd - also needs to writeout child policies
         newPolicyObj = pol.Policy.createPolicy(newPolicyFile, False)
-        pipelinePolicySet = sets.Set()
-        self.extractChildPolicies(self.repository, newPolicyObj, pipelinePolicySet)
+        workflowPolicySet = sets.Set()
+        self.extractChildPolicies(self.repository, newPolicyObj, workflowPolicySet)
 
-        if os.path.exists(os.path.join(self.dirs.get("work"), self.pipeline)):
+        if os.path.exists(os.path.join(self.dirs.get("work"), self.workflow)):
             self.logger.log(Log.WARN,
-              "Working directory already contains %s directory; won't overwrite" % self.pipeline)
+              "Working directory already contains %s directory; won't overwrite" % self.workflow)
         else:
-            for filename  in pipelinePolicySet:
+            for filename  in workflowPolicySet:
                 print "working on filename = "+filename
                 print "working on repository = "+self.repository
 
@@ -371,7 +371,7 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
         self.remoteChmodX(filename)
 
     ##
-    # @brief write a shell script to launch a pipeline
+    # @brief write a shell script to launch a workflow
     #
     def createLaunchScript(self):
         # write out the script we use to kick things off
@@ -383,14 +383,14 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
         repos = self.provenanceDict["repos"]
 
         filename = os.path.join(self.dirs.get("work"), self.configurationDict["filename"])
-        remoterepos = os.path.join(self.dirs.get("work"),self.pipeline)
+        remoterepos = os.path.join(self.dirs.get("work"),self.workflow)
 
         provenanceCmd = "#ProvenanceRecorder.py --type=%s --user=%s --runid=%s --dbrun=%s --dbglobal=%s --filename=%s --repos=%s\n" % ("lsst.ctrl.orca.provenance.BasicRecorder", user, runid, dbrun, dbglobal, filename, remoterepos)
 
         # we can't write to the remove directory, so name it locally first.
         # 
         #tempName = name+".tmp"
-        localWorkDir = os.path.join(self.tmpdir, self.pipeline)
+        localWorkDir = os.path.join(self.tmpdir, self.workflow)
         localWorkDir = os.path.join(localWorkDir, "work")
         if os.path.exists(localWorkDir) == False:
             os.path.makedirs(localWorkDir)
@@ -416,13 +416,13 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
     # @brief create the platform.dir directories
     #
     def createDirs(self):
-        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:createDirs")
+        self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:createDirs")
 
         dirPolicy = self.policy.getPolicy("platform.dir")
-        self.directories = Directories(dirPolicy, self.pipeline, self.runid)
+        self.directories = Directories(dirPolicy, self.workflow, self.runid)
         self.dirs = self.directories.getDirs()
 
-        localStageDir = os.path.join(self.tmpdir,self.pipeline)
+        localStageDir = os.path.join(self.tmpdir,self.workflow)
         for name in self.dirs.names():
             #if not os.path.exists(self.dirs.get(name)): os.makedirs(self.dirs.get(name))
             #self.remoteMkdir(self.dirs.get(name))
@@ -435,10 +435,10 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
         os.makedirs(os.path.join(work,"python"))
 
     ##
-    # @brief set up this pipeline's database
+    # @brief set up this workflow's database
     #
     def setupDatabase(self):
-        self.logger.log(Log.DEBUG, "VanillaPipelineConfigurator:setupDatabase")
+        self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:setupDatabase")
 
     ##
     # @brief perform a node host name expansion
@@ -472,7 +472,7 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
     ##
     # @brief given a policy, recursively add all child policies to a policy set
     # 
-    def extractChildPolicies(self, repos, policy, pipelinePolicySet):
+    def extractChildPolicies(self, repos, policy, workflowPolicySet):
         names = policy.fileNames()
         for name in names:
             if name.rfind('.') > 0:
@@ -486,10 +486,10 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
                         if (filename in self.policySet) == False:
                             #self.provenance.recordPolicy(filename)
                             self.policySet.add(filename)
-                        if (filename in pipelinePolicySet) == False:
-                            pipelinePolicySet.add(filename)
+                        if (filename in workflowPolicySet) == False:
+                            workflowPolicySet.add(filename)
                         newPolicy = pol.Policy.createPolicy(filename, False)
-                        self.extractChildPolicies(repos, newPolicy, pipelinePolicySet)
+                        self.extractChildPolicies(repos, newPolicy, workflowPolicySet)
             else:
                 field = name
                 if policy.getValueType(field) == pol.Policy.FILE:
@@ -499,7 +499,7 @@ class VanillaPipelineConfigurator(PipelineConfigurator):
                     if (filename in self.policySet) == False:
                         #self.provenance.recordPolicy(filename)
                         self.policySet.add(filename)
-                    if (filename in pipelinePolicySet) == False:
-                        pipelinePolicySet.add(filename)
+                    if (filename in workflowPolicySet) == False:
+                        workflowPolicySet.add(filename)
                     newPolicy = pol.Policy.createPolicy(filename, False)
-                    self.extractChildPolicies(repos, newPolicy, pipelinePolicySet)
+                    self.extractChildPolicies(repos, newPolicy, workflowPolicySet)

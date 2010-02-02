@@ -2,71 +2,71 @@ from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.pex.logging import Log
 import lsst.pex.policy as pol
 
-class PipelineManager:
+class WorkflowManager:
     ##
     # @brief 
     #
-    def __init__(self, runid, pipelinePolicy, configurationDict, repository, provenanceDict, logger, verbosity):
+    def __init__(self, runid, workflowPolicy, configurationDict, repository, provenanceDict, logger, verbosity):
         self.logger =  logger
-        self.logger.log(Log.DEBUG, "PipelineManager:__init__")
+        self.logger.log(Log.DEBUG, "WorkflowManager:__init__")
         self.runid = runid
-        self.pipelinePolicy = pipelinePolicy
+        self.workflowPolicy = workflowPolicy
         self.configurationDict = configurationDict
         self.provenanceDict = provenanceDict
         self.repository = repository
         self.verbosity = verbosity
 
         self.urgency = 0
-        self.pipelineLauncher = None
+        self.workflowLauncher = None
         self.hasCompleted = False
         self.isActive = False
 
     ##
-    # @brief setup, launch and monitor a pipeline to its completion, and then
+    # @brief setup, launch and monitor a workflow to its completion, and then
     #            clean-up.
     #
-    def runPipeline(self):
+    def runWorkflow(self):
         self.isActive = True
-        self.logger.log(Log.DEBUG, "PipelineManager:runPipeline")
-        if self.pipelineConfigurator == None:
+        self.logger.log(Log.DEBUG, "WorkflowManager:runWorkflow")
+        if self.workflowConfigurator == None:
             self.configure()
-        self.pipelineLauncher.launch()
+        self.workflowLauncher.launch()
         self.cleanUp()
 
-    def getPipelineName(self):
-        return self.pipelineConfigurator.getPipelineName()
+    def getWorkflowName(self):
+        return self.workflowConfigurator.getWorkflowName()
 
     def getNodeCount(self):
-        return self.pipelineConfigurator.getNodeCount()
+        return self.workflowConfigurator.getNodeCount()
 
     ##
-    # @brief stop the pipeline.
+    # @brief stop the workflow.
     #
-    def stopPipeline(self, urgency):
-        self.logger.log(Log.DEBUG, "PipelineManager:stopPipeline")
+    def stopWorkflow(self, urgency):
+        self.logger.log(Log.DEBUG, "WorkflowManager:stopWorkflow")
 
     ##
-    # @brief carry out post-execution tasks for removing pipeline data and
+    # @brief carry out post-execution tasks for removing workflow data and
     #            state from the platform and archiving/ingesting products as
     #            needed.
     #
     def cleanUp(self):
-        self.logger.log(Log.DEBUG, "PipelineManager:cleanUp")
+        self.logger.log(Log.DEBUG, "WorkflowManager:cleanUp")
         self.hasCompleted = True
 
     ##
-    # @brief prepare a pipeline for launching.
+    # @brief prepare a workflow for launching.
     #
     def configure(self):
-        self.logger.log(Log.DEBUG, "PipelineManager:configure")
+        self.logger.log(Log.DEBUG, "WorkflowManager:configure")
 
-        self.pipelineConfigurator = self.createConfigurator()
-        self.pipelineLauncher = self.pipelineConfigurator.configure(self.pipelinePolicy, self.configurationDict, self.provenanceDict, self.repository)
+        self.workflowConfigurator = self.createConfigurator()
+        self.workflowLauncher = self.workflowConfigurator.configure(self.workflowPolicy, self.configurationDict, self.provenanceDict, self.repository)
 
     def createConfigurator(self):
-        self.logger.log(Log.DEBUG, "PipelineManager:createConfigurator")
+        self.logger.log(Log.DEBUG, "WorkflowManager:createConfigurator")
         
-        className = self.pipelinePolicy.get("configuratorClass")
+        className = self.workflowPolicy.get("configuratorClass")
         classFactory = NamedClassFactory()
         
         configuratorClass = classFactory.createClass(className)
@@ -74,29 +74,29 @@ class PipelineManager:
         return configurator
 
     ##
-    # @brief return True if the pipeline has been run to completion.  This will
-    #            be true if the pipeline has run normally through cleaned up or
+    # @brief return True if the workflow has been run to completion.  This will
+    #            be true if the workflow has run normally through cleaned up or
     #            if it was stopped and clean-up has been called.
     #
     def isDone(self):
-        self.logger.log(Log.DEBUG, "PipelineManager:isDone")
+        self.logger.log(Log.DEBUG, "WorkflowManager:isDone")
         return self.hasCompleted
 
     ##
-    # @brief return True if the pipeline can still be called.  This may return
-    #            False because the pipeline has already been run and cannot be
+    # @brief return True if the workflow can still be called.  This may return
+    #            False because the workflow has already been run and cannot be
     #            re-run.
     #
     def isRunnable(self):
-        self.logger.log(Log.DEBUG, "PipelineManager:isRunnable")
+        self.logger.log(Log.DEBUG, "WorkflowManager:isRunnable")
         if isActive == True:
             return False
         return True
 
     ##
-    # @brief Runs checks that ensure that the Pipeline has been properly set up.
+    # @brief Runs checks that ensure that the Workflow has been properly set up.
     #
     def checkConfiguration(self, care):
         # care - an indication of how throughly to check.  In general, a
         # higher number will result in more checks being run.
-        self.logger.log(Log.DEBUG, "PipelineManager:createConfiguration")
+        self.logger.log(Log.DEBUG, "WorkflowManager:createConfiguration")

@@ -2,9 +2,9 @@ import re,os
 import sys
 class DagConfigurator:
 
-    def __init__(self, runid, localScratch, pipelineManagers):
+    def __init__(self, runid, localScratch, workflowManagers):
         self.tmpdir = os.path.join(localScratch, runid)
-        self.pipelineManagers = pipelineManagers
+        self.workflowManagers = workflowManagers
     
     def helpme(self, match):
         name = match.group(1)
