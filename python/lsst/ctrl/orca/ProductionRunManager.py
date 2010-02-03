@@ -1,3 +1,5 @@
+from __future__ import with_statement
+
 import os, os.path, sets
 import lsst.daf.base as base
 import lsst.pex.policy as pol
@@ -6,6 +8,8 @@ from lsst.pex.logging import Log
 from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.EventListener import EventListener
 from lsst.ctrl.orca.EventResolver import EventResolver
+
+from lsst.pex.orca.threading import SharedData
 
 ##
 # @brief configures, checks, and launches workflows
@@ -18,12 +22,33 @@ class ProductionRunManager:
     # @param logger Log object 
     # @param workflowVerbosity verbosity level for the workflows
     #
-    def __init__(self, runid, policyFileName, logger, workflowVerbosity=None):
-        self.logger = logger
+    def __init__(self, runid, policyFileName, logger, workflowVerbosity=None, skipConfigCheck=False):
+
+        # _locked: a container for data to be shared across threads that have access
+        # to this object.
+        self._locked = threading.SharedData(False,
+                                            {"running": False, "done": False})
+
+        # the logger used by this instance
+        self.logger = Log(logger, "productionRunManager")
+
+        # the default verbosity to hand down to the pipelines
         self.workflowVerbosity = workflowVerbosity
-        self.logger.log(Log.DEBUG, "ProductionRunManager:__init__")
+
+        # the run id for this production
         self.runid = runid
-        self.workflowManagers = []
+
+        # once the workflows that make up this production is created we will
+        # cache them here
+        self._workflowManagers = None
+
+        # the cached ProductionRunConfigurator instance
+        self.productionRunConfigurator = None
+
+        # if False, runProduction() will do a check of the configuration before
+        # actually launching the workflows.
+        self._skipConfigCheck = skipConfigCheck
+        
         self.dbNames = []
         self.totalNodeCount = 0
 
@@ -37,7 +62,6 @@ class ProductionRunManager:
         self.policy = pol.Policy.createPolicy(self.fullPolicyFilePath, False)
 
         # determine the repository
-
         reposValue = self.policy.get("repositoryDirectory")
         if reposValue == None:
             self.repository = "."
@@ -50,6 +74,14 @@ class ProductionRunManager:
         if not os.path.isdir(self.repository):
             raise RuntimeError("specified repository "+ self.repository + ": not a directory");
 
+        # set configuration check care level.
+        # Note: this is not a sanctioned pattern; should be replaced with use
+        # of default policy.
+        self._checkCare = 1
+        if self.policy.exists("configCheckCare"):
+            self._checkCare = self.policy.getInt("configCheckCare")
+        if self._checkCare < 0:
+            self._skipConfigCheck = True
 
     ##
     # @brief returns the runid of this production run
@@ -58,78 +90,67 @@ class ProductionRunManager:
         return self.runid
 
     ##
-    # @brief returns the policy of this production run
-    #
-    def getPolicy(self):
-        return self.policy
-
-    ##
     # @brief run the entire production
+    # @return bool  False is returned if the production was already started once
     #
     def runProduction(self):
-        self.logger.log(Log.DEBUG, "ProductionRunManager:runProduction")
+        self.logger.log(Log.DEBUG, "Running production: " + self.runid)
 
-        # create Production Run Configurator specified by the policy
-        self.productionRunConfigurator = self.createConfigurator()
+        if not self.isRunnable():
+            if self.isRunning():
+                self.logger.log(Log.INFO, "Production Run %s is already running" % self.runid)
+            if self.isDone():
+                self.logger.log(Log.INFO,
+                                "Production Run %s has already run; start with new runid" % self.runid)
+            return False
 
-        # configure each workflow
-        for workflowMgr in self.workflowManagers:
-            workflowLauncher = workflowMgr.configure()
-            # XXX - next line (?)
-            #self.workflowLaunchers.append(workflowLauncher)
+        # lock this branch of code
+        try:
+            self._locked.acquire()
+            self._locked.running = True
 
-        # now that we have the list of workflows, we can finalize the run (for example,
-        # rewrite the DAG file)
-        self.productionRunConfigurator.finalize(self.workflowManagers)
+            # create Production Run Configurator specified by the policy
+            if not self.productionRunConfigurator:
+                self.productionRunConfigurator = self.createConfigurator()
+                self.productionRunConfigurator.configure()
+            if self._skipConfigCheck:
+                self.productionRunConfigurator.checkConfiguration(self._checkCare)
 
-        # Check the configururation
-        # TODO: add "care" parameter
-        self.checkConfiguration(0)
+            # create the individual workflow managers
+            self.workflowManagers = self.productionRunConfigurator.getWorkflowManagers()
+            if not self.workflowManagers:
+                raise ConfigurationError("Failed to obtain workflowManagers from configurator")
 
+            for workflow in self.workflowManagers["__order"]:
+                mgr = self.workflowManagers[workflow]
 
+                # this will block until the monitor is created.
+                mgr.runWorkflow()
 
-        # create ProductionRunner
-        productionPolicy = self.policy.getPolicy("production")
-        productionRunnerName = productionPolicy.get("productionRunnerClass")
+        finally:
+            self._locked.release()
 
-        if productionRunnerName == None:
-            print "Couldn't find 'productionRunnerName' in:"
-            print self.policy.toString()
-        classFactory = NamedClassFactory()
-
-
-        productionRunnerClass = classFactory.createClass(productionRunnerName)
-        productionRunner = productionRunnerClass(self.runid, productionPolicy, self.workflowManagers)
-
-
-        productionRunner.runWorkflows()
-
-        # TODO: spawn listener object here
-        #resolver = EventResolver()
-        #listener = EventListener(self.topic, resolver)
-        #listener.start()
-        #listener.join()
+        # start the thread that will listen for shutdown events
+        if self.policy.exists("shutdownTopic"):
+            self._startShutdownThread()
 
     ##
     # @brief determine whether production is currently running
     #
     def isRunning(self):
-        self.logger.log(Log.DEBUG, "ProductionRunManager:isRunning")
-        return False
+        return self._locked.running
 
     ##
     # @brief determine whether production has completed
     #
     def isDone(self):
-        self.logger.log(Log.DEBUG, "ProductionRunManager:isDone")
-        return False
+        return self._locked.done
 
     ##
     # @brief determine whether production can be run
     #
     def isRunnable(self):
-        self.logger.log(Log.DEBUG, "ProductionRunManager:isRunnable")
-        return False
+        return not self.isRunning() and not self.isDone()
 
     ##
     # @brief setup and create the ProductionRunConfigurator
@@ -140,128 +161,52 @@ class ProductionRunManager:
         # prodPolicy - the production run policy
         self.logger.log(Log.DEBUG, "ProductionRunManager:createConfigurator")
 
-        # these are policy settings which can be overriden from what they
-        # are in the workflow policies. Save them for when we create the
-        # WorkflowManager, and let the WorkflowManger use these overrides
-        # as it sees fit to do so.
-        policyOverrides = pol.Policy()
-        if self.policy.exists("eventBrokerHost"):
-            policyOverrides.set("execute.eventBrokerHost",
-                              self.policy.get("eventBrokerHost"))
-        if self.policy.exists("logThreshold"):
-            policyOverrides.set("execute.logThreshold",
-                              self.policy.get("logThreshold"))
-        if self.policy.exists("shutdownTopic"):            
-            policyOverrides.set("execute.shutdownTopic", self.policy.get("shutdownTopic"))
+        configuratorClass = BasicProductionRunConfigurator
+        configuratorClassName = None
+        if self.policy.exists("configurationClass"):
+            configuratorClassName = self.policy.get("configurationClass")
+        if configuratorClassName:
+            classFactory = NamedClassFactory()
+            configuratorClass = classFactory.createClass(configuratorClassName)
 
-        productionRunConfiguratorName = self.policy.get("production.productionRunConfiguratorClass")
-
-        if productionRunConfiguratorName == None:
-            print "Couldn't find 'production.productionRunConfiguratorClass' in:"
-            print self.policy.toString()
-        classFactory = NamedClassFactory()
-        productionRunConfiguratorClass = classFactory.createClass(productionRunConfiguratorName)
-        productionRunConfigurator = productionRunConfiguratorClass(self.runid, self.policy, self.repository, self.logger, self.workflowVerbosity)
-
-
-        self.dbNames = productionRunConfigurator.configure()
-
-        productionRunConfigurator.recordPolicy(self.fullPolicyFilePath)
-
-        # get workflows
-        workflowPolicies = self.policy.get("workflows")
-        workflowPolicyNames = workflowPolicies.policyNames(True)
-
-        platformSet = sets.Set()
-
-        # create a workflowManager for each workflow, and save it.
-        for policyName in workflowPolicyNames:
-            self.logger.log(Log.DEBUG, "policyName --> "+policyName)
-            workflowPolicyArray = workflowPolicies.getArray(policyName)
-            for workflowPolicy in workflowPolicyArray:
-                # - pex.policy api change fix - if workflowPolicy.get("launch",1) != 0:
-                doLaunch = workflowPolicy.get("launch")
-                if doLaunch != 0:
-                    # - pex.policy api change fix - shortName = workflowPolicy.get("shortName", policyName)
-                    shortName = workflowPolicy.get("shortName")
-                    if shortName == None:
-                        shortName = policyName
-                    configuration = workflowPolicy.getFile("configuration").getPath()
-                    configuratorClassName = workflowPolicy.get("configuratorClass")
-
-                    # record the platform policy, if that platform hasn't been recorded yet
-                    platformFilename = workflowPolicy.getFile("platform").getPath()
-                    platformFilename = os.path.join(self.repository, platformFilename)
-                    if (platformFilename in platformSet) == False:
-                        productionRunConfigurator.recordPolicy(platformFilename)
-                        platformSet.add(platformFilename)
-
-                    
-                    #self.logger.log(Log.DEBUG, ":createConfigurator platformFileName = %s, repository = %s" % (platformFilename, self.repository))
-                    workflowPolicy.loadPolicyFiles(self.repository, True)
-
-                    configurationDict = self.rewritePolicy(configuration, shortName, workflowPolicy, policyOverrides)
-                    workflowManager = productionRunConfigurator.createWorkflowManager(workflowPolicy, configurationDict, self.workflowVerbosity)
-                    self.workflowManagers.append(workflowManager)
-
-        return productionRunConfigurator
+        return configuratorClass(self.runid, self.policy, self.repository,
+                                 self.logger, self.workflowVerbosity)
 
     ##
     # @brief
-    #
-    def rewritePolicy(self, configuration, shortName, workflowPolicy, policyOverrides):
-        # NOTE:  workflowPolicy must be fully de-referenced by this point.
-
-        #  read in default policy        
-        #  read in given policy
-        #  in given policy:
-        #     set: execute.eventBrokerHost
-        #     set: execute.dir
-        #     set: execute.database.url
-        #  write new policy file with overridden values        
-        #  write file to self.dirs["work"]
-        polfile = os.path.join(self.repository, configuration)
-
-        newPolicy = pol.Policy.createPolicy(polfile, False)
-
-        if policyOverrides is not None:
-            for name in policyOverrides.paramNames():
-                newPolicy.set(name, policyOverrides.get(name))
-
-
-        newPolicy.set("execute.shortName", shortName)
-
-        executeDir = workflowPolicy.get("platform.dir")
-        newPolicy.set("execute.dir", executeDir)
-
-        dbRunURL = self.dbNames["dbrun"] 
-
-        newPolicy.set("execute.database.url", dbRunURL)
-
-        propDictionary = {}
-        propDictionary["filename"] =  os.path.basename(polfile)
-        propDictionary["policy"]= newPolicy
-
-        return propDictionary
-        
-        # provenance really should be recorded here
-        #self.provenance.recordPolicy(newPolicyFile)
-
-        
-    ##
-    # @brief
-    #
-    def checkConfiguration(self, care):
+    # @param care      the thoroughness of the checks.
+    # @param issueExc  an instance of MultiIssueConfigurationError to add problems
+    #                    to.  If not None, this function will not raise
+    #                    an exception when problems are encountered; they
+    #                    will merely be added to the instance.  It is assumed
+    #                    that the caller will raise that exception is necessary.
+    def checkConfiguration(self, care=1, issueExc=None):
         # care - level of "care" in checking the configuration to take. In
         # general, the higher the number, the more checks that are made.
-        self.logger.log(Log.DEBUG, "ProductionRunManager:checkConfiguration")
-        for workflowMgr in self.workflowManagers:
-            workflowMgr.checkConfiguration(care)
+        self.logger.log(Log.DEBUG, "checkConfiguration")
+
+        if not self.workflowManagers:
+            msg = "%s: production has not been configured yet" % self.runid
+            if self._name:
+                msg = "%s %s" % (self._name, msg)
+            if issueExc is None:
+                raise ConfigurationError(msg)
+            else:
+                issueExc.addProblem(msg)
+                return
+
+        myProblems = issueExc
+        if myProblems is None:
+            myProblems = MultiIssueConfigurationError("problems encountered while checking configuration")
+
+        for workflow in self.workflowManagers["__order"]:
+            workflowMgr = self.workflowManagers[workflow]
+            workflowMgr.checkConfiguration(care, myProblems)
 
     ##
     # @brief
     #
-    def stopProduction(self, urgency):
+    def stopProduction(self, urgency, timeout=1800):
         # urgency - an indicator of how urgently to carry out the shutdown.  
         #
         # Recognized values are: 
@@ -272,7 +217,98 @@ class ProductionRunManager:
         #                         (typically between stages) 
         #   NOW                 - end as soon as possible, forgoing any 
         #                         checkpointing
-        self.logger.log(Log.DEBUG, "ProductionRunManager:stopProduction")
-        for workflowMgr in self.workflowManagers:
+        if not self.isRunning():
+            self.logger.log(Log.INFO-1,
+                           "shutdown requested when production is not running")
+            return
+        
+        if self.logger.sends(Log.INFO):
+            self.logger.log(Log.INFO,
+                            "Shutting down production (urgency=%s)" % urgency)
+
+        for workflow in self.workflowManagers["__order"]:
+            workflowMgr = self.workflowManagers[workflow]
             workflowMgr.stopProduction(urgency)
+
+        pollintv = 0.2
+        running = self.isRunning()
+        lasttime = time.time()
+        while running and timeout > 0:
+            time.sleep(pollintv)
+            for workflow in self.workflowManagers["__order"]:
+                running = self.workflowManagers[workflow]
+                if running:  break
+            timeout -= time.time() - lasttime
+        if not running:
+            with self._locked:
+                self._locked.running = False
+                self._locked.done = True
+        else:
+            self.logger.log(Log.FAIL, "Failed to shutdown pipelines within timeout: %ss" % timeout)
+            return False
+
+        return True
+                
+
+    def getWorkflowNames(self):
+        if self.workflowManagers:
+            return self.workflowManagers["__order"]
+        else:
+            ProductionRunManager.determineWorkflowNames(self.policy)
+
+    @staticmethod
+    def determineWorkflowNames(policy):
+        workflows = self.policy.getArray("workflow")
+        names = []
+        i = 1
+        for wf in workflows:
+            name = ProductionRunManager._workflowName(wf, i)
+            while name in names:
+                name = ProductionRunManager._workflowName(None, i, name)
+            names.append(name)
+            i += 1
             
+    @staticmethod
+    def _workflowName(wfpolicy, which, defbase="Workflow-"):
+        if wfpolicy and wfpolicy.exists("shortName"):
+            return wfpolicy.get("shortName")
+
+        return "%s%d" % (defbase, which)
+
+    ##
+    # @brief return the workflow manager for the given named workflow
+    # @return   a WorkflowManager instance or None if it has not been
+    #             created yet or name is not one of the names returned
+    #             by getWorkflowNames()
+    def getWorkflowManager(self, name):
+        if not self.workflowManagers or not self.workflowManagers.has_key(name):
+            return None
+        return self.workflowManagers[name]
+
+    class _ShutdownThread(threading.Thread):
+        def __init__(self, parent, pollingIntv=0.2, listenTimeout=10):
+            self._parent = parent
+            self._pollintv = pollingIntv
+            self._timeout = listenTimeout
+            brokerhost = parent.policy.get("eventBrokerHost")
+            self._topic = parent.policy.get("shutdownTopic")
+            self._evsys = events.EventSystem.getDefaultEventSystem()
+            self._evsys.createReceiver(brokerhost, topic)
+
+        def run(self):
+            self.parent.logger.log(Log.DEBUG,
+                                   "listening for shutdown event at %s s intervals" % self._pollintv)
+
+            self.parent.logger.log(Log.DEBUG-10, "checking for shutdown event")
+            shutdownData = self._evsys.receive(self._topic, self._timeout)
+            while self.parent.isRunning() and shutdownData is None:
+                time.sleep(self._pollintv)
+                self.parent.logger.log(Log.DEBUG-10, "checking for shutdown event")
+                shutdownData = self._evsys.receive(self._topic, self._timeout)
+
+            if shutdownData:
+                self.parent.stopProduction(shutdownData.getInt("level"))
+
+    def _startShutdownThread(self):
+        sdthread = _ShutdownThread(self)
+        sdthread.start()
