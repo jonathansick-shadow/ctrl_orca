@@ -6,16 +6,14 @@ class WorkflowManager:
     ##
     # @brief 
     #
-    def __init__(self, runid, workflowPolicy, configurationDict, repository, provenanceDict, logger, verbosity):
+    def __init__(self, runid, logger, policy, verbosity):
         self.logger =  logger
         self.logger.log(Log.DEBUG, "WorkflowManager:__init__")
         self.runid = runid
-        self.workflowPolicy = workflowPolicy
-        self.configurationDict = configurationDict
-        self.provenanceDict = provenanceDict
-        self.repository = repository
+        self.policy = policy
         self.verbosity = verbosity
 
+        self.workflowName = self.policy.get("shortName")
         self.urgency = 0
         self.workflowLauncher = None
         self.hasCompleted = False
@@ -34,7 +32,7 @@ class WorkflowManager:
         self.cleanUp()
 
     def getWorkflowName(self):
-        return self.workflowConfigurator.getWorkflowName()
+        return self.workflowName
 
     def getNodeCount(self):
         return self.workflowConfigurator.getNodeCount()
@@ -54,19 +52,22 @@ class WorkflowManager:
         self.logger.log(Log.DEBUG, "WorkflowManager:cleanUp")
         self.hasCompleted = True
 
+
     ##
     # @brief prepare a workflow for launching.
     #
     def configure(self):
         self.logger.log(Log.DEBUG, "WorkflowManager:configure")
 
-        self.workflowConfigurator = self.createConfigurator()
-        self.workflowLauncher = self.workflowConfigurator.configure(self.workflowPolicy, self.configurationDict, self.provenanceDict, self.repository)
+        self.workflowConfigurator = self.createConfigurator(self.policy)
+        self.workflowLauncher = self.workflowConfigurator.configure(self.workflowPolicy)
+
+        # do specialized workflow level configuration here
 
     def createConfigurator(self):
         self.logger.log(Log.DEBUG, "WorkflowManager:createConfigurator")
         
-        className = self.workflowPolicy.get("configuratorClass")
+        className = self.workflowPolicy.get("configurationClass")
         classFactory = NamedClassFactory()
         
         configuratorClass = classFactory.createClass(className)

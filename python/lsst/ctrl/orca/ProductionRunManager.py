@@ -112,14 +112,12 @@ class ProductionRunManager:
             # create Production Run Configurator specified by the policy
             if not self.productionRunConfigurator:
                 self.productionRunConfigurator = self.createConfigurator()
-                self.productionRunConfigurator.configure()
+                self.workflowManagers = self.productionRunConfigurator.configure()
+                if not self.workflowManagers:
+                    raise ConfigurationError("Failed to obtain workflowManagers from configurator")
             if self._skipConfigCheck:
                 self.productionRunConfigurator.checkConfiguration(self._checkCare)
 
-            # create the individual workflow managers
-            self.workflowManagers = self.productionRunConfigurator.getWorkflowManagers()
-            if not self.workflowManagers:
-                raise ConfigurationError("Failed to obtain workflowManagers from configurator")
 
             for workflow in self.workflowManagers["__order"]:
                 mgr = self.workflowManagers[workflow]

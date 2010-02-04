@@ -269,16 +269,9 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         # 
         # copy the policies to the working directory
         
-        configurationFileName = self.configurationDict["filename"]
-        
         configurationPolicy = self.configurationDict["policy"]
-        # This is commmented out, because the work directory doesn't exist on this side.
-        #newPolicyFile = os.path.join(self.dirs.get("work"), configurationFileName+".tmp")
 
-        # XXX - write this in the current directory;  we should probably really specify
-        # a "scratch" area to write this to instead.
-        # XXX - 01/04/10 - srp - use workflow name to avoid conflicts with other original workflow names
-        #newPolicyFile = os.path.join(self.tmpdir, configurationFileName+".tmp."+self.runid)
+        # write out the pipeline .paf file to the local work area.
         newPolicyDir = os.path.join(self.tmpdir, self.workflow)
         newPolicyDir = os.path.join(newPolicyDir, "work")
         newPolicyFile = os.path.join(newPolicyDir, self.workflow+".paf")
@@ -288,13 +281,6 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             pw = pol.PAFWriter(newPolicyFile)
             pw.write(configurationPolicy)
             pw.close()
-        # XXX - srp - 01/04/10 - copy to workflow name instead
-        #self.copyToRemote(newPolicyFile,configurationFileName)
-        # srp - 01/27/10
-        #self.copyToRemote(newPolicyFile,self.workflow+".paf")
-        #self.stageLocally(newPolicyFile,self.workflow+".paf")
-        # TODO: uncomment this and perform the remove of the temp file.
-        # os.unlink(newPolicyFile)
 
         # TODO: Provenance script needs to write out newPolicyFile
         #self.provenance.recordPolicy(newPolicyFile)
@@ -317,32 +303,6 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
                 localStageName = "work"+localStageNames[1]
                 print "localStageName = "+localStageName
                 self.stageLocally(filename, localStageName)
-                #destinationDir = self.dirs.get("work")
-                #print "++ destinationDir = "+destinationDir
-                #destName = filename.replace(self.repository+"/","")
-                #tokens = destName.split('/')
-                #tokensLength = len(tokens)
-                ## if the destination directory heirarchy doesn't exist, create all          
-                ## the missing directories
-                #destinationFile = tokens[len(tokens)-1]
-                #if tokensLength > 1:
-                #    for newDestinationDir in tokens[:len(tokens)-1]:
-                #        newDir = os.path.join(destinationDir, newDestinationDir)
-                #        destinationDir = newDir
-                #    # srp
-                #    #self.copyToRemote(filename, os.path.join(destinationDir, destinationFile))
-                #    print "destinationDir = "+destinationDir
-                #    print "destinationFile = "+destinationFile
-                #    self.stageLocally(filename, os.path.join(destinationDir, destinationFile))
-                #if tokensLength == 1:
-                #    # srp
-                #    #self.copyToRemote(filename, os.path.join(destinationDir, destinationFile))
-                #    self.stageLocally(filename, os.path.join(destinationDir, destinationFile))
-
-        #
-        # make the launcher executable
-        #
-        #self.remoteChmodX(name)
 
         #
         # copy the provenance python files
@@ -361,13 +321,16 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         for files in filelist:
             localFile = os.path.join(ctrl_orca_dir,files[0])
             remoteFile = files[1]
-            # srp
-            #self.copyToRemote(localFile, remoteFile)
             self.stageLocally(localFile, remoteFile)
-        print "copy from: "+self.tmpdir
-        print "copy to: "+os.path.join(self.directories.getDefaultRootDir(), self.runid)
+        #print "copy from: "+self.tmpdir
+        #print "copy to: "+os.path.join(self.directories.getDefaultRootDir(), self.runid)
+
+        #  the postfix "/" is required by globus-url-copy to copy the whole directory
         self.copyToRemote(self.tmpdir+"/", os.path.join(self.directories.getDefaultRootDir(), self.runid)+"/")
         filename = os.path.join(self.dirs.get("work"), self.remoteScript)
+
+        # make the remote script executable;  this is required because the copy doesn't
+        # retain the execution bit setting.
         self.remoteChmodX(filename)
 
     ##

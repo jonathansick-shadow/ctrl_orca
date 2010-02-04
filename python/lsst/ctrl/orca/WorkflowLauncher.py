@@ -7,11 +7,10 @@ class WorkflowLauncher:
     ##
     # @brief
     #
-    def __init__(self, cmd, workflow, logger):
+    def __init__(self, logger, workflowPolicy):
+        logger.log(Log.DEBUG, "WorkflowLauncher:__init__")
         self.logger = logger
-        self.logger.log(Log.DEBUG, "WorkflowLauncher:__init__")
-        self.cmd = cmd
-        self.workflow = workflow
+        self.workflowPolicy = workflowPolicy
 
     ##
     # @brief launch this workflow
@@ -19,7 +18,7 @@ class WorkflowLauncher:
     def launch(self):
         self.logger.log(Log.DEBUG, "WorkflowLauncher:launch")
 
-        self.workflowMonitor = WorkflowMonitor(self.logger)
+        self.workflowMonitor = WorkflowMonitor(self.logger, workflowPolicy)
         return self.workflowMonitor # returns WorkflowMonitor
 
     ##

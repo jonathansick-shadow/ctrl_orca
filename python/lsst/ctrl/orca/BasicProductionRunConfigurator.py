@@ -5,18 +5,18 @@ from lsst.ctrl.orca.provenance.Provenance import Provenance
 from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
 
-class BasicProductionRunConfigurator(ProductionRunConfigurator):
+class BasicProductionRunConfigurator:
     ##
-    # @brief create a production run given 
+    # @brief create a basic production run
     #
-    def __init__(self, runid, policy, repository, logger, verbosity):
+    def __init__(self, runid, logger, workflowVerbosity):
+        logger.log(Log.DEBUG, "BasicProductionRunConfigurator:__init__")
         self.logger = logger
-        self.logger.log(Log.DEBUG, "BasicProductionConfigurator:__init__")
         self.runid = runid
-        self.policy = policy
+        self.workflowVerbosity = workflowVerbosity
+
+        self.productionPolicy = None
         self.databaseConfigurator = None
-        self.verbosity = verbosity
-        self.repository = repository
         self.provenanceDict = {}
 
         # these are policy settings which can be overriden from what they
@@ -24,85 +24,64 @@ class BasicProductionRunConfigurator(ProductionRunConfigurator):
         self.policyOverrides = Policy() 
         if self.policy.exists("eventBrokerHost"):
             self.policyOverrides.set("execute.eventBrokerHost",
-                              self.policy.get("eventBrokerHost"))
+                              self.productionPolicy.get("eventBrokerHost"))
         if self.policy.exists("logThreshold"):
             self.policyOverrides.set("execute.logThreshold",
-                              self.policy.get("logThreshold"))
+                              self.productionPolicy.get("logThreshold"))
         if self.policy.exists("shutdownTopic"):
             self.policyOverrides.set("execute.shutdownTopic",
-                              self.policy.get("shutdownTopic"))
+                              self.productionPolicy.get("shutdownTopic"))
 
 
     ##
     # @brief configure this production run
     #
-    def configure(self):
-        # grab the file name of the database before we load the policy
-        dbFileName = self.policy.getFile("databaseConfig.database").getPath()
-        dbFileName = os.path.join(self.repository, dbFileName)
+    def configure(self, productionPolicy):
+        self.logger.log(Log.DEBUG, "BasicProductionRunConfigurator:configure")
+        self.productionPolicy = productionPolicy
+        self.repository = self.productionPolicy.get("repositoryDirectory")
 
-        # create the database
-        dbNamesDict = self.setupDatabase()
+        #
+        # setup the database for each database listed in production policy
+        #
+        databasePolicies = self.productionPolicy.getArray("database")
+        for databasePolicy in databasePolicies:
+            databaseConfigurator = self.createDatabaseConfigurator(databasePolicy)
+            databaseConfigurator.setupDatabase()
 
+        #
+        # do specialized production level configuration, if it exists
+        #
+        specialConfigurationPolicy = self.productionPolicy.get("configuration")
+        if specialConfigurationPolicy != None:
+            self.specializedConfigure(specialConfigurationPolicy)
 
-        # record the database filename provenance
+        workflowPolicies = self.productionPolicy.getArray("workflow")
+        for workflowPolicy in workflowPolicies:
+            # copy in appropriate production level info into workflow Node  -- ?
 
-        self.provenanceDict["user"] = self.databaseConfigurator.getUser()
-        self.provenanceDict["runid"] = self.runid
-        self.provenanceDict["dbrun"] = dbNamesDict["dbrun"]
-        self.provenanceDict["dbglobal"] = dbNamesDict["dbglobal"]
-        self.provenanceDict["repos"] = self.repository
+            workflowManager = self.createWorkflowManager(workflowPolicy)
+            workflowManager.configure()
+            self.workflowManagers.append(workflowManager)
+        return self.workflowManagers
 
-        self.provenance = self.createProvenanceRecorder(self.databaseConfigurator.getUser(), self.runid, dbNamesDict)
+    def specializedConfigure(self, specialConfigurationPolicy):
+        self.logger.log(Log.DEBUG, "BasicProductionRunConfigurator:specializedConfigure")
+        return
 
-        self.recordPolicy(dbFileName)
-        return dbNamesDict
-
-    ##
-    # @brief return the provenance recording object
-    #
-    def getProvenanceRecorder(self):
-        return self.provenance
-
-    ##
-    # @brief setup the database for this production run
-    #
-    def setupDatabase(self):
-        self.logger.log(Log.DEBUG, "BasicProductionConfigurator:setupBasicProduction")
-
-        databaseConfigPolicy = self.policy.get("databaseConfig")
-        databaseConfigPolicy.loadPolicyFiles(self.repository)
-        
-       
-        dbPolicy = databaseConfigPolicy.getPolicy("database")
-        dbPolicy.loadPolicyFiles(self.repository)
-      
-     
-        self.databaseConfigurator =  DatabaseConfigurator(self.runid, dbPolicy, self.logger)
-        dbNames = self.databaseConfigurator.setup()
-
-        dbBaseURL = self.databaseConfigurator.getHostURL()
-        dbRun = dbBaseURL+"/"+dbNames[0]
-        dbGlobal = dbBaseURL+"/"+dbNames[1]
-
-        dbNamesDict = {}
-        dbNamesDict["dbrun"] = dbRun
-        dbNamesDict["dbglobal"] = dbGlobal
-
-        return dbNamesDict
+    def createDatabaseConfigurator(self, databasePolicy):
+        self.logger.log(Log.DEBUG, "BasicProductionRunConfigurator:createDatabaseConfigurator")
+        className = self.databasePolicy.get"configurationClass")
+        classFactory = NamedClassFactory()
+        configurationClass = classFactory.createClass(className)
+        configurator = configurationClass(self.runid, self.logger, self.verbosity) 
+        return configurator
 
     ##
-    # @brief record the provenance of a policy file
+    # @brief create the WorkflowManager for the pipelien with the given shortName
     #
-    def recordPolicy(self, fileName):
-        self.provenance.recordPolicy(fileName)
+    def createWorkflowManager(self, workflowPolicy):
+        self.logger.log(Log.DEBUG, "BasicProductionRunConfigurator:createWorkflowManager")
 
-    ##
-    # @brief create a provenance recorder
-    #
-    def createProvenanceRecorder(self, user, runid, dbNamesDict):
-        dbRun = dbNamesDict["dbrun"]
-        dbGlobal =  dbNamesDict["dbglobal"]
-        provenance = Provenance(self.databaseConfigurator.getUser(), self.runid, dbRun, dbGlobal)
-
-        return provenance
+        workflowManager = WorkflowManager(self.runid, self.logger, workflowPolicy, self.verbosity)
+        return workflowManager
