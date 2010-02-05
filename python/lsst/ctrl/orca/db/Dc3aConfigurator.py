@@ -4,7 +4,7 @@ from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
 from lsst.ctrl.orca.db.MySQLConfigurator import MySQLConfigurator
 
-class DatabaseConfigurator:
+class Dc3aConfigurator:
     def __init__(self, runid, policy, logger=None):
         """
         create a generic 
@@ -16,7 +16,7 @@ class DatabaseConfigurator:
         if logger is None:  logger = orca.logger
         self.logger = Log(logger, "dbconfig")
 
-        self.logger.log(Log.DEBUG, "DatabaseConfigurator:__init__")
+        self.logger.log(Log.DEBUG, "Dc3aConfigurator:__init__")
         self.type = "mysql"
         self.runid = runid
         self.policy = policy
@@ -26,20 +26,20 @@ class DatabaseConfigurator:
         # extract the databaseConfig.database policy to get required
         # parameters from it.
 
-        dbHostName = policy.get("database.authInfo.host");
-        portNo = policy.get("database.authInfo.port");
-        globalDbName = policy.get("database.globalSetup.globalDbName")
-        dcVersion = policy.get("database.globalSetup.dcVersion")
-        dcDbName = policy.get("database.globalSetup.dcDbName")
-        minPercDiskSpaceReq = policy.get("database.globalSetup.minPercDiskSpaceReq")
-        userRunLife = policy.get("database.globalSetup.userRunLife")
+        dbHostName = policy.get("database.system.authInfo.host");
+        portNo = policy.get("database.system.authInfo.port");
+        globalDbName = policy.get("database.configuration.globalDbName")
+        dcVersion = policy.get("database.configuration.dcVersion")
+        dcDbName = policy.get("database.configuration.dcDbName")
+        minPercDiskSpaceReq = policy.get("database.configuration.minPercDiskSpaceReq")
+        userRunLife = policy.get("database.configuration.userRunLife")
 
         self.dbPolicy = policy
 
         self.delegate = MySQLConfigurator(dbHostName, portNo, globalDbName, dcVersion, dcDbName, minPercDiskSpaceReq, userRunLife)
 
     def setup(self):
-        self.logger.log(Log.DEBUG, "DatabaseConfigurator:setup")
+        self.logger.log(Log.DEBUG, "Dc3aConfigurator:setup")
 
         self.checkConfiguration(self.dbPolicy)
         dbNames = self.prepareForNewRun(self.runid)
@@ -126,10 +126,10 @@ class DatabaseConfigurator:
     # If there is no match, an exception is thrown.
     # 
     def initAuthInfo(self, policy):
-        host = policy.get("database.authInfo.host")
+        host = policy.get("database.system.authInfo.host")
         if host == None:
             raise RuntimeError("database host must be specified in policy")
-        port = policy.get("database.authInfo.port")
+        port = policy.get("database.system.authInfo.port")
         if port == None:
             raise RuntimeError("database port must be specified in policy")
         dbPolicyCredentialsFile = os.path.join(os.environ["HOME"], ".lsst/db-auth.paf")

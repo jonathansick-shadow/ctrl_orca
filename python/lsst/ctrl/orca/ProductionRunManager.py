@@ -6,8 +6,6 @@ import lsst.pex.policy as pol
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.pex.logging import Log
 from lsst.ctrl.orca.EnvString import EnvString
-from lsst.ctrl.orca.EventListener import EventListener
-from lsst.ctrl.orca.EventResolver import EventResolver
 
 from lsst.pex.orca.threading import SharedData
 
