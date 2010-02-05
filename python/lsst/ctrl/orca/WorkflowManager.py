@@ -6,14 +6,14 @@ class WorkflowManager:
     ##
     # @brief 
     #
-    def __init__(self, runid, logger, policy, verbosity):
+    def __init__(self, runid, logger, wfPolicy, verbosity):
         self.logger =  logger
         self.logger.log(Log.DEBUG, "WorkflowManager:__init__")
         self.runid = runid
-        self.policy = policy
+        self.wfPolicy = wfPolicy
         self.verbosity = verbosity
 
-        self.workflowName = self.policy.get("shortName")
+        self.workflowName = self.wfPolicy.get("shortName")
         self.urgency = 0
         self.workflowLauncher = None
         self.hasCompleted = False
@@ -30,12 +30,6 @@ class WorkflowManager:
             self.configure()
         self.workflowLauncher.launch()
         self.cleanUp()
-
-    def getWorkflowName(self):
-        return self.workflowName
-
-    def getNodeCount(self):
-        return self.workflowConfigurator.getNodeCount()
 
     ##
     # @brief stop the workflow.
@@ -56,18 +50,19 @@ class WorkflowManager:
     ##
     # @brief prepare a workflow for launching.
     #
-    def configure(self):
+    def configure(self, provSetup):
         self.logger.log(Log.DEBUG, "WorkflowManager:configure")
 
-        self.workflowConfigurator = self.createConfigurator(self.policy)
-        self.workflowLauncher = self.workflowConfigurator.configure(self.workflowPolicy)
+        self.workflowConfigurator = self.createConfigurator(self.wfPolicy)
 
-        # do specialized workflow level configuration here
+        # do specialized workflow level configuration here, this may include
+        # calling ProvenanceSetup.getWorkflowCommands()
+        return self.workflowConfigurator
 
-    def createConfigurator(self):
+    def createConfigurator(self, wfPolicy):
         self.logger.log(Log.DEBUG, "WorkflowManager:createConfigurator")
         
-        className = self.workflowPolicy.get("configurationClass")
+        className = wfPolicy.get("configurationClass")
         classFactory = NamedClassFactory()
         
         configuratorClass = classFactory.createClass(className)
@@ -101,3 +96,10 @@ class WorkflowManager:
         # care - an indication of how throughly to check.  In general, a
         # higher number will result in more checks being run.
         self.logger.log(Log.DEBUG, "WorkflowManager:createConfiguration")
+
+    def getWorkflowName(self):
+        return self.workflowName
+
+    def getNodeCount(self):
+        return self.workflowConfigurator.getNodeCount()
+

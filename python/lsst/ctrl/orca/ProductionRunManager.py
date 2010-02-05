@@ -116,6 +116,8 @@ class ProductionRunManager:
             if self._skipConfigCheck:
                 self.productionRunConfigurator.checkConfiguration(self._checkCare)
 
+            provSetup = self.productionRunConfigurator.getProvenanceSetup()
+            provSetup.recordProduction()
 
             for workflow in self.workflowManagers["__order"]:
                 mgr = self.workflowManagers[workflow]
