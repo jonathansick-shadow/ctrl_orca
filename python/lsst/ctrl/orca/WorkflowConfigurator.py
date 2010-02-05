@@ -4,16 +4,21 @@ class WorkflowConfigurator:
         self.logger = logger
         self.runid = runid
 
+    ###
+    # @brief Configure the databases, and call an specialization required
+    #
+    def configure(self, wfPolicy, provSetup):
+        self._configureDatabases(wfPolicy, provSetup)
+        return self._configureSpecialized(wfPolicy)
+
     ##
     # @brief Setup as much as possible in preparation to execute the workflow
     #            and return a WorkflowLauncher object that will launch the
     #            configured workflow.
     # @param policy the workflow policy to use for configuration
-    # @param configurationDict a dictionary containing configuration info
-    # @param provenanceDict a dictionary containing info to record provenance
-    # @param repository policy file repository location
+    # @param provSetup
     #
-    def configure(self, wfPolicy, provSetup):
+    def _configureDatabases(self, wfPolicy, provSetup):
         self.logger.log(Log.DEBUG, "WorkflowConfigurator:configure")
 
         #
@@ -23,7 +28,12 @@ class WorkflowConfigurator:
         for databasePolicy in databasePolicies:
             databaseConfigurator = self.createDatabaseConfigurator(databasePolicy)
             databaseConfigurator.setupDatabase(provSetup)
+        return
 
+    ##
+    # @brief Override this method to provide a specialized implementation
+    # @return workflowLauncher
+    def _configureSpecialized(self, wfPolicy):
         workflowLauncher = WorkflowLauncher(wfPolicy)
         return workflowLauncher
 

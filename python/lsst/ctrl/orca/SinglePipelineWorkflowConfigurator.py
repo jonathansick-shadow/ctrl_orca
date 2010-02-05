@@ -29,11 +29,13 @@ class SinglePipelineWorkflowConfigurator(BasicWorkflowConfigurator):
     #            and return a WorkflowLauncher object that will launch the
     #            configured workflow.
     # @param policy the workflow policy to use for configuration
-    # @param configurationDict a dictionary containing configuration info
-    # @param provenanceDict a dictionary containing info to record provenance
-    # @param repository policy file repository location
+    # @param provSetup
     #
-    def configure(self, policy):
+    def configure(self, policy, provSetup):
+        self_.configureDatabases(policy, provSetup)
+        return self_.configureSpecialized(policy)
+    
+    def _configureSpecialized(self, policy):
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:configure")
         self.workflowPolicy = policy
         self.configurationDict = configurationDict
