@@ -22,8 +22,8 @@ class ProductionRunManager:
     #
     def __init__(self, runid, policyFileName, logger, workflowVerbosity=None, skipConfigCheck=False):
 
-        # _locked: a container for data to be shared across threads that have access
-        # to this object.
+        # _locked: a container for data to be shared across threads that 
+        # have access to this object.
         self._locked = threading.SharedData(False,
                                             {"running": False, "done": False})
 
@@ -109,7 +109,7 @@ class ProductionRunManager:
 
             # create Production Run Configurator specified by the policy
             if not self.productionRunConfigurator:
-                self.productionRunConfigurator = self.createConfigurator()
+                self.productionRunConfigurator = self.createConfigurator(self.policy)
                 self.workflowManagers = self.productionRunConfigurator.configure()
                 if not self.workflowManagers:
                     raise ConfigurationError("Failed to obtain workflowManagers from configurator")
@@ -155,7 +155,7 @@ class ProductionRunManager:
     # @return ProductionRunConfigurator
     #
     #
-    def createConfigurator(self):
+    def createConfigurator(self, policy):
         # prodPolicy - the production run policy
         self.logger.log(Log.DEBUG, "ProductionRunManager:createConfigurator")
 
@@ -167,7 +167,7 @@ class ProductionRunManager:
             classFactory = NamedClassFactory()
             configuratorClass = classFactory.createClass(configuratorClassName)
 
-        return configuratorClass(self.runid, self.policy, self.repository,
+        return configuratorClass(self.runid, policy, self.repository,
                                  self.logger, self.workflowVerbosity)
 
     ##
@@ -234,7 +234,7 @@ class ProductionRunManager:
         while running and timeout > 0:
             time.sleep(pollintv)
             for workflow in self.workflowManagers["__order"]:
-                running = self.workflowManagers[workflow]
+                running = self.workflowManagers[workflow].isRunning()
                 if running:  break
             timeout -= time.time() - lasttime
         if not running:
