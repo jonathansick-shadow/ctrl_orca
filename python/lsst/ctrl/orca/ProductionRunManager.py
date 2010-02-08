@@ -5,22 +5,26 @@ import lsst.daf.base as base
 import lsst.pex.policy as pol
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.pex.logging import Log
-from lsst.ctrl.orca.EnvString import EnvString
 
-from lsst.pex.orca.threading import SharedData
+from EnvString import EnvString
+from exceptions import ConfigurationError
+from threading import SharedData
 
 ##
-# @brief configures, checks, and launches workflows
+# @brief A class in charge of launching, monitoring, managing, and stopping
+# a production run
 #
 class ProductionRunManager:
+
     ##
     # @brief initialize
-    # @param runid name of the run
-    # @param policyFileName production run policy file
-    # @param logger Log object 
-    # @param workflowVerbosity verbosity level for the workflows
+    # @param runid           name of the run
+    # @param policyFileName  production run policy file
+    # @param logger          the Log object to use
+    # @param repository      the policy repository to assume; this will
+    #                          override the value in the policy.
     #
-    def __init__(self, runid, policyFileName, logger, workflowVerbosity=None, skipConfigCheck=False):
+    def __init__(self, runid, policyFileName, logger=None, repository=None):
 
         # _locked: a container for data to be shared across threads that 
         # have access to this object.
@@ -28,10 +32,9 @@ class ProductionRunManager:
                                             {"running": False, "done": False})
 
         # the logger used by this instance
-        self.logger = Log(logger, "productionRunManager")
-
-        # the default verbosity to hand down to the pipelines
-        self.workflowVerbosity = workflowVerbosity
+        if not logger:
+            logger = Log.getDefaultLogger()
+        self.logger = Log(logger, "manager")
 
         # the run id for this production
         self.runid = runid
@@ -41,14 +44,7 @@ class ProductionRunManager:
         self._workflowManagers = None
 
         # the cached ProductionRunConfigurator instance
-        self.productionRunConfigurator = None
-
-        # if False, runProduction() will do a check of the configuration before
-        # actually launching the workflows.
-        self._skipConfigCheck = skipConfigCheck
-        
-        self.dbNames = []
-        self.totalNodeCount = 0
+        self._productionRunConfigurator = None
 
         self.fullPolicyFilePath = ""
         if os.path.isabs(policyFileName) == True:
@@ -60,11 +56,13 @@ class ProductionRunManager:
         self.policy = pol.Policy.createPolicy(self.fullPolicyFilePath, False)
 
         # determine the repository
-        reposValue = self.policy.get("repositoryDirectory")
-        if reposValue == None:
+        self.repository = repository
+        if not self.repository:
+            self.repository = self.policy.get("repositoryDirectory")
+        if not self.repository:
             self.repository = "."
         else:
-            self.repository = EnvString.resolve(reposValue)
+            self.repository = EnvString.resolve(self.repository)
             
         # do a little sanity checking on the repository before we continue.
         if not os.path.exists(self.repository):
@@ -72,14 +70,6 @@ class ProductionRunManager:
         if not os.path.isdir(self.repository):
             raise RuntimeError("specified repository "+ self.repository + ": not a directory");
 
-        # set configuration check care level.
-        # Note: this is not a sanctioned pattern; should be replaced with use
-        # of default policy.
-        self._checkCare = 1
-        if self.policy.exists("configCheckCare"):
-            self._checkCare = self.policy.getInt("configCheckCare")
-        if self._checkCare < 0:
-            self._skipConfigCheck = True
 
     ##
     # @brief returns the runid of this production run
@@ -88,10 +78,49 @@ class ProductionRunManager:
         return self.runid
 
     ##
-    # @brief run the entire production
-    # @return bool  False is returned if the production was already started once
+    # @brief setup this production to run.
     #
-    def runProduction(self):
+    # If the production was already configured, it will not be
+    # reconfigured.
+    # 
+    # @param workflowVerbosity  the verbosity to pass down to configured
+    #                             workflows and the pipelines they run.
+    # @throws ConfigurationError  raised if any error arises during configuration or
+    #                             while checking the configuration.
+    #
+    def configure(self, workflowVerbosity=None):
+        if self._productionRunConfigurator:
+            self.logger.log(Log.INFO-1, "production has already been configured.")
+            return
+        
+        # lock this branch of code
+        try:
+            self._locked.acquire()
+
+            self.productionRunConfigurator = self.createConfigurator(self.runid,
+                                                                     self.fullPolicyFilePath)
+            workflowManagers = self.productionRunConfigurator.configure(workflowVerbosity)
+
+            self._workflowManagers = { "__order": [] }
+            for wfm in workflowManagers:
+                self._workflowManagers["__order"].append(wfm)
+                self._workflowManagers[wfm.getName()] = wfm
+
+        finally:
+            self._locked.release()
+            
+    ##
+    # @brief run the entire production
+    # @param skipConfigCheck    skip the checks that ensures that configuration
+    #                             was completed correctly.
+    # @param workflowVerbosity  if not None, override the policy-specified logger
+    #                             verbosity.  This is only used if the run has not
+    #                             already been configured via configure().
+    # @return bool  False is returned if the production was already started
+    #                   once
+    # @throws ConfigurationError  raised if any error arises during configuration or
+    #                             while checking the configuration.
+    def runProduction(self, skipConfigCheck=False, workflowVerbosity=None):
         self.logger.log(Log.DEBUG, "Running production: " + self.runid)
 
         if not self.isRunnable():
@@ -102,25 +131,36 @@ class ProductionRunManager:
                                 "Production Run %s has already run; start with new runid" % self.runid)
             return False
 
+        # set configuration check care level.
+        # Note: this is not a sanctioned pattern; should be replaced with use
+        # of default policy.
+        checkCare = 1
+        if self.policy.exists("configCheckCare"):
+            checkCare = self.policy.getInt("configCheckCare")
+        if checkCare < 0:
+            skipConfigCheck = True
+        
+
         # lock this branch of code
         try:
             self._locked.acquire()
             self._locked.running = True
 
-            # create Production Run Configurator specified by the policy
+            # configure the production run (if it hasn't been already)
             if not self.productionRunConfigurator:
-                self.productionRunConfigurator = self.createConfigurator(self.policy)
-                self.workflowManagers = self.productionRunConfigurator.configure()
-                if not self.workflowManagers:
-                    raise ConfigurationError("Failed to obtain workflowManagers from configurator")
-            if self._skipConfigCheck:
-                self.productionRunConfigurator.checkConfiguration(self._checkCare)
+                self.configure(workflowVerbosity)
+
+            # make sure the configuration was successful.
+            if not self._workflowManagers:
+                raise ConfigurationError("Failed to obtain workflowManagers from configurator")
+            if skipConfigCheck:
+                self.checkConfiguration(checkCare)
 
             provSetup = self.productionRunConfigurator.getProvenanceSetup()
             provSetup.recordProduction()
 
-            for workflow in self.workflowManagers["__order"]:
-                mgr = self.workflowManagers[workflow]
+            for workflow in self._workflowManagers["__order"]:
+                mgr = self._workflowManagers[workflow]
 
                 # this will block until the monitor is created.
                 mgr.runWorkflow()
@@ -155,7 +195,7 @@ class ProductionRunManager:
     # @return ProductionRunConfigurator
     #
     #
-    def createConfigurator(self, policy):
+    def createConfigurator(self, runid, policyFile):
         # prodPolicy - the production run policy
         self.logger.log(Log.DEBUG, "ProductionRunManager:createConfigurator")
 
@@ -167,17 +207,16 @@ class ProductionRunManager:
             classFactory = NamedClassFactory()
             configuratorClass = classFactory.createClass(configuratorClassName)
 
-        return configuratorClass(self.runid, policy, self.repository,
-                                 self.logger, self.workflowVerbosity)
+        return configuratorClass(runid, policyFile, self.logger, self.repository)
 
     ##
     # @brief
     # @param care      the thoroughness of the checks.
-    # @param issueExc  an instance of MultiIssueConfigurationError to add problems
-    #                    to.  If not None, this function will not raise
-    #                    an exception when problems are encountered; they
-    #                    will merely be added to the instance.  It is assumed
-    #                    that the caller will raise that exception is necessary.
+    # @param issueExc  an instance of MultiIssueConfigurationError to add 
+    #                   problems to.  If not None, this function will not 
+    #                   raise an exception when problems are encountered; they
+    #                   will merely be added to the instance.  It is assumed
+    #                   that the caller will raise that exception is necessary.
     def checkConfiguration(self, care=1, issueExc=None):
         # care - level of "care" in checking the configuration to take. In
         # general, the higher the number, the more checks that are made.
@@ -197,12 +236,19 @@ class ProductionRunManager:
         if myProblems is None:
             myProblems = MultiIssueConfigurationError("problems encountered while checking configuration")
 
+        # check production-wide configuration
+        self._productionRunConfigurator.checkConfiguration(care, myProblems)
+
+        # check configuration for each workflow
         for workflow in self.workflowManagers["__order"]:
             workflowMgr = self.workflowManagers[workflow]
             workflowMgr.checkConfiguration(care, myProblems)
 
+        if not issueExc and myProblems.hasProblems():
+            raise myProblems
+
     ##
-    # @brief
+    # @brief  stops all workflows in this production run 
     #
     def stopProduction(self, urgency, timeout=1800):
         # urgency - an indicator of how urgently to carry out the shutdown.  
@@ -247,31 +293,21 @@ class ProductionRunManager:
 
         return True
                 
-
+    ##
+    # @brief  return the "short" name for each workflow in this
+    # production.
+    #
+    # These may have been tweaked to ensure a unique list.  These are names
+    # that can be passed to getWorkflowManager()
+    #
     def getWorkflowNames(self):
         if self.workflowManagers:
             return self.workflowManagers["__order"]
+        elif self._productionRunConfigurator:
+            return self._productionRunConfigurator.getWorkflowNames()
         else:
-            ProductionRunManager.determineWorkflowNames(self.policy)
-
-    @staticmethod
-    def determineWorkflowNames(policy):
-        workflows = self.policy.getArray("workflow")
-        names = []
-        i = 1
-        for wf in workflows:
-            name = ProductionRunManager._workflowName(wf, i)
-            while name in names:
-                name = ProductionRunManager._workflowName(None, i, name)
-            names.append(name)
-            i += 1
-            
-    @staticmethod
-    def _workflowName(wfpolicy, which, defbase="Workflow-"):
-        if wfpolicy and wfpolicy.exists("shortName"):
-            return wfpolicy.get("shortName")
-
-        return "%s%d" % (defbase, which)
+            cfg = self.createConfigurator(self.fullPolicyFilePath)
+            return cfg.getWorkflowNames()
 
     ##
     # @brief return the workflow manager for the given named workflow

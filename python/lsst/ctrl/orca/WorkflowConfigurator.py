@@ -1,15 +1,56 @@
+from lsst.pex.logging import Log
+
+##
+# @brief an abstract class for configuring a workflow
+#
+# This class should not be used directly but rather must be subclassed,
+# providing an implementation for at least _configureWorkflowLauncher.
+# Usually, _configureSpecialized() should also be overridden to carry
+# out the non-database setup, including deploying the workflow onto the
+# remote platform.
+# 
 class WorkflowConfigurator:
-    def __init__(self, runid, logger):
-        logger.log(Log.DEBUG, "WorkflowConfigurator:__init__")
-        self.logger = logger
+
+    ##
+    # @brief create the configurator
+    #
+    # This constructor should only be called from a subclass's
+    # constructor, in which case the fromSub parameter must be
+    # set to True.
+    # 
+    # @param runid       the run identifier for the production run
+    # @param wfpolicy    the workflow policy that describes the workflow
+    # @param logger      the logger used by the caller.  This class
+    #                       will set this create a child log with the
+    #                       subname "config".  A sub class may wish to
+    #                       reset the child logger for a different subname.
+    # @param fromSub     set this to True to indicate that it is being called
+    #                       from a subclass constructor.  If False (default),
+    #                       an exception will be raised under the assumption
+    #                       that one is trying instantiate it directly.
+    def __init__(self, runid, wfpolicy, logger, fromSub=False):
         self.runid = runid
+
+        # the logger used by this instance
+        if not logger:
+            logger = Log.getDefaultLogger()
+        self.parentLogger = logger
+        self.logger = Log(logger, "config")
+
+        sel.logger.log(Log.DEBUG, "WorkflowConfigurator:__init__")
+
+        self.wfpolicy = wfpolicy
+
+        if fromSub:
+            raise RuntimeError("Attempt to instantiate abstract class, " +
+                               "WorkflowConfigurator; see class docs")
 
     ###
     # @brief Configure the databases, and call an specialization required
     #
-    def configure(self, wfPolicy, provSetup):
-        self._configureDatabases(wfPolicy, provSetup)
-        return self._configureSpecialized(wfPolicy)
+    def configure(self, provSetup, workflowVerbosity=None):
+        self._configureDatabases(self.wfpolicy, provSetup)
+        return self._configureSpecialized(self.wfPolicy, workflowVerbosity)
 
     ##
     # @brief Setup as much as possible in preparation to execute the workflow
@@ -18,7 +59,7 @@ class WorkflowConfigurator:
     # @param policy the workflow policy to use for configuration
     # @param provSetup
     #
-    def _configureDatabases(self, wfPolicy, provSetup):
+    def _configureDatabases(self, provSetup):
         self.logger.log(Log.DEBUG, "WorkflowConfigurator:configure")
 
         #
@@ -27,15 +68,30 @@ class WorkflowConfigurator:
         databasePolicies = self.wfPolicy.getArray("database")
         for databasePolicy in databasePolicies:
             databaseConfigurator = self.createDatabaseConfigurator(databasePolicy)
-            databaseConfigurator.setupDatabase(provSetup)
+            databaseConfigurator.setup(provSetup)
         return
 
     ##
-    # @brief Override this method to provide a specialized implementation
+    # @brief complete non-database setup, including deploying the workflow and its
+    # piplines onto the remote platform.
+    #
+    # This normally should be overriden.
+    #
     # @return workflowLauncher
     def _configureSpecialized(self, wfPolicy):
-        workflowLauncher = WorkflowLauncher(wfPolicy)
-        return workflowLauncher
+        return workflowLauncher = self._createWorkflowLauncher()
+
+
+    ##
+    # @brief create the workflow launcher
+    #
+    # This "abstract" method must be overridden; otherwise an exception is raised
+    # 
+    # @return workflowLauncher
+    def _createWorkflowLauncher(self):
+        msg = 'called "abstract" WorkflowConfigurator._createWorkflowLauncher'
+        self.logger.log(Log.FAIL, msg)
+        raise RuntimeError(msg)
 
     ##
     # @brief lookup and create the configurator for database operations
@@ -45,6 +101,6 @@ class WorkflowConfigurator:
         className = self.databasePolicy.get("configurationClass")
         classFactory = NamedClassFactory()
         configurationClass = classFactory.createClass(className)
-        configurator = configurationClass(self.runid, self.logger, self.verbosity) 
+        configurator = configurationClass(self.runid, self.logger) 
         return configurator
 

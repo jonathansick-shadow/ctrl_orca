@@ -5,17 +5,30 @@ class WorkflowMonitor:
     # @brief
     #
     def __init__(self, logger):
-        self.logger = logger
+
+        # _locked: a container for data to be shared across threads that 
+        # have access to this object.
+        self._locked = threading.SharedData(False,
+                                            {"running": False, "done": False})
+
+        if not logger:
+            logger = Log.getDefaultLog()
+        self.logger = Log(logger, "monitor")
         self.logger.log(Log.DEBUG, "WorkflowMonitor:__init__")
-        self.isActive = False
+
 
     ##
     # @brief return True if the workflow being monitored appears to still be
     #        running
     #
     def isRunning(self):
-        self.logger.log(Log.DEBUG, "WorkflowMonitor:isRunnable")
-        return self.isActive
+        return self._locked.running
+
+    ##
+    # @brief determine whether workflow has completed
+    #
+    def isDone(self):
+        return self._locked.done
 
     ##
     # @brief stop the workflow
