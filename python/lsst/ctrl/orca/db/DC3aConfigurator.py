@@ -4,7 +4,7 @@ from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
 from lsst.ctrl.orca.db.MySQLConfigurator import MySQLConfigurator
 
-class Dc3aConfigurator:
+class DC3aConfigurator:
     def __init__(self, runid, policy, logger=None):
         """
         create a generic 
