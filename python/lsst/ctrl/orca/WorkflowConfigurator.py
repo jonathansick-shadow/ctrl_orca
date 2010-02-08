@@ -28,7 +28,7 @@ class WorkflowConfigurator:
     #                       from a subclass constructor.  If False (default),
     #                       an exception will be raised under the assumption
     #                       that one is trying instantiate it directly.
-    def __init__(self, runid, wfpolicy, logger, fromSub=False):
+    def __init__(self, runid, wfpolicy, logger, repository, fromSub=False):
         self.runid = runid
 
         # the logger used by this instance
@@ -40,6 +40,7 @@ class WorkflowConfigurator:
         sel.logger.log(Log.DEBUG, "WorkflowConfigurator:__init__")
 
         self.wfpolicy = wfpolicy
+        self.repository = repository
 
         if fromSub:
             raise RuntimeError("Attempt to instantiate abstract class, " +

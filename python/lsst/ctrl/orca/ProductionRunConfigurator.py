@@ -1,16 +1,17 @@
 import os
-from lsst.ctrl.orca.ProductionRunConfigurator import ProductionRunConfigurator
-from lsst.ctrl.orca.db.DatabaseConfigurator import DatabaseConfigurator
+from lsst.ctrl.orca.DatabaseConfigurator import DatabaseConfigurator
 from lsst.ctrl.orca.provenance.Provenance import Provenance
+from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
+from lsst.ctrl.orca.ProvenanceSetup import ProvenanceSetup
 
 class ProductionRunConfigurator:
     ##
     # @brief create a basic production run.
     # Note that all ProductionRunConfigurator subclasses must support this
     # constructor signature.
-    def __init__(self, runid, policyFile, logger=None, repository=None):
+    def __init__(self, runid, policyFile, repository=None, logger=None, workflowVerbosity=None):
 
         # the logger used by this instance
         if not logger:
@@ -22,8 +23,13 @@ class ProductionRunConfigurator:
 
         self.runid = runid
         self._prodPolicyFile = policyFile
+        self.productionPolicy = Policy.createPolicy(policyFile)
 
-        self.productionPolicy = None
+        self.repository = repository
+        self.workflowVerbosity = workflowVerbosity
+
+        self.databaseConfigurator = None
+
         self.provenanceDict = {}
         self._wfnames = None
 
@@ -33,13 +39,13 @@ class ProductionRunConfigurator:
         # these are policy settings which can be overriden from what they
         # are in the workflow policies.
         self.policyOverrides = Policy() 
-        if self.policy.exists("eventBrokerHost"):
+        if self.productionPolicy.exists("eventBrokerHost"):
             self.policyOverrides.set("execute.eventBrokerHost",
                               self.productionPolicy.get("eventBrokerHost"))
-        if self.policy.exists("logThreshold"):
+        if self.productionPolicy.exists("logThreshold"):
             self.policyOverrides.set("execute.logThreshold",
                               self.productionPolicy.get("logThreshold"))
-        if self.policy.exists("shutdownTopic"):
+        if self.productionPolicy.exists("shutdownTopic"):
             self.policyOverrides.set("execute.shutdownTopic",
                               self.productionPolicy.get("shutdownTopic"))
 
@@ -49,7 +55,7 @@ class ProductionRunConfigurator:
     def createWorkflowManager(self, workflowPolicy):
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:createWorkflowManager")
 
-        workflowManager = WorkflowManager(self.runid, workflowPolicy, self.logger, self.repository)
+       
         return workflowManager
 
     ##
@@ -57,7 +63,6 @@ class ProductionRunConfigurator:
     #
     def configure(self, workflowVerbosity):
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:configure")
-        self.productionPolicy = productionPolicy
         self.repository = self.productionPolicy.get("repositoryDirectory")
 
         provSetup = ProvenanceSetup()
@@ -70,7 +75,7 @@ class ProductionRunConfigurator:
         # adding them to a Set() to avoid recording provenance on a file more than
         # once, and then add all of those files to provSetup.
 
-        names = productionPolicy.fileNames()
+        names = self.productionPolicy.fileNames()
         for name in names:
             if policy.getValueType(name) == Policy.FILE:
                 # TODO: There's a bug in Policy that prevents retrieving all 
@@ -85,7 +90,10 @@ class ProductionRunConfigurator:
         #
         databasePolicies = self.productionPolicy.getArray("database")
         for databasePolicy in databasePolicies:
-            self._databaseConfigurators.append(self.createDatabaseConfigurator(databasePolicy))
+            print "databasePolicy = ",databasePolicy
+            cfg = self.createDatabaseConfigurator(databasePolicy)
+            print "cfg = ",cfg
+            self._databaseConfigurators.append(cfg)
             self._databaseConfigurator[-1].setup()
 
         #
@@ -131,10 +139,12 @@ class ProductionRunConfigurator:
     #
     def createDatabaseConfigurator(self, databasePolicy):
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:createDatabaseConfigurator")
-        className = self.databasePolicy.get("configurationClass")
+        className = databasePolicy.get("configurationClass")
         classFactory = NamedClassFactory()
         configurationClass = classFactory.createClass(className)
+        print "===>configurationClass = ",configurationClass
         configurator = configurationClass(self.runid, self.logger, self.verbosity) 
+        print "===>configurator = ",configurator
         return configurator
 
     ##

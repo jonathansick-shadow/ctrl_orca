@@ -13,12 +13,13 @@ from lsst.ctrl.orca.SinglePipelineWorkflowLauncher import SinglePipelineWorkflow
 #
 # SinglePipelineWorkflowConfigurator 
 #
-class SinglePipelineWorkflowConfigurator(BasicWorkflowConfigurator):
-    def __init__(self, runid, logger, verbosity):
+class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
+    def __init__(self, runid, wfpolicy, repository, logger):
         self.logger = logger
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:__init__")
         self.runid = runid
-        self.verbosity = verbosity
+        self.wfpolicy = wfpolicy
+        self.verbosity = None
 
         self.nodes = None
         self.dirs = None
@@ -31,15 +32,14 @@ class SinglePipelineWorkflowConfigurator(BasicWorkflowConfigurator):
     # @param policy the workflow policy to use for configuration
     # @param provSetup
     #
-    def configure(self, policy, provSetup):
+    def configure(self, provSetup):
         self_.configureDatabases(policy, provSetup)
         return self_.configureSpecialized(policy)
     
     def _configureSpecialized(self, policy):
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:configure")
-        self.workflowPolicy = policy
         self.configurationDict = configurationDict
-        self.shortName = self.workflowPolicy.get("shortName")
+        self.shortName = self.wfpolicy.get("shortName")
         self.nodes = self.createNodeList()
         self.prepPlatform()
         self.deploySetup()
@@ -55,7 +55,7 @@ class SinglePipelineWorkflowConfigurator(BasicWorkflowConfigurator):
     def createLaunchCommand(self):
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:createLaunchCommand")
 
-        execPath = self.workflowPolicy.get("configuration.framework.exec")
+        execPath = self.wfpolicy.get("configuration.framework.exec")
         launchcmd = EnvString.resolve(execPath)
         filename = self.configurationDict["filename"]
 
@@ -69,8 +69,8 @@ class SinglePipelineWorkflowConfigurator(BasicWorkflowConfigurator):
     #
     def createNodeList(self):
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:createNodeList")
-        node = self.workflowPolicy.getArray("platform.deploy.nodes")
-        self.defaultDomain = self.workflowPolicy.get("platform.deploy.defaultDomain")
+        node = self.wfpolicy.getArray("platform.deploy.nodes")
+        self.defaultDomain = self.wfpolicy.get("platform.deploy.defaultDomain")
 
         nodes = map(self.expandNodeHost, node)
         # by convention, the master node is the first node in the list
@@ -126,7 +126,7 @@ class SinglePipelineWorkflowConfigurator(BasicWorkflowConfigurator):
 
         # copy /bin/sh script responsible for environment setting
 
-        setupPath = self.workflowPolicy.get("configuration.framework.environment")
+        setupPath = self.wfpolicy.get("configuration.framework.environment")
         if setupPath == None:
              raise RuntimeError("couldn't find configuration.framework.environment")
         self.script = EnvString.resolve(setupPath)
@@ -235,7 +235,7 @@ class SinglePipelineWorkflowConfigurator(BasicWorkflowConfigurator):
     def createDirs(self):
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:createDirs")
 
-        dirPolicy = self.workflowPolicy.getPolicy("platform.dir")
+        dirPolicy = self.wfpolicy.getPolicy("platform.dir")
         directories = Directories(dirPolicy, self.workflow, self.runid)
         self.dirs = directories.getDirs()
 

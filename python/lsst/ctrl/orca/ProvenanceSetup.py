@@ -25,6 +25,6 @@ class ProvenanceSetup:
     ##
     # @brief
     #
-    def addWorkflowRecordCmd(self, string)
+    def addWorkflowRecordCmd(self, string):
         self.workflowRecordCommands.append(string)
         return

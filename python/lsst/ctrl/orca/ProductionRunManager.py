@@ -1,6 +1,6 @@
 from __future__ import with_statement
 
-import os, os.path, sets
+import os, os.path, sets, threading
 import lsst.daf.base as base
 import lsst.pex.policy as pol
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
@@ -8,7 +8,9 @@ from lsst.pex.logging import Log
 
 from EnvString import EnvString
 from exceptions import ConfigurationError
-from threading import SharedData
+from multithreading import SharedData
+from BasicProductionRunConfigurator import BasicProductionRunConfigurator
+#from threading import SharedData
 
 ##
 # @brief A class in charge of launching, monitoring, managing, and stopping
@@ -28,7 +30,7 @@ class ProductionRunManager:
 
         # _locked: a container for data to be shared across threads that 
         # have access to this object.
-        self._locked = threading.SharedData(False,
+        self._locked = SharedData(False,
                                             {"running": False, "done": False})
 
         # the logger used by this instance
@@ -97,9 +99,9 @@ class ProductionRunManager:
         try:
             self._locked.acquire()
 
-            self.productionRunConfigurator = self.createConfigurator(self.runid,
+            self._productionRunConfigurator = self.createConfigurator(self.runid,
                                                                      self.fullPolicyFilePath)
-            workflowManagers = self.productionRunConfigurator.configure(workflowVerbosity)
+            workflowManagers = self._productionRunConfigurator.configure(workflowVerbosity)
 
             self._workflowManagers = { "__order": [] }
             for wfm in workflowManagers:
@@ -147,7 +149,7 @@ class ProductionRunManager:
             self._locked.running = True
 
             # configure the production run (if it hasn't been already)
-            if not self.productionRunConfigurator:
+            if not self._productionRunConfigurator:
                 self.configure(workflowVerbosity)
 
             # make sure the configuration was successful.
@@ -156,7 +158,7 @@ class ProductionRunManager:
             if skipConfigCheck:
                 self.checkConfiguration(checkCare)
 
-            provSetup = self.productionRunConfigurator.getProvenanceSetup()
+            provSetup = self._productionRunConfigurator.getProvenanceSetup()
             provSetup.recordProduction()
 
             for workflow in self._workflowManagers["__order"]:
@@ -207,7 +209,7 @@ class ProductionRunManager:
             classFactory = NamedClassFactory()
             configuratorClass = classFactory.createClass(configuratorClassName)
 
-        return configuratorClass(runid, policyFile, self.logger, self.repository)
+        return configuratorClass(runid, policyFile, self.repository, self.logger)
 
     ##
     # @brief
