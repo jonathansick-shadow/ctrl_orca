@@ -109,6 +109,6 @@ class WorkflowConfigurator:
         className = self.databasePolicy.get("configurationClass")
         classFactory = NamedClassFactory()
         configurationClass = classFactory.createClass(className)
-        configurator = configurationClass(self.runid, self.logger) 
+        configurator = configurationClass(self.runid, databasePolicy, self.logger) 
         return configurator
 
