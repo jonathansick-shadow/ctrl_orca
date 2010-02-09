@@ -88,7 +88,11 @@ class ProductionRunConfigurator:
         # cache the configurators in case we want to check the configuration
         # later. 
         #
-        databasePolicies = self.productionPolicy.getArray("database")
+        databasePolicies = None
+        try :
+            databasePolicies = self.productionPolicy.getArray("database")
+        except pexExLsstCppException, e:
+            pass
         for databasePolicy in databasePolicies:
             print "databasePolicy = ",databasePolicy
             cfg = self.createDatabaseConfigurator(databasePolicy)
@@ -99,7 +103,6 @@ class ProductionRunConfigurator:
         #
         # do specialized production level configuration, if it exists
         #
-        print "productionPolicy = ",self.productionPolicy
         try:
             specialConfigurationPolicy = self.productionPolicy.getPolicy("configuration")
             self.specializedConfigure(self.productionPolicy)

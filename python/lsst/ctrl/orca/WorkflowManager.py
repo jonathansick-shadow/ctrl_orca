@@ -18,6 +18,8 @@ class WorkflowManager:
         self.name = name
         self.runid = runid
         self.wfPolicy = wfPolicy
+        self.prodPolicy = prodPolicy
+        self.workflowConfigurator = None
 
         # the logger used by this instance
         if not logger:
@@ -83,7 +85,7 @@ class WorkflowManager:
     # @return WorkflowLauncher
     def configure(self, provSetup=None, workflowVerbosity=None):
         self.logger.log(Log.DEBUG, "WorkflowManager:configure")
-        if self._productionRunConfigurator:
+        if self.workflowConfigurator:
             self.logger.log(Log.INFO-1, "production has already been configured.")
             return
         

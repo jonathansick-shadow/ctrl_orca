@@ -1,4 +1,6 @@
 from lsst.pex.logging import Log
+import lsst.pex.exceptions as pexEx
+import lsst.pex.policy as pexPol
 
 ##
 # @brief an abstract class for configuring a workflow
@@ -19,7 +21,7 @@ class WorkflowConfigurator:
     # set to True.
     # 
     # @param runid       the run identifier for the production run
-    # @param wfpolicy    the workflow policy that describes the workflow
+    # @param wfPolicy    the workflow policy that describes the workflow
     # @param logger      the logger used by the caller.  This class
     #                       will set this create a child log with the
     #                       subname "config".  A sub class may wish to
@@ -28,7 +30,7 @@ class WorkflowConfigurator:
     #                       from a subclass constructor.  If False (default),
     #                       an exception will be raised under the assumption
     #                       that one is trying instantiate it directly.
-    def __init__(self, runid, wfpolicy, logger, repository, fromSub=False):
+    def __init__(self, runid, wfPolicy, logger, repository, fromSub=False):
         self.runid = runid
 
         # the logger used by this instance
@@ -39,7 +41,7 @@ class WorkflowConfigurator:
 
         sel.logger.log(Log.DEBUG, "WorkflowConfigurator:__init__")
 
-        self.wfpolicy = wfpolicy
+        self.wfPolicy = wfPolicy
         self.repository = repository
 
         if fromSub:
@@ -50,7 +52,8 @@ class WorkflowConfigurator:
     # @brief Configure the databases, and call an specialization required
     #
     def configure(self, provSetup, workflowVerbosity=None):
-        self._configureDatabases(self.wfpolicy, provSetup)
+        self.logger.log(Log.DEBUG, "WorkflowConfigurator:configure")
+        self._configureDatabases(provSetup)
         return self._configureSpecialized(self.wfPolicy, workflowVerbosity)
 
     ##
@@ -61,15 +64,18 @@ class WorkflowConfigurator:
     # @param provSetup
     #
     def _configureDatabases(self, provSetup):
-        self.logger.log(Log.DEBUG, "WorkflowConfigurator:configure")
+        self.logger.log(Log.DEBUG, "WorkflowConfigurator:_configureDatabases")
 
         #
         # setup the database for each database listed in workflow policy
         #
-        databasePolicies = self.wfPolicy.getArray("database")
-        for databasePolicy in databasePolicies:
-            databaseConfigurator = self.createDatabaseConfigurator(databasePolicy)
-            databaseConfigurator.setup(provSetup)
+        print "wfPolicy = ",self.wfPolicy
+        if self.wfPolicy.exists("database"):
+            databasePolicies = self.wfPolicy.getPolicyArray("database")
+
+            for databasePolicy in databasePolicies:
+                databaseConfigurator = self.createDatabaseConfigurator(databasePolicy)
+                databaseConfigurator.setup(provSetup)
         return
 
     ##
@@ -80,7 +86,8 @@ class WorkflowConfigurator:
     #
     # @return workflowLauncher
     def _configureSpecialized(self, wfPolicy):
-        return workflowLauncher = self._createWorkflowLauncher()
+        workflowLauncher = self._createWorkflowLauncher()
+        return workflowLauncher
 
 
     ##

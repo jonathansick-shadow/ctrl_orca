@@ -2,6 +2,7 @@ import subprocess
 from lsst.pex.logging import Log
 from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
+from lsst.ctrl.orca.WorkflowLauncher import WorkflowLauncher
 
 class SinglePipelineWorkflowLauncher(WorkflowLauncher):
     ##
@@ -41,7 +42,7 @@ class SinglePipelineWorkflowLauncher(WorkflowLauncher):
 
         filename = self.workflowPolicy.get("shortName")+".paf"
     
-        cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % self.dirs.get("work"), self.script, launchcmd, filename, self.runid, self.verbosity) ]
+        cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % self.dirs.get("work"), self.script, launchcmd, filename, self.runid, self.verbosity ]
 
         pid = os.fork()
         if not pid:

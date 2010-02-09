@@ -14,11 +14,11 @@ from lsst.ctrl.orca.SinglePipelineWorkflowLauncher import SinglePipelineWorkflow
 # SinglePipelineWorkflowConfigurator 
 #
 class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
-    def __init__(self, runid, wfpolicy, repository, logger):
+    def __init__(self, runid, wfPolicy, repository, logger):
         self.logger = logger
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:__init__")
         self.runid = runid
-        self.wfpolicy = wfpolicy
+        self.wfPolicy = wfPolicy
         self.verbosity = None
 
         self.nodes = None
@@ -29,17 +29,17 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
     # @brief Setup as much as possible in preparation to execute the workflow
     #            and return a WorkflowLauncher object that will launch the
     #            configured workflow.
-    # @param policy the workflow policy to use for configuration
     # @param provSetup
+    # @param wfVerbosity
     #
-    def configure(self, provSetup):
-        self_.configureDatabases(policy, provSetup)
-        return self_.configureSpecialized(policy)
+    def configure(self, provSetup, wfVerbosity):
+        self.workflowVerbosity = wfVerbosity
+        self._configureDatabases(provSetup)
+        return self._configureSpecialized(self.wfPolicy)
     
     def _configureSpecialized(self, policy):
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:configure")
-        self.configurationDict = configurationDict
-        self.shortName = self.wfpolicy.get("shortName")
+        self.shortName = self.wfPolicy.get("shortName")
         self.nodes = self.createNodeList()
         self.prepPlatform()
         self.deploySetup()
@@ -55,9 +55,9 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
     def createLaunchCommand(self):
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:createLaunchCommand")
 
-        execPath = self.wfpolicy.get("configuration.framework.exec")
+        execPath = self.wfPolicy.get("configuration.framework.exec")
         launchcmd = EnvString.resolve(execPath)
-        filename = self.configurationDict["filename"]
+        filename = "stooge"
 
         cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % (self.dirs.get("work"), self.script, launchcmd, filename, self.runid, self.verbosity) ]
         return cmd
@@ -69,8 +69,8 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
     #
     def createNodeList(self):
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:createNodeList")
-        node = self.wfpolicy.getArray("platform.deploy.nodes")
-        self.defaultDomain = self.wfpolicy.get("platform.deploy.defaultDomain")
+        node = self.wfPolicy.getArray("platform.deploy.nodes")
+        self.defaultDomain = self.wfPolicy.get("platform.deploy.defaultDomain")
 
         nodes = map(self.expandNodeHost, node)
         # by convention, the master node is the first node in the list
@@ -126,7 +126,7 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
 
         # copy /bin/sh script responsible for environment setting
 
-        setupPath = self.wfpolicy.get("configuration.framework.environment")
+        setupPath = self.wfPolicy.get("configuration.framework.environment")
         if setupPath == None:
              raise RuntimeError("couldn't find configuration.framework.environment")
         self.script = EnvString.resolve(setupPath)
@@ -235,8 +235,9 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
     def createDirs(self):
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:createDirs")
 
-        dirPolicy = self.wfpolicy.getPolicy("platform.dir")
-        directories = Directories(dirPolicy, self.workflow, self.runid)
+        dirPolicy = self.wfPolicy.getPolicy("platform.dir")
+        dirName = self.wfPolicy.getPolicy("platform.dir.shortName")
+        directories = Directories(dirPolicy, dirName, self.runid)
         self.dirs = directories.getDirs()
 
         for name in self.dirs.names():
