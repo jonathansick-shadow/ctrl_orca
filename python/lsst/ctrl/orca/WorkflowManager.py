@@ -1,6 +1,7 @@
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.pex.logging import Log
 import lsst.pex.policy as pol
+from lsst.ctrl.orca.multithreading import SharedData
 
 class WorkflowManager:
     ##
@@ -10,7 +11,7 @@ class WorkflowManager:
 
         # _locked: a container for data to be shared across threads that 
         # have access to this object.
-        self._locked = threading.SharedData(False)
+        self._locked = SharedData(False)
 
         if not name:
             name = wfPolicy.get("shortName")

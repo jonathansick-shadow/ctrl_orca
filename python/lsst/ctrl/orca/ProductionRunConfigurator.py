@@ -2,9 +2,11 @@ import os
 from lsst.ctrl.orca.DatabaseConfigurator import DatabaseConfigurator
 from lsst.ctrl.orca.provenance.Provenance import Provenance
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
+from lsst.ctrl.orca.WorkflowManager import WorkflowManager
 from lsst.pex.logging import Log
-from lsst.pex.policy import Policy
+from lsst.pex.policy import Policy, NameNotFound
 from lsst.ctrl.orca.ProvenanceSetup import ProvenanceSetup
+import lsst.pex.exceptions as pexEx
 
 class ProductionRunConfigurator:
     ##
@@ -50,11 +52,11 @@ class ProductionRunConfigurator:
     ##
     # @brief create the WorkflowManager for the pipelien with the given shortName
     #
-    def createWorkflowManager(self, workflowPolicy):
+    def createWorkflowManager(self, wfPolicy, prodPolicy):
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:createWorkflowManager")
 
-       
-        return workflowManager
+        wfManager = WorkflowManager(None, self.runid, wfPolicy, prodPolicy, self.logger)
+        return wfManager
 
     ##
     # @brief configure this production run
@@ -97,15 +99,19 @@ class ProductionRunConfigurator:
         #
         # do specialized production level configuration, if it exists
         #
-        specialConfigurationPolicy = self.productionPolicy.get("configuration")
-        if _specialConfigurationPolicy != None:
+        print "productionPolicy = ",self.productionPolicy
+        try:
+            specialConfigurationPolicy = self.productionPolicy.getPolicy("configuration")
             self.specializedConfigure(self.productionPolicy)
+        except pexEx.LsstCppException, e:
+            pass
+        
 
         workflowPolicies = self.productionPolicy.getArray("workflow")
-        for workflowPolicy in workflowPolicies:
+        for wfPolicy in workflowPolicies:
             # copy in appropriate production level info into workflow Node  -- ?
 
-            workflowManager = self.createWorkflowManager(workflowPolicy)
+            workflowManager = self.createWorkflowManager(wfPolicy, self.productionPolicy)
             workflowManager.configure(provSetup, workflowVerbosity)
             self.workflowManagers.append(workflowManager)
 
