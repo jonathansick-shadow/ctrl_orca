@@ -28,13 +28,11 @@ class ProductionRunConfigurator:
         self.repository = repository
         self.workflowVerbosity = workflowVerbosity
 
-        self.databaseConfigurator = None
-
         self.provenanceDict = {}
         self._wfnames = None
 
         # cache the database configurators for checking the configuraiton.  
-        self._databaseConfigurators = None
+        self._databaseConfigurators = []
 
         # these are policy settings which can be overriden from what they
         # are in the workflow policies.
@@ -93,8 +91,8 @@ class ProductionRunConfigurator:
             print "databasePolicy = ",databasePolicy
             cfg = self.createDatabaseConfigurator(databasePolicy)
             print "cfg = ",cfg
+            cfg.setup()
             self._databaseConfigurators.append(cfg)
-            self._databaseConfigurator[-1].setup()
 
         #
         # do specialized production level configuration, if it exists
@@ -142,8 +140,9 @@ class ProductionRunConfigurator:
         className = databasePolicy.get("configurationClass")
         classFactory = NamedClassFactory()
         configurationClass = classFactory.createClass(className)
+        print "===>className = ",className
         print "===>configurationClass = ",configurationClass
-        configurator = configurationClass(self.runid, self.logger, self.verbosity) 
+        configurator = configurationClass(self.runid, databasePolicy, self.logger)
         print "===>configurator = ",configurator
         return configurator
 

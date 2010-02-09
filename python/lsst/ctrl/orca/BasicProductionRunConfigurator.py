@@ -26,13 +26,11 @@ class BasicProductionRunConfigurator(ProductionRunConfigurator):
         self.repository = repository
         self.workflowVerbosity = workflowVerbosity
 
-        self.databaseConfigurator = None
-
         self.provenanceDict = {}
         self._wfnames = None
 
         # cache the database configurators for checking the configuration.
-        self._databaseConfigurators = None
+        self._databaseConfigurators = []
 
         # these are policy settings which can be overriden from what they
         # are in the workflow policies.

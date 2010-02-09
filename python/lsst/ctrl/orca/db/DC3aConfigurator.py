@@ -26,13 +26,13 @@ class DC3aConfigurator:
         # extract the databaseConfig.database policy to get required
         # parameters from it.
 
-        dbHostName = policy.get("database.system.authInfo.host");
-        portNo = policy.get("database.system.authInfo.port");
-        globalDbName = policy.get("database.configuration.globalDbName")
-        dcVersion = policy.get("database.configuration.dcVersion")
-        dcDbName = policy.get("database.configuration.dcDbName")
-        minPercDiskSpaceReq = policy.get("database.configuration.minPercDiskSpaceReq")
-        userRunLife = policy.get("database.configuration.userRunLife")
+        dbHostName = policy.get("system.authInfo.host");
+        portNo = policy.get("system.authInfo.port");
+        globalDbName = policy.get("configuration.globalDbName")
+        dcVersion = policy.get("configuration.dcVersion")
+        dcDbName = policy.get("configuration.dcDbName")
+        minPercDiskSpaceReq = policy.get("configuration.minPercDiskSpaceReq")
+        userRunLife = policy.get("configuration.userRunLife")
 
         self.dbPolicy = policy
 
@@ -126,10 +126,10 @@ class DC3aConfigurator:
     # If there is no match, an exception is thrown.
     # 
     def initAuthInfo(self, policy):
-        host = policy.get("database.system.authInfo.host")
+        host = policy.get("system.authInfo.host")
         if host == None:
             raise RuntimeError("database host must be specified in policy")
-        port = policy.get("database.system.authInfo.port")
+        port = policy.get("system.authInfo.port")
         if port == None:
             raise RuntimeError("database port must be specified in policy")
         dbPolicyCredentialsFile = os.path.join(os.environ["HOME"], ".lsst/db-auth.paf")
