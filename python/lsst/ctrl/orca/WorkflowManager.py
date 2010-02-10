@@ -33,6 +33,12 @@ class WorkflowManager:
         self._monitor = None
 
     ##
+    # @brief return the name of this workflow
+    #
+    def getName(self):
+        return self.name
+
+    ##
     # @brief setup, launch and monitor a workflow to its completion, and then
     #            clean-up.
     #
@@ -113,6 +119,8 @@ class WorkflowManager:
     #                       that needs to be shared with all pipelines. 
     def createConfigurator(self, runid, wfPolicy, prodPolicy):
         self.logger.log(Log.DEBUG, "WorkflowManager:createConfigurator")
+
+        # TODO: copy prodPolicy info into wfPolicy
         
         className = wfPolicy.get("configurationClass")
         classFactory = NamedClassFactory()

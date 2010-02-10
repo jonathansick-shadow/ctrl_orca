@@ -111,14 +111,15 @@ class ProductionRunConfigurator:
         
 
         workflowPolicies = self.productionPolicy.getArray("workflow")
+        workflowManagers = []
         for wfPolicy in workflowPolicies:
             # copy in appropriate production level info into workflow Node  -- ?
 
             workflowManager = self.createWorkflowManager(wfPolicy, self.productionPolicy)
             workflowManager.configure(provSetup, workflowVerbosity)
-            self.workflowManagers.append(workflowManager)
+            workflowManagers.append(workflowManager)
 
-        return self.workflowManagers
+        return workflowManagers
 
     ##
     # @brief carry out production-wide configuration checks.

@@ -1,4 +1,4 @@
-import os, os.path, shutil, sets, stat
+import sys,os, os.path, shutil, sets, stat
 import lsst.ctrl.orca as orca
 import lsst.pex.policy as pol
 
@@ -37,25 +37,27 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
         self._configureDatabases(provSetup)
         return self._configureSpecialized(self.wfPolicy)
     
-    def _configureSpecialized(self, policy):
+    def _configureSpecialized(self, wfPolicy):
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:configure")
-        self.shortName = self.wfPolicy.get("shortName")
-        self.nodes = self.createNodeList()
-        self.prepPlatform()
-        self.deploySetup()
-        self.setupDatabase()
-        cmd = self.createLaunchCommand()
-        workflowLauncher = SinglePipelineWorkflowLauncher(self.logger, policy)
+        self.shortName = wfPolicy.get("shortName")
+        self.defaultDomain = wfPolicy.get("platform.deploy.defaultDomain")
+        pipelinePolicies = wfPolicy.getPolicyArray("pipeline")
+        for pipelinePolicy in pipelinePolicies:
+            self.nodes = self.createNodeList(pipelinePolicy)
+            self.createDirs(pipelinePolicy)
+            self.deploySetup(pipelinePolicy)
+            cmd = self.createLaunchCommand(pipelinePolicy)
+        workflowLauncher = SinglePipelineWorkflowLauncher(self.logger, wfPolicy)
         return workflowLauncher
 
     ##
     # @brief create the command which will launch the workflow
     # @return a string containing the shell commands to execute
     #
-    def createLaunchCommand(self):
+    def createLaunchCommand(self, pipelinePolicy):
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:createLaunchCommand")
 
-        execPath = self.wfPolicy.get("configuration.framework.exec")
+        execPath = pipelinePolicy.get("definition.framework.exec")
         launchcmd = EnvString.resolve(execPath)
         filename = "stooge"
 
@@ -67,10 +69,9 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
     # @brief creates a list of nodes from platform.deploy.nodes
     # @return the list of nodes
     #
-    def createNodeList(self):
+    def createNodeList(self,  pipelinePolicy):
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:createNodeList")
-        node = self.wfPolicy.getArray("platform.deploy.nodes")
-        self.defaultDomain = self.wfPolicy.get("platform.deploy.defaultDomain")
+        node = pipelinePolicy.getArray("deploy.processesOnNode")
 
         nodes = map(self.expandNodeHost, node)
         # by convention, the master node is the first node in the list
@@ -118,7 +119,7 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
     ##
     # @brief 
     #
-    def deploySetup(self):
+    def deploySetup(self, pipelinePolicy):
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:deploySetup")
 
         # write the nodelist to "work"
@@ -126,9 +127,9 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
 
         # copy /bin/sh script responsible for environment setting
 
-        setupPath = self.wfPolicy.get("configuration.framework.environment")
+        setupPath = pipelinePolicy.get("definition.framework.environment")
         if setupPath == None:
-             raise RuntimeError("couldn't find configuration.framework.environment")
+             raise RuntimeError("couldn't find definition.framework.environment")
         self.script = EnvString.resolve(setupPath)
 
         if orca.envscript == None:
@@ -141,60 +142,9 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
         # now point at the new location for the setup script
         self.script = os.path.join(self.dirs.get("work"),os.path.basename(self.script))
 
-        # This policy has the override values, but must be written out and
-        # recorded.
-        #  write file to self.dirs["work"]
-        #  call provenance.recordPolicy()
-        # 
-        # copy the policies to the working directory
-        
-        configurationFileName = self.configurationDict["filename"]
-        
-        configurationPolicy = self.configurationDict["policy"]
-        newPolicyFile = os.path.join(self.dirs.get("work"), configurationFileName)
-        if os.path.exists(newPolicyFile):
-            self.logger.log(Log.WARN, "Working directory already contains %s")
-        else:
-            pw = pol.PAFWriter(newPolicyFile)
-            pw.write(configurationPolicy)
-            pw.close()
-
-        # TODO: Provenance script needs to write out newPolicyFile
-        #self.provenance.recordPolicy(newPolicyFile)
-        self.policySet.add(newPolicyFile)
-
-        # TODO: cont'd - also needs to writeout child policies
-        newPolicyObj = pol.Policy.createPolicy(newPolicyFile, False)
-        workflowPolicySet = sets.Set()
-        self.extractChildPolicies(self.repository, newPolicyObj, workflowPolicySet)
-
-        if os.path.exists(os.path.join(self.dirs.get("work"), self.workflow)):
-            self.logger.log(Log.WARN,
-              "Working directory already contains %s directory; won't overwrite" % self.workflow)
-        else:
-            #shutil.copytree(os.path.join(self.repository, self.workflow), os.path.join(self.dirs.get("work"),self.workflow))
-            #
-            # instead of blindly copying the whole directory, take the set
-            # if files from policySet and copy those.
-            #
-            # This is slightly tricky, because we want to copy from the policy file     
-            # repository directory to the "work" directory, but we also want to keep    
-            # that partial directory hierarchy we're copying to as well.
-            #
-            for filename  in workflowPolicySet:
-                destinationDir = self.dirs.get("work")
-                destName = filename.replace(self.repository+"/","")
-                tokens = destName.split('/')
-                tokensLength = len(tokens)
-                # if the destination directory heirarchy doesn't exist, create all          
-                # the missing directories
-                destinationFile = tokens[len(tokens)-1]
-                for newDestinationDir in tokens[:len(tokens)-1]:
-                    newDir = os.path.join(destinationDir, newDestinationDir)
-                    if os.path.exists(newDir) == False:
-                        os.mkdir(newDir)
-                    destinationDir = newDir
-                shutil.copyfile(filename, os.path.join(destinationDir, destinationFile))
+        #
+        # TODO: Write all policy files out to the work directory, 
+        #
 
         self.writeLaunchScript()
 
@@ -205,15 +155,18 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
         # write out the script we use to kick things off
         name = os.path.join(self.dirs.get("work"), "orca_launch.sh")
 
-        user = self.provenanceDict["user"]
-        runid = self.provenanceDict["runid"]
-        dbrun = self.provenanceDict["dbrun"]
-        dbglobal = self.provenanceDict["dbglobal"]
-        repos = self.provenanceDict["repos"]
+        # TODO: This needs to be replaced with an invocation of the Provence script, which
+        # is going to be in ctrl_provenance
+        #
+        #user = self.provenanceDict["user"]
+        #runid = self.provenanceDict["runid"]
+        #dbrun = self.provenanceDict["dbrun"]
+        #dbglobal = self.provenanceDict["dbglobal"]
+        #repos = self.provenanceDict["repos"]
+        #
+        #filename = os.path.join(self.dirs.get("work"), self.configurationDict["filename"])
 
-        filename = os.path.join(self.dirs.get("work"), self.configurationDict["filename"])
-
-        s = "ProvenanceRecorder.py --type=%s --user=%s --runid=%s --dbrun=%s --dbglobal=%s --filename=%s --repos=%s\n" % ("lsst.ctrl.orca.provenance.BasicRecorder", user, runid, dbrun, dbglobal, filename, repos)
+        #s = "ProvenanceRecorder.py --type=%s --user=%s --runid=%s --dbrun=%s --dbglobal=%s --filename=%s --repos=%s\n" % ("lsst.ctrl.orca.provenance.BasicRecorder", user, runid, dbrun, dbglobal, filename, repos)
 
         launcher = open(name, 'w')
         launcher.write("#!/bin/sh\n")
@@ -221,7 +174,7 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
         launcher.write("echo $PATH >path.txt\n")
         launcher.write("eups list 2>/dev/null | grep Setup >eups-env.txt\n")
         launcher.write("workflow=`echo ${1} | sed -e 's/\..*$//'`\n")
-        launcher.write(s)
+        #launcher.write(s)
         launcher.write("#$CTRL_ORCA_DIR/bin/writeNodeList.py %s nodelist.paf\n" % self.dirs.get("work"))
         launcher.write("nohup $PEX_HARNESS_DIR/bin/launchWorkflow.py $* > ${workflow}-${2}.log 2>&1  &\n")
         launcher.close()
@@ -232,11 +185,11 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
     ##
     # @brief create the platform.dir directories
     #
-    def createDirs(self):
+    def createDirs(self, pipelinePolicy):
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:createDirs")
 
         dirPolicy = self.wfPolicy.getPolicy("platform.dir")
-        dirName = self.wfPolicy.getPolicy("platform.dir.shortName")
+        dirName = pipelinePolicy.get("shortName")
         directories = Directories(dirPolicy, dirName, self.runid)
         self.dirs = directories.getDirs()
 
