@@ -29,6 +29,7 @@ class ProductionRunConfigurator:
 
         self.repository = repository
         self.workflowVerbosity = workflowVerbosity
+        self._provSetup = None
 
         self.provenanceDict = {}
         self._wfnames = None
@@ -59,13 +60,19 @@ class ProductionRunConfigurator:
         return wfManager
 
     ##
+    # @brief return provenanceSetup
+    #
+    def getProvenanceSetup(self):
+        return self._provSetup
+
+    ##
     # @brief configure this production run
     #
     def configure(self, workflowVerbosity):
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:configure")
         self.repository = self.productionPolicy.get("repositoryDirectory")
 
-        provSetup = ProvenanceSetup()
+        self._provSetup = ProvenanceSetup()
 
         # cycle through the policies in the production policy file to get
         # a list of files to record.
@@ -81,7 +88,7 @@ class ProductionRunConfigurator:
                 # TODO: There's a bug in Policy that prevents retrieving all 
                 # files -  we want all files, not just one.  
                 filename = policy.getFile(name).getPath()
-                provSetup.addProductionPolicyFile(name)
+                self._provSetup.addProductionPolicyFile(name)
             
         #
         # setup the database for each database listed in production policy.
@@ -97,17 +104,15 @@ class ProductionRunConfigurator:
             print "databasePolicy = ",databasePolicy
             cfg = self.createDatabaseConfigurator(databasePolicy)
             print "cfg = ",cfg
-            cfg.setup()
+            cfg.setup(self._provSetup)
             self._databaseConfigurators.append(cfg)
 
         #
         # do specialized production level configuration, if it exists
         #
-        try:
+        if self.productionPolicy.exists("configuration"):
             specialConfigurationPolicy = self.productionPolicy.getPolicy("configuration")
             self.specializedConfigure(self.productionPolicy)
-        except pexEx.LsstCppException, e:
-            pass
         
 
         workflowPolicies = self.productionPolicy.getArray("workflow")
@@ -116,7 +121,7 @@ class ProductionRunConfigurator:
             # copy in appropriate production level info into workflow Node  -- ?
 
             workflowManager = self.createWorkflowManager(wfPolicy, self.productionPolicy)
-            workflowManager.configure(provSetup, workflowVerbosity)
+            workflowManager.configure(self._provSetup, workflowVerbosity)
             workflowManagers.append(workflowManager)
 
         return workflowManagers
