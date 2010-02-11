@@ -41,11 +41,17 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
     def _configureSpecialized(self, wfPolicy):
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:configure")
         self.shortName = wfPolicy.get("shortName")
-        self.defaultDomain = wfPolicy.get("platform.deploy.defaultDomain")
+        if wfPolicy.getValueType("platform") == pol.Policy.FILE:
+            filename = wfPolicy.getFile("platform").getPath()
+            platformPolicy = pol.Policy.createPolicy(filename)
+        else:
+            platformPolicy = wfPolicy.getPolicy("platform")
+        print "platformPolicy = ",platformPolicy
+        self.defaultDomain = platformPolicy.get("deploy.defaultDomain")
         pipelinePolicies = wfPolicy.getPolicyArray("pipeline")
         for pipelinePolicy in pipelinePolicies:
             self.nodes = self.createNodeList(pipelinePolicy)
-            self.createDirs(pipelinePolicy)
+            self.createDirs(platformPolicy, pipelinePolicy)
             self.deploySetup(pipelinePolicy)
             cmd = self.createLaunchCommand(pipelinePolicy)
         workflowLauncher = SinglePipelineWorkflowLauncher(self.logger, wfPolicy)
@@ -186,10 +192,10 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
     ##
     # @brief create the platform.dir directories
     #
-    def createDirs(self, pipelinePolicy):
+    def createDirs(self, platformPolicy, pipelinePolicy):
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:createDirs")
 
-        dirPolicy = self.wfPolicy.getPolicy("platform.dir")
+        dirPolicy = platformPolicy.getPolicy("dir")
         dirName = pipelinePolicy.get("shortName")
         directories = Directories(dirPolicy, dirName, self.runid)
         self.dirs = directories.getDirs()
