@@ -25,7 +25,7 @@ class ProductionRunConfigurator:
 
         self.runid = runid
         self._prodPolicyFile = policyFile
-        self.productionPolicy = Policy.createPolicy(policyFile)
+        self.prodPolicy = Policy.createPolicy(policyFile, False)
 
         self.repository = repository
         self.workflowVerbosity = workflowVerbosity
@@ -40,15 +40,15 @@ class ProductionRunConfigurator:
         # these are policy settings which can be overriden from what they
         # are in the workflow policies.
         self.policyOverrides = Policy() 
-        if self.productionPolicy.exists("eventBrokerHost"):
+        if self.prodPolicy.exists("eventBrokerHost"):
             self.policyOverrides.set("execute.eventBrokerHost",
-                              self.productionPolicy.get("eventBrokerHost"))
-        if self.productionPolicy.exists("logThreshold"):
+                              self.prodPolicy.get("eventBrokerHost"))
+        if self.prodPolicy.exists("logThreshold"):
             self.policyOverrides.set("execute.logThreshold",
-                              self.productionPolicy.get("logThreshold"))
-        if self.productionPolicy.exists("shutdownTopic"):
+                              self.prodPolicy.get("logThreshold"))
+        if self.prodPolicy.exists("shutdownTopic"):
             self.policyOverrides.set("execute.shutdownTopic",
-                              self.productionPolicy.get("shutdownTopic"))
+                              self.prodPolicy.get("shutdownTopic"))
 
     ##
     # @brief create the WorkflowManager for the pipelien with the given shortName
@@ -70,7 +70,7 @@ class ProductionRunConfigurator:
     #
     def configure(self, workflowVerbosity):
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:configure")
-        self.repository = self.productionPolicy.get("repositoryDirectory")
+        self.repository = self.prodPolicy.get("repositoryDirectory")
 
         self._provSetup = ProvenanceSetup()
 
@@ -82,12 +82,12 @@ class ProductionRunConfigurator:
         # adding them to a Set() to avoid recording provenance on a file more than
         # once, and then add all of those files to provSetup.
 
-        names = self.productionPolicy.fileNames()
+        names = self.prodPolicy.fileNames()
         for name in names:
-            if policy.getValueType(name) == Policy.FILE:
+            if self.prodPolicy.getValueType(name) == Policy.FILE:
                 # TODO: There's a bug in Policy that prevents retrieving all 
                 # files -  we want all files, not just one.  
-                filename = policy.getFile(name).getPath()
+                filename = self.prodPolicy.getFile(name).getPath()
                 self._provSetup.addProductionPolicyFile(name)
             
         #
@@ -97,7 +97,7 @@ class ProductionRunConfigurator:
         #
         databasePolicies = None
         try :
-            databasePolicies = self.productionPolicy.getArray("database")
+            databasePolicies = self.prodPolicy.getArray("database")
         except pexExLsstCppException, e:
             pass
         for databasePolicy in databasePolicies:
@@ -110,17 +110,17 @@ class ProductionRunConfigurator:
         #
         # do specialized production level configuration, if it exists
         #
-        if self.productionPolicy.exists("configuration"):
-            specialConfigurationPolicy = self.productionPolicy.getPolicy("configuration")
+        if self.prodPolicy.exists("configuration"):
+            specialConfigurationPolicy = self.prodPolicy.getPolicy("configuration")
             self.specializedConfigure(self.productionPolicy)
         
 
-        workflowPolicies = self.productionPolicy.getArray("workflow")
+        workflowPolicies = self.prodPolicy.getArray("workflow")
         workflowManagers = []
         for wfPolicy in workflowPolicies:
             # copy in appropriate production level info into workflow Node  -- ?
 
-            workflowManager = self.createWorkflowManager(wfPolicy, self.productionPolicy)
+            workflowManager = self.createWorkflowManager(wfPolicy, self.prodPolicy)
             workflowManager.configure(self._provSetup, workflowVerbosity)
             workflowManagers.append(workflowManager)
 
