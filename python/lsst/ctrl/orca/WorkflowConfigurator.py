@@ -1,6 +1,7 @@
 from lsst.pex.logging import Log
 import lsst.pex.exceptions as pexEx
 import lsst.pex.policy as pexPol
+from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 
 ##
 # @brief an abstract class for configuring a workflow
@@ -30,7 +31,7 @@ class WorkflowConfigurator:
     #                       from a subclass constructor.  If False (default),
     #                       an exception will be raised under the assumption
     #                       that one is trying instantiate it directly.
-    def __init__(self, runid, wfPolicy, logger, repository, fromSub=False):
+    def __init__(self, runid, prodPolicy, wfPolicy, logger, fromSub=False):
         self.runid = runid
 
         # the logger used by this instance
@@ -41,6 +42,7 @@ class WorkflowConfigurator:
 
         sel.logger.log(Log.DEBUG, "WorkflowConfigurator:__init__")
 
+        self.prodPolicy = prodPolicy
         self.wfPolicy = wfPolicy
         self.repository = repository
 
@@ -69,7 +71,6 @@ class WorkflowConfigurator:
         #
         # setup the database for each database listed in workflow policy
         #
-        print "wfPolicy = ",self.wfPolicy
         if self.wfPolicy.exists("database"):
             databasePolicies = self.wfPolicy.getPolicyArray("database")
 
@@ -106,7 +107,7 @@ class WorkflowConfigurator:
     #
     def createDatabaseConfigurator(self, databasePolicy):
         self.logger.log(Log.DEBUG, "WorkflowConfigurator:createDatabaseConfigurator")
-        className = self.databasePolicy.get("configurationClass")
+        className = databasePolicy.get("configurationClass")
         classFactory = NamedClassFactory()
         configurationClass = classFactory.createClass(className)
         configurator = configurationClass(self.runid, databasePolicy, self.logger) 
