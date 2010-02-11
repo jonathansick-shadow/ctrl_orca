@@ -38,14 +38,25 @@ class DC3aConfigurator:
 
         self.delegate = MySQLConfigurator(dbHostName, portNo, globalDbName, dcVersion, dcDbName, minPercDiskSpaceReq, userRunLife)
 
-    def setup(self):
+    def setup(self, provSetup):
         self.logger.log(Log.DEBUG, "Dc3aConfigurator:setup")
+        # TODO: use provSetup when it's implemented
+        self.setupInternal()
+
+    def setupInternal(self):
+        self.logger.log(Log.DEBUG, "Dc3aConfigurator:setupInternal")
 
         self.checkConfiguration(self.dbPolicy)
         dbNames = self.prepareForNewRun(self.runid)
         return dbNames
 
-    def checkConfiguration(self, policy):
+    def checkConfiguration(self, val):
+        self.logger.log(Log.DEBUG, "Dc3aConfigurator:checkConfiguration")
+        # TODO: use val when implemented
+        self.checkConfigurationInternal()
+
+    def checkConfigurationInternal(self):
+        self.logger.log(Log.DEBUG, "Dc3aConfigurator:checkConfigurationInternal")
         #
         # first, check that the $HOME/.lsst directory is protected
         #
@@ -61,7 +72,7 @@ class DC3aConfigurator:
         #
         # now, look up, and initialize the authorization information for host and port
         #
-        self.initAuthInfo(policy)
+        self.initAuthInfo(self.policy)
 
         # 
         # Now that everything looks sane, execute the delegate's checkStatus method 
