@@ -19,7 +19,7 @@ class WorkflowManager:
         self.runid = runid
         self.wfPolicy = wfPolicy
         self.prodPolicy = prodPolicy
-        self.workflowConfigurator = None
+        self._workflowConfigurator = None
 
         # the logger used by this instance
         if not logger:
@@ -57,8 +57,8 @@ class WorkflowManager:
             self._locked.acquire()
 
             if self._workflowConfigurator == None:
-                self.configure()
-            self._monitor = self.workflowLauncher.launch()
+                self._workflowLauncher = self.configure()
+            self._monitor = self._workflowLauncher.launch()
             # self.cleanUp()
 
         finally:
@@ -91,7 +91,7 @@ class WorkflowManager:
     # @return WorkflowLauncher
     def configure(self, provSetup=None, workflowVerbosity=None):
         self.logger.log(Log.DEBUG, "WorkflowManager:configure")
-        if self.workflowConfigurator:
+        if self._workflowConfigurator:
             self.logger.log(Log.INFO-1, "production has already been configured.")
             return
         
@@ -99,15 +99,15 @@ class WorkflowManager:
         try:
             self._locked.acquire()
 
-            self.workflowConfigurator = self.createConfigurator(self.runid, self.wfPolicy,
+            self._workflowConfigurator = self.createConfigurator(self.runid, self.wfPolicy,
                                                                 self.prodPolicy)
-            self.workflowConfigurator.configure(provSetup, workflowVerbosity)
+            self._workflowLauncher = self._workflowConfigurator.configure(provSetup, workflowVerbosity)
         finally:
             self._locked.release()
 
         # do specialized workflow level configuration here, this may include
         # calling ProvenanceSetup.getWorkflowCommands()
-        return self.workflowConfigurator
+        return self._workflowLauncher
 
     ##
     # @brief  create a Workflow configurator for this workflow.
@@ -186,5 +186,5 @@ class WorkflowManager:
         return self.name
 
     def getNodeCount(self):
-        return self.workflowConfigurator.getNodeCount()
+        return self._workflowConfigurator.getNodeCount()
 
