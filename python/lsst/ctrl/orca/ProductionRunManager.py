@@ -162,7 +162,7 @@ class ProductionRunManager:
             provSetup.recordProduction()
 
             for workflow in self._workflowManagers["__order"]:
-                mgr = self._workflowManagers[workflow]
+                mgr = self._workflowManagers[workflow.getName()]
 
                 # this will block until the monitor is created.
                 mgr.runWorkflow()
