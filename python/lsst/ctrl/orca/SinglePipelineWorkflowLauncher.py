@@ -1,4 +1,4 @@
-import subprocess
+import sys, subprocess
 from lsst.pex.logging import Log
 from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
@@ -8,10 +8,10 @@ class SinglePipelineWorkflowLauncher(WorkflowLauncher):
     ##
     # @brief
     #
-    def __init__(self, logger, workflowPolicy):
+    def __init__(self, logger, wfPolicy):
         logger.log(Log.DEBUG, "SinglePipelineWorkflowLauncher:__init__")
         self.logger = logger
-        self.workflowPolicy = workflowPolicy
+        self.wfPolicy = wfPolicy
 
     ##
     # @brief launch this workflow
@@ -20,11 +20,12 @@ class SinglePipelineWorkflowLauncher(WorkflowLauncher):
     #
     def launch(self):
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowLauncher:launch")
+        sys.exit(1)
 
-        execPath = self.workflowPolicy.get("configuration.framework.exec")
+        execPath = self.wfPolicy.get("configuration.framework.exec")
         launchcmd = EnvString.resolve(execPath)
 
-        setupPath = self.workflowPolicy.get("configuration.framework.environment")
+        setupPath = self.wfPolicy.get("configuration.framework.environment")
         script = EnvString.resolve(setupPath)
 
         if orca.envscript == None:
@@ -40,7 +41,7 @@ class SinglePipelineWorkflowLauncher(WorkflowLauncher):
         # or better yet, the whole command should just be passed in.
         self.script = os.path.join(self.dirs.get("work"), os.path.basename(self.script))
 
-        filename = self.workflowPolicy.get("shortName")+".paf"
+        filename = self.wfPolicy.get("shortName")+".paf"
     
         cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % self.dirs.get("work"), self.script, launchcmd, filename, self.runid, self.verbosity ]
 
