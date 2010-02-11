@@ -14,10 +14,11 @@ from lsst.ctrl.orca.SinglePipelineWorkflowLauncher import SinglePipelineWorkflow
 # SinglePipelineWorkflowConfigurator 
 #
 class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
-    def __init__(self, runid, wfPolicy, repository, logger):
+    def __init__(self, runid, prodPolicy, wfPolicy, logger):
         self.logger = logger
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:__init__")
         self.runid = runid
+        self.prodPolicy = prodPolicy
         self.wfPolicy = wfPolicy
         self.verbosity = None
 
