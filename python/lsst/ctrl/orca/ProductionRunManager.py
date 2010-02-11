@@ -9,7 +9,7 @@ from lsst.pex.logging import Log
 from EnvString import EnvString
 from exceptions import ConfigurationError
 from multithreading import SharedData
-from BasicProductionRunConfigurator import BasicProductionRunConfigurator
+from ProductionRunConfigurator import ProductionRunConfigurator
 #from threading import SharedData
 
 ##
@@ -201,7 +201,7 @@ class ProductionRunManager:
         # prodPolicy - the production run policy
         self.logger.log(Log.DEBUG, "ProductionRunManager:createConfigurator")
 
-        configuratorClass = BasicProductionRunConfigurator
+        configuratorClass = ProductionRunConfigurator
         configuratorClassName = None
         if self.policy.exists("configurationClass"):
             configuratorClassName = self.policy.get("configurationClass")
