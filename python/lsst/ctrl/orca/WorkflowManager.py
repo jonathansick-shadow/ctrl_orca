@@ -126,7 +126,7 @@ class WorkflowManager:
         classFactory = NamedClassFactory()
         
         configuratorClass = classFactory.createClass(className)
-        configurator = configuratorClass(self.runid, wfPolicy, prodPolicy, self.logger) 
+        configurator = configuratorClass(self.runid, prodPolicy, wfPolicy, self.logger) 
         return configurator
 
     ##
