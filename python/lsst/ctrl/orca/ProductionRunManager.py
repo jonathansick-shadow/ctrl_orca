@@ -4,6 +4,7 @@ import os, os.path, sets, threading
 import lsst.daf.base as base
 import lsst.pex.policy as pol
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
+from lsst.ctrl.orca.StatusListener import StatusListener
 from lsst.pex.logging import Log
 
 from EnvString import EnvString
@@ -164,8 +165,9 @@ class ProductionRunManager:
             for workflow in self._workflowManagers["__order"]:
                 mgr = self._workflowManagers[workflow.getName()]
 
+                statusListener = StatusListener(self.logger)
                 # this will block until the monitor is created.
-                mgr.runWorkflow()
+                mgr.runWorkflow(statusListener)
 
         finally:
             self._locked.release()
