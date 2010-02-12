@@ -101,9 +101,7 @@ class ProductionRunConfigurator:
         except pexExLsstCppException, e:
             pass
         for databasePolicy in databasePolicies:
-            print "databasePolicy = ",databasePolicy
             cfg = self.createDatabaseConfigurator(databasePolicy)
-            print "cfg = ",cfg
             cfg.setup(self._provSetup)
             self._databaseConfigurators.append(cfg)
 
@@ -155,10 +153,7 @@ class ProductionRunConfigurator:
         className = databasePolicy.get("configurationClass")
         classFactory = NamedClassFactory()
         configurationClass = classFactory.createClass(className)
-        print "===>className = ",className
-        print "===>configurationClass = ",configurationClass
         configurator = configurationClass(self.runid, databasePolicy, self.logger)
-        print "===>configurator = ",configurator
         return configurator
 
     ##
