@@ -17,20 +17,19 @@ class WorkflowLauncher:
     # constructor, in which case the fromSub parameter must be
     # set to True.
     # 
-    # @param cmd         the command to launch
+    # @param wfPolcy     workflow policy
     # @param logger      the logger used by the caller.  This class
     #                       will set this create a child log with the
     #                       subname "config".  A sub class may wish to
     #                       reset the child logger for a different subname.
     # 
-    def __init__(self, cmd, wfPolicy, logger = None):
+    def __init__(self, wfPolicy, logger = None):
         if not logger:
             logger = Log.getDefaultLog()
         self.parentLogger = logger
         self.logger = Log(logger, "launch")
         self.logger.log(Log.DEBUG, "WorkflowLauncher:__init__")
 
-        self.cmd = cmd
         self.wfPolicy = wfPolicy
 
     ##
