@@ -72,7 +72,7 @@ class WorkflowManager:
         if self._monitor:
             self._monitor.stopWorkflow(urgency)
         else:
-            self.logger.log(Log.INFO, "Workflow %s is not running", self.name)
+            self.logger.log(Log.INFO, "Workflow %s is not running" % self.name)
 
     ##
     # @brief carry out post-execution tasks for removing workflow data and
