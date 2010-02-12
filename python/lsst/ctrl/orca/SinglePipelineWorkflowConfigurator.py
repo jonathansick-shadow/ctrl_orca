@@ -123,12 +123,30 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
         pw.close()
 
 
+    def rewritePipelinePolicy(self, pipelinePolicy):
+        workDir = self.dirs.get("work")
+        filename = pipelinePolicy.getFile("definition").getPath()
+        oldPolicy = pol.Policy.createPolicy(filename, False)
+        if self.prodPolicy.exists("eventBrokerHost"):
+            oldPolicy.set("execute.eventBrokerHost", self.prodPolicy.get("eventBrokerHost"))
+
+        if self.prodPolicy.exists("shutdownTopic"):
+            oldPolicy.set("execute.shutdownTopic", self.prodPolicy.get("shutdownTopic"))
+        if self.prodPolicy.exists("logThreshold"):
+            oldPolicy.set("execute.logThreshold", self.prodPolicy.get("logThreshold"))
+        newPolicyFile = os.path.join(workDir, filename)
+        pw = pol.PAFWriter(newPolicyFile)
+        pw.write(oldPolicy)
+        pw.close()
+
     ##
     # @brief 
     #
     def deploySetup(self, pipelinePolicy):
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:deploySetup")
 
+        self.rewritePipelinePolicy(pipelinePolicy)
+        
         # write the nodelist to "work"
         self.writeNodeList()
 
