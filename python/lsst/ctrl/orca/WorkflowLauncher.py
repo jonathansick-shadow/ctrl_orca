@@ -17,28 +17,21 @@ class WorkflowLauncher:
     # constructor, in which case the fromSub parameter must be
     # set to True.
     # 
+    # @param cmd         the command to launch
     # @param logger      the logger used by the caller.  This class
     #                       will set this create a child log with the
     #                       subname "config".  A sub class may wish to
     #                       reset the child logger for a different subname.
     # 
-    def __init__(self, logger, workflowPolicy):
+    def __init__(self, cmd, wfPolicy, logger = None):
         if not logger:
             logger = Log.getDefaultLog()
         self.parentLogger = logger
         self.logger = Log(logger, "launch")
         self.logger.log(Log.DEBUG, "WorkflowLauncher:__init__")
 
-        self.workflowPolicy = workflowPolicy
-
-    ##
-    # @brief launch this workflow
-    #
-    def launch(self):
-        self.logger.log(Log.DEBUG, "WorkflowLauncher:launch")
-
-        self.workflowMonitor = WorkflowMonitor(self.logger, workflowPolicy)
-        return self.workflowMonitor # returns WorkflowMonitor
+        self.cmd = cmd
+        self.wfPolicy = wfPolicy
 
     ##
     # @brief perform cleanup after workflow has ended.
@@ -47,9 +40,11 @@ class WorkflowLauncher:
         self.logger.log(Log.DEBUG, "WorkflowLauncher:cleanUp")
 
     ##
-    # @brief perform checks on validity of configuration of this workflow
+    # @brief launch this workflow
     #
-    def checkConfiguration(self, care):
-        # the level of care taken in the checks.  In general, the higher
-        # the number of checks that will be done.
-        self.logger.log(Log.DEBUG, "WorkflowLauncher:checkConfiguration")
+    def launch(self, statusListener):
+        self.logger.log(Log.DEBUG, "WorkflowLauncher:launch")
+
+        self.workflowMonitor = WorkflowMonitor(self.logger, self.wfPolicy)
+        self.workflowMonitor.addStatusListener(statusListener)
+        return self.workflowMonitor # returns WorkflowMonitor
