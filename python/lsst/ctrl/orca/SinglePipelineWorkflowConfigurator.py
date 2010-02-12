@@ -22,6 +22,8 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
         self.wfPolicy = wfPolicy
         self.verbosity = None
 
+        self.wfVerbosity = None
+
         self.nodes = None
         self.dirs = None
         self.policySet = sets.Set()
@@ -34,7 +36,7 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
     # @param wfVerbosity
     #
     def configure(self, provSetup, wfVerbosity):
-        self.workflowVerbosity = wfVerbosity
+        self.wfVerbosity = wfVerbosity
         self._configureDatabases(provSetup)
         return self._configureSpecialized(self.wfPolicy)
     
@@ -46,30 +48,16 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
             platformPolicy = pol.Policy.createPolicy(filename)
         else:
             platformPolicy = wfPolicy.getPolicy("platform")
-        print "platformPolicy = ",platformPolicy
+
         self.defaultDomain = platformPolicy.get("deploy.defaultDomain")
         pipelinePolicies = wfPolicy.getPolicyArray("pipeline")
         for pipelinePolicy in pipelinePolicies:
             self.nodes = self.createNodeList(pipelinePolicy)
             self.createDirs(platformPolicy, pipelinePolicy)
-            self.deploySetup(pipelinePolicy)
-            cmd = self.createLaunchCommand(pipelinePolicy)
+            launchCmd = self.deploySetup(pipelinePolicy)
+            self.logger.log(Log.DEBUG, "launchCmd = %s" % launchCmd)
         workflowLauncher = SinglePipelineWorkflowLauncher(self.logger, wfPolicy)
         return workflowLauncher
-
-    ##
-    # @brief create the command which will launch the workflow
-    # @return a string containing the shell commands to execute
-    #
-    def createLaunchCommand(self, pipelinePolicy):
-        self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:createLaunchCommand")
-
-        execPath = pipelinePolicy.get("definition.framework.exec")
-        launchcmd = EnvString.resolve(execPath)
-        filename = "stooge"
-
-        cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % (self.dirs.get("work"), self.script, launchcmd, filename, self.runid, self.verbosity) ]
-        return cmd
 
 
     ##
@@ -145,16 +133,34 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
     def deploySetup(self, pipelinePolicy):
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:deploySetup")
 
-        self.rewritePipelinePolicy(pipelinePolicy)
+        # add things to the pipeline policy and write it out to "work"
+        #self.rewritePipelinePolicy(pipelinePolicy)
+
+        workDir = self.dirs.get("work")
+        filename = pipelinePolicy.getFile("definition").getPath()
+        definitionPolicy = pol.Policy.createPolicy(filename, False)
+        if self.prodPolicy.exists("eventBrokerHost"):
+            definitionPolicy.set("execute.eventBrokerHost", self.prodPolicy.get("eventBrokerHost"))
+
+        if self.prodPolicy.exists("shutdownTopic"):
+            definitionPolicy.set("execute.shutdownTopic", self.prodPolicy.get("shutdownTopic"))
+        if self.prodPolicy.exists("logThreshold"):
+            definitionPolicy.set("execute.logThreshold", self.prodPolicy.get("logThreshold"))
+        newPolicyFile = os.path.join(workDir, filename)
+        pw = pol.PAFWriter(newPolicyFile)
+        pw.write(definitionPolicy)
+        pw.close()
+
         
         # write the nodelist to "work"
         self.writeNodeList()
 
         # copy /bin/sh script responsible for environment setting
 
-        setupPath = pipelinePolicy.get("definition.framework.environment")
+
+        setupPath = definitionPolicy.get("framework.environment")
         if setupPath == None:
-             raise RuntimeError("couldn't find definition.framework.environment")
+             raise RuntimeError("couldn't find framework.environment")
         self.script = EnvString.resolve(setupPath)
 
         if orca.envscript == None:
@@ -162,17 +168,46 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
         else:
             self.script = orca.envscript
 
-        shutil.copy(self.script, self.dirs.get("work"))
+        shutil.copy(self.script, workDir)
 
         # now point at the new location for the setup script
-        self.script = os.path.join(self.dirs.get("work"),os.path.basename(self.script))
+        self.script = os.path.join(workDir, os.path.basename(self.script))
 
         #
         # TODO: Write all policy files out to the work directory, 
         #
+        
+        # first, grab all the file names, and throw them into a Set() to 
+        # avoid duplication
+        pipelinePolicySet = sets.Set()
+        repos = self.prodPolicy.get("repositoryDirectory")
+        self.extractChildPolicies(repos, definitionPolicy, pipelinePolicySet)
 
+        # Cycle through the file names, creating subdirectories as required,
+        # and copy them to the destination directory
+        for policyFile in pipelinePolicySet:
+            destName = policyFile.replace(repos+"/","")
+            tokens = destName.split('/')
+            tokensLength = len(tokens)
+            destinationFile = tokens[len(tokens)-1]
+            destintationDir = workDir
+            for newDestinationDir in tokens[:len(tokens)-1]:
+                newDir = os.path.join(workDir, newDestinationDir)
+                if os.path.exists(newDir) == False:
+                    os.mkdir(newDir)
+                destinationDir = newDir
+            shutil.copyfile(policyFile, os.path.join(destinationDir, destinationFile))
+
+        # write out the launch script
         self.writeLaunchScript()
 
+        # create the launch command
+        execPath = definitionPolicy.get("framework.exec")
+        execCmd = EnvString.resolve(execPath)
+
+        cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % (self.dirs.get("work"), self.script, execCmd, filename, self.runid, self.wfVerbosity) ]
+
+        return cmd
     ##
     # @brief write a shell script to launch a workflow
     #
