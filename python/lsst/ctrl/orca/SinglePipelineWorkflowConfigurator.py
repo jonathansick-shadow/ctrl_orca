@@ -56,7 +56,7 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
             self.createDirs(platformPolicy, pipelinePolicy)
             launchCmd = self.deploySetup(pipelinePolicy)
             self.logger.log(Log.DEBUG, "launchCmd = %s" % launchCmd)
-        workflowLauncher = SinglePipelineWorkflowLauncher(self.logger, wfPolicy)
+        workflowLauncher = SinglePipelineWorkflowLauncher(launchCmd, wfPolicy, self.logger)
         return workflowLauncher
 
 
