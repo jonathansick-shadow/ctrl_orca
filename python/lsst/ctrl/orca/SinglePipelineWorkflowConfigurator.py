@@ -5,6 +5,7 @@ import lsst.pex.policy as pol
 from lsst.ctrl.orca.Directories import Directories
 from lsst.pex.logging import Log
 
+from lsst.ctrl.orca.PolicyUtils import PolicyUtils
 from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowConfigurator import WorkflowConfigurator
 from lsst.ctrl.orca.SinglePipelineWorkflowLauncher import SinglePipelineWorkflowLauncher
@@ -181,7 +182,7 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
         # avoid duplication
         pipelinePolicySet = sets.Set()
         repos = self.prodPolicy.get("repositoryDirectory")
-        self.extractChildPolicies(repos, definitionPolicy, pipelinePolicySet)
+        PolicyUtils.getAllFilenames(repos, definitionPolicy, pipelinePolicySet)
 
         # Cycle through the file names, creating subdirectories as required,
         # and copy them to the destination directory
@@ -290,38 +291,3 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
                 else:
                     nodeentry = "%s:1" % node
         return nodeentry
-        
-    ##
-    # @brief given a policy, recursively add all child policies to a policy set
-    # 
-    def extractChildPolicies(self, repos, policy, workflowPolicySet):
-        names = policy.fileNames()
-        for name in names:
-            if name.rfind('.') > 0:
-                desc = name[0:name.rfind('.')]
-                field = name[name.rfind('.')+1:]
-                policyObjs = policy.getPolicyArray(desc)
-                for policyObj in policyObjs:
-                    if policyObj.getValueType(field) == pol.Policy.FILE:
-                        filename = policyObj.getFile(field).getPath()
-                        filename = os.path.join(repos, filename)
-                        if (filename in self.policySet) == False:
-                            #self.provenance.recordPolicy(filename)
-                            self.policySet.add(filename)
-                        if (filename in workflowPolicySet) == False:
-                            workflowPolicySet.add(filename)
-                        newPolicy = pol.Policy.createPolicy(filename, False)
-                        self.extractChildPolicies(repos, newPolicy, workflowPolicySet)
-            else:
-                field = name
-                if policy.getValueType(field) == pol.Policy.FILE:
-                    filename = policy.getFile(field).getPath()
-                    filename = policy.getFile(field).getPath()
-                    filename = os.path.join(repos, filename)
-                    if (filename in self.policySet) == False:
-                        #self.provenance.recordPolicy(filename)
-                        self.policySet.add(filename)
-                    if (filename in workflowPolicySet) == False:
-                        workflowPolicySet.add(filename)
-                    newPolicy = pol.Policy.createPolicy(filename, False)
-                    self.extractChildPolicies(repos, newPolicy, workflowPolicySet)
