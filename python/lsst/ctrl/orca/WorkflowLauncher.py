@@ -45,5 +45,6 @@ class WorkflowLauncher:
         self.logger.log(Log.DEBUG, "WorkflowLauncher:launch")
 
         self.workflowMonitor = WorkflowMonitor(self.logger, self.wfPolicy)
-        self.workflowMonitor.addStatusListener(statusListener)
+        if statusListener != None:
+            self.workflowMonitor.addStatusListener(statusListener)
         return self.workflowMonitor # returns WorkflowMonitor

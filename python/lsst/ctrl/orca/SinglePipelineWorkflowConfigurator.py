@@ -21,13 +21,11 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
         self.runid = runid
         self.prodPolicy = prodPolicy
         self.wfPolicy = wfPolicy
-        self.verbosity = None
 
         self.wfVerbosity = None
 
         self.nodes = None
         self.dirs = None
-        self.policySet = sets.Set()
 
     ##
     # @brief Setup as much as possible in preparation to execute the workflow
@@ -40,6 +38,15 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
         self.wfVerbosity = wfVerbosity
         self._configureDatabases(provSetup)
         return self._configureSpecialized(self.wfPolicy)
+    ##
+    # @brief Setup as much as possible in preparation to execute the workflow
+    #            and return a WorkflowLauncher object that will launch the
+    #            configured workflow.
+    # @param policy the workflow policy to use for configuration
+    # @param configurationDict a dictionary containing configuration info
+    # @param provenanceDict a dictionary containing info to record provenance
+    # @param repository policy file repository location
+    #
     
     def _configureSpecialized(self, wfPolicy):
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:configure")
@@ -83,13 +90,6 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
     
     def getNodeCount(self):
         return len(self.nodes)
-
-    ##
-    # @brief prepare the platform by creating directories and writing the node list
-    #
-    def prepPlatform(self):
-        self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:prepPlatform")
-        self.createDirs()
 
     ##
     # @brief write the node list to the "work" directory
@@ -255,7 +255,9 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
         self.dirs = directories.getDirs()
 
         for name in self.dirs.names():
-            if not os.path.exists(self.dirs.get(name)): os.makedirs(self.dirs.get(name))
+            localDirName = self.dirs.get(name)
+            if not os.path.exists(localDirName):
+                os.makedirs(localDirName)
 
     ##
     # @brief set up this workflow's database

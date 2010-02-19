@@ -4,7 +4,7 @@ from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
 from lsst.ctrl.orca.WorkflowLauncher import WorkflowLauncher
 
-class SinglePipelineWorkflowLauncher(WorkflowLauncher):
+class VanillaCondorWorkflowLauncher(WorkflowLauncher):
     ##
     # @brief
     #
