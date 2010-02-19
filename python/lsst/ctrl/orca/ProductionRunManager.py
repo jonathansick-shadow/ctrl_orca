@@ -1,8 +1,9 @@
 from __future__ import with_statement
 
-import os, os.path, sets, threading
+import os, os.path, sets, threading, time
 import lsst.daf.base as base
 import lsst.pex.policy as pol
+import lsst.ctrl.events as events
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.ctrl.orca.StatusListener import StatusListener
 from lsst.pex.logging import Log
@@ -325,28 +326,29 @@ class ProductionRunManager:
 
     class _ShutdownThread(threading.Thread):
         def __init__(self, parent, pollingIntv=0.2, listenTimeout=10):
+            threading.Thread.__init__(self)
             self._parent = parent
             self._pollintv = pollingIntv
             self._timeout = listenTimeout
             brokerhost = parent.policy.get("eventBrokerHost")
             self._topic = parent.policy.get("shutdownTopic")
             self._evsys = events.EventSystem.getDefaultEventSystem()
-            self._evsys.createReceiver(brokerhost, topic)
+            self._evsys.createReceiver(brokerhost, self._topic)
 
         def run(self):
-            self.parent.logger.log(Log.DEBUG,
+            self._parent.logger.log(Log.DEBUG,
                                    "listening for shutdown event at %s s intervals" % self._pollintv)
 
-            self.parent.logger.log(Log.DEBUG-10, "checking for shutdown event")
+            self._parent.logger.log(Log.DEBUG-10, "checking for shutdown event")
             shutdownData = self._evsys.receive(self._topic, self._timeout)
-            while self.parent.isRunning() and shutdownData is None:
+            while self._parent.isRunning() and shutdownData is None:
                 time.sleep(self._pollintv)
-                self.parent.logger.log(Log.DEBUG-10, "checking for shutdown event")
+                self._parent.logger.log(Log.DEBUG-10, "checking for shutdown event")
                 shutdownData = self._evsys.receive(self._topic, self._timeout)
 
             if shutdownData:
-                self.parent.stopProduction(shutdownData.getInt("level"))
+                self._parent.stopProduction(shutdownData.getInt("level"))
 
     def _startShutdownThread(self):
-        sdthread = _ShutdownThread(self)
+        sdthread = ProductionRunManager._ShutdownThread(self)
         sdthread.start()
