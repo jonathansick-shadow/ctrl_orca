@@ -90,6 +90,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
     def writeCondorFile(self, pipelinePolicy):
         self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:writeCondorFile")
 
+        filename = None
         if pipelinePolicy.getValueType("definition") == pol.Policy.FILE:
             filename = pipelinePolicy.getFile("definition").getPath()
             definitionPolicy = pol.Policy.createPolicy(filename, False)
@@ -103,8 +104,14 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         setupScriptBasename = os.path.basename(orca.envscript)
         remoteSetupScriptName = os.path.join(self.dirs.get("work"), setupScriptBasename)
        
+        shortName = pipelinePolicy.get("shortName")
+
+        if filename == None:
+            policyName = filename
+        else:
+            policyName = shortName
         launchArgs = "%s %s -L %s -S %s" % \
-             (self.workflow+".paf", self.runid, self.wfVerbosity, remoteSetupScriptName)
+             (policyName+".paf", self.runid, self.wfVerbosity, remoteSetupScriptName)
         print "launchArgs = %s",launchArgs
 
 
@@ -112,7 +119,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
 
         shortName = pipelinePolicy.get("shortName")
         # Write Condor file 
-        condorJobfile =  os.path.join(self.localStagingDir, self.workflow+".condor")
+        condorJobfile =  os.path.join(self.localStagingDir, shortName+".condor")
 
         clist = []
         clist.append("universe=vanilla\n")
