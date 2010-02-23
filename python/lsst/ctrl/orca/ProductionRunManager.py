@@ -168,7 +168,7 @@ class ProductionRunManager:
 
                 statusListener = StatusListener(self.logger)
                 # this will block until the monitor is created.
-                mgr.runWorkflow(statusListener)
+                monitor = mgr.runWorkflow(statusListener)
 
         finally:
             self._locked.release()
@@ -327,6 +327,7 @@ class ProductionRunManager:
     class _ShutdownThread(threading.Thread):
         def __init__(self, parent, pollingIntv=0.2, listenTimeout=10):
             threading.Thread.__init__(self)
+            self.setDaemon(False)
             self._parent = parent
             self._pollintv = pollingIntv
             self._timeout = listenTimeout

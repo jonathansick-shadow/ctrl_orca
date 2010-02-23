@@ -119,7 +119,7 @@ class ProductionRunConfigurator:
             # copy in appropriate production level info into workflow Node  -- ?
 
             workflowManager = self.createWorkflowManager(wfPolicy, self.prodPolicy)
-            workflowManager.configure(self._provSetup, workflowVerbosity)
+            workflowLauncher = workflowManager.configure(self._provSetup, workflowVerbosity)
             workflowManagers.append(workflowManager)
 
         return workflowManagers

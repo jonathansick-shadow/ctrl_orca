@@ -64,6 +64,7 @@ class WorkflowManager:
 
         finally:
             self._locked.release()
+        return self._monitor
 
     ##
     # @brief stop the workflow.
