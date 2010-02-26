@@ -74,6 +74,8 @@ class ProductionRunManager:
         if not os.path.isdir(self.repository):
             raise RuntimeError("specified repository "+ self.repository + ": not a directory");
 
+        # shutdown thread
+        self._sdthread = None
 
     ##
     # @brief returns the runid of this production run
@@ -327,7 +329,7 @@ class ProductionRunManager:
     class _ShutdownThread(threading.Thread):
         def __init__(self, parent, pollingIntv=0.2, listenTimeout=10):
             threading.Thread.__init__(self)
-            self.setDaemon(False)
+            self.setDaemon(True)
             self._parent = parent
             self._pollintv = pollingIntv
             self._timeout = listenTimeout
@@ -341,15 +343,26 @@ class ProductionRunManager:
                                    "listening for shutdown event at %s s intervals" % self._pollintv)
 
             self._parent.logger.log(Log.DEBUG-10, "checking for shutdown event")
+            self._parent.logger.log(Log.DEBUG, "self._timeout = %s" % self._timeout)
             shutdownData = self._evsys.receive(self._topic, self._timeout)
             while self._parent.isRunning() and shutdownData is None:
-                time.sleep(self._pollintv)
-                self._parent.logger.log(Log.DEBUG-10, "checking for shutdown event")
+                # really don't need to poll here, since the event receive has a polling timeout
+                #time.sleep(self._pollintv)
+                #self._parent.logger.log(Log.DEBUG-10, "checking for shutdown event")
                 shutdownData = self._evsys.receive(self._topic, self._timeout)
+            self._parent.logger.log(Log.DEBUG, "DONE!")
 
             if shutdownData:
                 self._parent.stopProduction(shutdownData.getInt("level"))
+            self._parent.logger.log(Log.DEBUG, "All finished")
 
     def _startShutdownThread(self):
-        sdthread = ProductionRunManager._ShutdownThread(self)
-        sdthread.start()
+        self._sdthread = ProductionRunManager._ShutdownThread(self)
+        self._sdthread.start()
+
+    def getShutdownThread(self):
+        return self._sdthread
+
+    def joinShutdownThread(self):
+        if self._sdthread is not None:
+            self._sdthread.join()
