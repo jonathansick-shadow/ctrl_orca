@@ -82,13 +82,16 @@ class ProductionRunConfigurator:
         # adding them to a Set() to avoid recording provenance on a file more than
         # once, and then add all of those files to provSetup.
 
-        names = self.prodPolicy.fileNames()
-        for name in names:
-            if self.prodPolicy.getValueType(name) == Policy.FILE:
-                # TODO: There's a bug in Policy that prevents retrieving all 
-                # files -  we want all files, not just one.  
-                filename = self.prodPolicy.getFile(name).getPath()
-                self._provSetup.addProductionPolicyFile(name)
+        #names = self.prodPolicy.fileNames()
+        #for name in names:
+        #    if self.prodPolicy.getValueType(name) == Policy.FILE:
+        #        # TODO: There's a bug in Policy that prevents retrieving all 
+        #        # files -  we want all files, not just one.  
+        #        filename = self.prodPolicy.getFile(name).getPath()
+        #        self._provSetup.addProductionPolicyFile(name)
+
+        print "self._prodPolicyFile = ",self._prodPolicyFile
+        self._provSetup.addAllProductionPolicyFiles(self._prodPolicyFile)
             
         #
         # setup the database for each database listed in production policy.
