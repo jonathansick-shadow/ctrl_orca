@@ -199,49 +199,35 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
                 destinationDir = newDir
             shutil.copyfile(policyFile, os.path.join(destinationDir, destinationFile))
 
-        # write out the launch script
-        self.writeLaunchScript()
 
         # create the launch command
         execPath = definitionPolicy.get("framework.exec")
         execCmd = EnvString.resolve(execPath)
 
-        cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % (self.dirs.get("work"), self.script, execCmd, filename, self.runid, self.wfVerbosity) ]
+        
+        #cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % (self.dirs.get("work"), self.script, execCmd, filename, self.runid, self.wfVerbosity) ]
 
-        return cmd
-    ##
-    # @brief write a shell script to launch a workflow
-    #
-    def writeLaunchScript(self):
+        # write out the launch script
         # write out the script we use to kick things off
         name = os.path.join(self.dirs.get("work"), "orca_launch.sh")
-
-        # TODO: This needs to be replaced with an invocation of the Provence script, which
-        # is going to be in ctrl_provenance
-        #
-        #user = self.provenanceDict["user"]
-        #runid = self.provenanceDict["runid"]
-        #dbrun = self.provenanceDict["dbrun"]
-        #dbglobal = self.provenanceDict["dbglobal"]
-        #repos = self.provenanceDict["repos"]
-        #
-        #filename = os.path.join(self.dirs.get("work"), self.configurationDict["filename"])
 
         #s = "ProvenanceRecorder.py --type=%s --user=%s --runid=%s --dbrun=%s --dbglobal=%s --filename=%s --repos=%s\n" % ("lsst.ctrl.orca.provenance.BasicRecorder", user, runid, dbrun, dbglobal, filename, repos)
 
         launcher = open(name, 'w')
         launcher.write("#!/bin/sh\n")
-
-        launcher.write("echo $PATH >path.txt\n")
+        launcher.write("cd %s\n" % self.dirs.get("work"))
+        launcher.write("source %s\n" %self.script)
         launcher.write("eups list 2>/dev/null | grep Setup >eups-env.txt\n")
-        launcher.write("workflow=`echo ${1} | sed -e 's/\..*$//'`\n")
         #launcher.write(s)
-        launcher.write("#$CTRL_ORCA_DIR/bin/writeNodeList.py %s nodelist.paf\n" % self.dirs.get("work"))
-        launcher.write("nohup $PEX_HARNESS_DIR/bin/launchWorkflow.py $* > ${workflow}-${2}.log 2>&1  &\n")
+        launcher.write("%s %s %s -L %s\n" % (execCmd, filename, self.runid, self.wfVerbosity))
         launcher.close()
         # make it executable
         os.chmod(name, stat.S_IRWXU)
-        return
+
+        launchCmd = ["ssh", self.masterNode, name]
+
+        print "cmd to execute is: ",launchCmd
+        return launchCmd
 
     ##
     # @brief create the platform.dir directories

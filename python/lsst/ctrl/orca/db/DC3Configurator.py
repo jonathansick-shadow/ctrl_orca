@@ -1,62 +1,80 @@
 import os, stat
 import lsst.ctrl.orca as orca
+import lsst.ctrl.provenance.dc3 as dc3
 from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
 from lsst.ctrl.orca.db.MySQLConfigurator import MySQLConfigurator
 
-class DC3aConfigurator:
-    def __init__(self, runid, policy, logger=None):
+class DC3Configurator:
+    def __init__(self, runid, dbPolicy, prodPolicy=None, wfPolicy=None, logger=None):
         """
         create a generic 
         @param type      the category of configurator
-        @param policy    the policy to use in the configuration
+        @param dbPolicy  the database policy
         @param logger    the caller's Log instance from which this manager can.
                             create a child Log
         """
         if logger is None:  logger = orca.logger
         self.logger = Log(logger, "dbconfig")
 
-        self.logger.log(Log.DEBUG, "Dc3aConfigurator:__init__")
+        self.logger.log(Log.DEBUG, "DC3Configurator:__init__")
         self.type = "mysql"
         self.runid = runid
-        self.policy = policy
+        self.dbPolicy = dbPolicy
         self.delegate = None
+
+        self.platformName = ""
+        self.prodPolicy = prodPolicy
+        if self.prodPolicy is not None:
+            self.platformName = "production"
+        self.wfPolicy = wfPolicy
 
         #
         # extract the databaseConfig.database policy to get required
         # parameters from it.
 
-        dbHostName = policy.get("system.authInfo.host");
-        portNo = policy.get("system.authInfo.port");
-        globalDbName = policy.get("configuration.globalDbName")
-        dcVersion = policy.get("configuration.dcVersion")
-        dcDbName = policy.get("configuration.dcDbName")
-        minPercDiskSpaceReq = policy.get("configuration.minPercDiskSpaceReq")
-        userRunLife = policy.get("configuration.userRunLife")
-
-        self.dbPolicy = policy
+        dbHostName = dbPolicy.get("system.authInfo.host");
+        portNo = dbPolicy.get("system.authInfo.port");
+        globalDbName = dbPolicy.get("configuration.globalDbName")
+        dcVersion = dbPolicy.get("configuration.dcVersion")
+        dcDbName = dbPolicy.get("configuration.dcDbName")
+        minPercDiskSpaceReq = dbPolicy.get("configuration.minPercDiskSpaceReq")
+        userRunLife = dbPolicy.get("configuration.userRunLife")
 
         self.delegate = MySQLConfigurator(dbHostName, portNo, globalDbName, dcVersion, dcDbName, minPercDiskSpaceReq, userRunLife)
 
     def setup(self, provSetup):
-        self.logger.log(Log.DEBUG, "Dc3aConfigurator:setup")
+        self.logger.log(Log.DEBUG, "DC3Configurator:setup")
+
         # TODO: use provSetup when it's implemented
-        self.setupInternal()
+
+        dbNames = self.setupInternal()
+
+        # construct dbRun and dbGlobal URLs here
+
+        dbBaseURL = self.getHostURL()
+        dbRun = dbBaseURL+"/"+dbNames[0];
+        dbGlobal = dbBaseURL+"/"+dbNames[1];
+
+        print "dbRun =",dbRun
+        print "dbGlobal =",dbGlobal
+        recorder = dc3.Recorder(self.runid, self.prodPolicy.get("shortName"), self.platformName, dbRun, dbGlobal, 0, None, self.logger)
+        provSetup.addProductionRecorder(recorder)
 
     def setupInternal(self):
-        self.logger.log(Log.DEBUG, "Dc3aConfigurator:setupInternal")
+        self.logger.log(Log.DEBUG, "DC3Configurator:setupInternal")
 
         self.checkConfiguration(self.dbPolicy)
         dbNames = self.prepareForNewRun(self.runid)
         return dbNames
 
     def checkConfiguration(self, val):
-        self.logger.log(Log.DEBUG, "Dc3aConfigurator:checkConfiguration")
+        self.logger.log(Log.DEBUG, "DC3Configurator:checkConfiguration")
         # TODO: use val when implemented
         self.checkConfigurationInternal()
 
     def checkConfigurationInternal(self):
-        self.logger.log(Log.DEBUG, "Dc3aConfigurator:checkConfigurationInternal")
+        self.logger.log(Log.DEBUG, "DC3Configurator:checkConfigurationInternal")
         #
         # first, check that the $HOME/.lsst directory is protected
         #
@@ -72,7 +90,7 @@ class DC3aConfigurator:
         #
         # now, look up, and initialize the authorization information for host and port
         #
-        self.initAuthInfo(self.policy)
+        self.initAuthInfo(self.dbPolicy)
 
         # 
         # Now that everything looks sane, execute the delegate's checkStatus method 

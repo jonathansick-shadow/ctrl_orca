@@ -5,7 +5,7 @@ from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.ctrl.orca.WorkflowManager import WorkflowManager
 from lsst.pex.logging import Log
 from lsst.pex.policy import Policy, NameNotFound
-from lsst.ctrl.orca.ProvenanceSetup import ProvenanceSetup
+from lsst.ctrl.provenance.ProvenanceSetup import ProvenanceSetup
 import lsst.pex.exceptions as pexEx
 
 class ProductionRunConfigurator:
@@ -153,7 +153,7 @@ class ProductionRunConfigurator:
         className = databasePolicy.get("configurationClass")
         classFactory = NamedClassFactory()
         configurationClass = classFactory.createClass(className)
-        configurator = configurationClass(self.runid, databasePolicy, self.logger)
+        configurator = configurationClass(self.runid, databasePolicy, self.prodPolicy, None, self.logger)
         return configurator
 
     ##
