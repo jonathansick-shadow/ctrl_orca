@@ -1,50 +1,80 @@
-import os
-import stat
+import os, stat
 import lsst.ctrl.orca as orca
+import lsst.ctrl.provenance.dc3 as dc3
 from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
-# TODO: remove this next line when we get named plugin instantiation
-from lsst.ctrl.orca.dbservers.MySQLConfigurator import MySQLConfigurator
+from lsst.ctrl.orca.db.MySQLConfigurator import MySQLConfigurator
 
-class DatabaseConfigurator:
-    def __init__(self, type, policy, logger=None):
+class DC3Configurator:
+    def __init__(self, runid, dbPolicy, prodPolicy=None, wfPolicy=None, logger=None):
         """
         create a generic 
         @param type      the category of configurator
-        @param policy    the policy to use in the configuration
+        @param dbPolicy  the database policy
         @param logger    the caller's Log instance from which this manager can.
                             create a child Log
         """
         if logger is None:  logger = orca.logger
         self.logger = Log(logger, "dbconfig")
 
-        self.type = type
+        self.logger.log(Log.DEBUG, "DC3Configurator:__init__")
+        self.type = "mysql"
+        self.runid = runid
+        self.dbPolicy = dbPolicy
         self.delegate = None
+
+        self.platformName = ""
+        self.prodPolicy = prodPolicy
+        if self.prodPolicy is not None:
+            self.platformName = "production"
+        self.wfPolicy = wfPolicy
 
         #
         # extract the databaseConfig.database policy to get required
         # parameters from it.
 
-        dbHostName = policy.get("database.authInfo.host");
-        portNo = policy.get("database.authInfo.port");
-        globalDbName = policy.get("database.globalSetup.globalDbName")
-        dcVersion = policy.get("database.globalSetup.dcVersion")
-        dcDbName = policy.get("database.globalSetup.dcDbName")
-        minPercDiskSpaceReq = policy.get("database.globalSetup.minPercDiskSpaceReq")
-        userRunLife = policy.get("database.globalSetup.userRunLife")
+        dbHostName = dbPolicy.get("system.authInfo.host");
+        portNo = dbPolicy.get("system.authInfo.port");
+        globalDbName = dbPolicy.get("configuration.globalDbName")
+        dcVersion = dbPolicy.get("configuration.dcVersion")
+        dcDbName = dbPolicy.get("configuration.dcDbName")
+        minPercDiskSpaceReq = dbPolicy.get("configuration.minPercDiskSpaceReq")
+        userRunLife = dbPolicy.get("configuration.userRunLife")
 
-        self.dbPolicy = policy
+        self.delegate = MySQLConfigurator(dbHostName, portNo, globalDbName, dcVersion, dcDbName, minPercDiskSpaceReq, userRunLife)
 
+    def setup(self, provSetup):
+        self.logger.log(Log.DEBUG, "DC3Configurator:setup")
 
-        # TODO: change this to instantiate class given the name, without
-        # having to resort to checking types as below
-        if type == "MySQL":
-            self.delegate = MySQLConfigurator(dbHostName, portNo, globalDbName, dcVersion, dcDbName, minPercDiskSpaceReq, userRunLife)
-        else:
-            raise RuntimeError("Couldn't find Configurator for "+type)
+        # TODO: use provSetup when it's implemented
 
+        dbNames = self.setupInternal()
 
-    def checkConfiguration(self, policy):
+        # construct dbRun and dbGlobal URLs here
+
+        dbBaseURL = self.getHostURL()
+        dbRun = dbBaseURL+"/"+dbNames[0];
+        dbGlobal = dbBaseURL+"/"+dbNames[1];
+
+        print "dbRun =",dbRun
+        print "dbGlobal =",dbGlobal
+        recorder = dc3.Recorder(self.runid, self.prodPolicy.get("shortName"), self.platformName, dbRun, dbGlobal, 0, None, self.logger)
+        provSetup.addProductionRecorder(recorder)
+
+    def setupInternal(self):
+        self.logger.log(Log.DEBUG, "DC3Configurator:setupInternal")
+
+        self.checkConfiguration(self.dbPolicy)
+        dbNames = self.prepareForNewRun(self.runid)
+        return dbNames
+
+    def checkConfiguration(self, val):
+        self.logger.log(Log.DEBUG, "DC3Configurator:checkConfiguration")
+        # TODO: use val when implemented
+        self.checkConfigurationInternal()
+
+    def checkConfigurationInternal(self):
+        self.logger.log(Log.DEBUG, "DC3Configurator:checkConfigurationInternal")
         #
         # first, check that the $HOME/.lsst directory is protected
         #
@@ -60,7 +90,7 @@ class DatabaseConfigurator:
         #
         # now, look up, and initialize the authorization information for host and port
         #
-        self.initAuthInfo(policy)
+        self.initAuthInfo(self.dbPolicy)
 
         # 
         # Now that everything looks sane, execute the delegate's checkStatus method 
@@ -125,10 +155,10 @@ class DatabaseConfigurator:
     # If there is no match, an exception is thrown.
     # 
     def initAuthInfo(self, policy):
-        host = policy.get("database.authInfo.host")
+        host = policy.get("system.authInfo.host")
         if host == None:
             raise RuntimeError("database host must be specified in policy")
-        port = policy.get("database.authInfo.port")
+        port = policy.get("system.authInfo.port")
         if port == None:
             raise RuntimeError("database port must be specified in policy")
         dbPolicyCredentialsFile = os.path.join(os.environ["HOME"], ".lsst/db-auth.paf")
