@@ -163,7 +163,8 @@ class ProductionRunManager:
                 self.checkConfiguration(checkCare)
 
             provSetup = self._productionRunConfigurator.getProvenanceSetup()
-            provSetup.recordProduction()
+            # SRP - temp comment out the next line
+            #provSetup.recordProduction()
 
             for workflow in self._workflowManagers["__order"]:
                 mgr = self._workflowManagers[workflow.getName()]
@@ -176,8 +177,9 @@ class ProductionRunManager:
             self._locked.release()
 
         # start the thread that will listen for shutdown events
-        if self.policy.exists("shutdownTopic"):
+        if self.policy.exists("productionShutdownTopic"):
             self._startShutdownThread()
+        print "done with shutdown thread"
 
     ##
     # @brief determine whether production is currently running
@@ -229,7 +231,7 @@ class ProductionRunManager:
         # general, the higher the number, the more checks that are made.
         self.logger.log(Log.DEBUG, "checkConfiguration")
 
-        if not self.workflowManagers:
+        if not self._workflowManagers:
             msg = "%s: production has not been configured yet" % self.runid
             if self._name:
                 msg = "%s %s" % (self._name, msg)
@@ -247,8 +249,8 @@ class ProductionRunManager:
         self._productionRunConfigurator.checkConfiguration(care, myProblems)
 
         # check configuration for each workflow
-        for workflow in self.workflowManagers["__order"]:
-            workflowMgr = self.workflowManagers[workflow]
+        for workflow in self._workflowManagers["__order"]:
+            workflowMgr = self._workflowManagers[workflow]
             workflowMgr.checkConfiguration(care, myProblems)
 
         if not issueExc and myProblems.hasProblems():
@@ -277,17 +279,19 @@ class ProductionRunManager:
             self.logger.log(Log.INFO,
                             "Shutting down production (urgency=%s)" % urgency)
 
-        for workflow in self.workflowManagers["__order"]:
-            workflowMgr = self.workflowManagers[workflow]
-            workflowMgr.stopProduction(urgency)
+        for workflow in self._workflowManagers["__order"]:
+            print "workflow = ",workflow
+            print "workflow.getName() = ",workflow.getName()
+            workflowMgr = self._workflowManagers[workflow.getName()]
+            workflowMgr.stopWorkflow(urgency)
 
         pollintv = 0.2
         running = self.isRunning()
         lasttime = time.time()
         while running and timeout > 0:
             time.sleep(pollintv)
-            for workflow in self.workflowManagers["__order"]:
-                running = self.workflowManagers[workflow].isRunning()
+            for workflow in self._workflowManagers["__order"]:
+                running = self._workflowManagers[workflow.getName()].isRunning()
                 if running:  break
             timeout -= time.time() - lasttime
         if not running:
@@ -308,8 +312,8 @@ class ProductionRunManager:
     # that can be passed to getWorkflowManager()
     #
     def getWorkflowNames(self):
-        if self.workflowManagers:
-            return self.workflowManagers["__order"]
+        if self._workflowManagers:
+            return self._workflowManagers["__order"]
         elif self._productionRunConfigurator:
             return self._productionRunConfigurator.getWorkflowNames()
         else:
@@ -322,9 +326,9 @@ class ProductionRunManager:
     #             created yet or name is not one of the names returned
     #             by getWorkflowNames()
     def getWorkflowManager(self, name):
-        if not self.workflowManagers or not self.workflowManagers.has_key(name):
+        if not self._workflowManagers or not self._workflowManagers.has_key(name):
             return None
-        return self.workflowManagers[name]
+        return self._workflowManagers[name]
 
     class _ShutdownThread(threading.Thread):
         def __init__(self, parent, pollingIntv=0.2, listenTimeout=10):
@@ -334,7 +338,7 @@ class ProductionRunManager:
             self._pollintv = pollingIntv
             self._timeout = listenTimeout
             brokerhost = parent.policy.get("eventBrokerHost")
-            self._topic = parent.policy.get("shutdownTopic")
+            self._topic = parent.policy.get("productionShutdownTopic")
             self._evsys = events.EventSystem.getDefaultEventSystem()
             self._evsys.createReceiver(brokerhost, self._topic)
 
