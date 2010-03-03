@@ -334,4 +334,3 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
     #
     def setupDatabase(self):
         self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:setupDatabase")
-
