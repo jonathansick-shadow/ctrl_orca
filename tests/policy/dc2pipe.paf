@@ -19,6 +19,7 @@ policyRepository: .
 
 # the file containing the input data list
 exposureList:  test.data
+productionRunConfiguratorClass: lsst.ctrl.orca.BasicProductionRunConfigurator
 
 pipelines: {
   imageSubtractionDetection: {

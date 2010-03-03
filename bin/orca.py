@@ -9,11 +9,14 @@ from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
 from lsst.ctrl.orca.ProductionRunManager import ProductionRunManager 
 
-usage = """usage: %prog [-ndvqs] [-r dir] [-e script] [-V int][-L lev] pipelinePolicyFile runId"""
+usage = """usage: %prog [-ndvqsc] [-r dir] [-e script] [-V int][-L lev] pipelinePolicyFile runId"""
 
 parser = optparse.OptionParser(usage)
 # TODO: handle "--dryrun"
 parser.add_option("-n", "--dryrun", action="store_true", dest="dryrun", default=False, help="print messages, but don't execute anything")
+
+parser.add_option("-c", "--configcheck", action="store_true", dest="skipconfigcheck", default=False, help="skip configuration check")
+
 parser.add_option("-V", "--verbosity", type="int", action="store", dest="verbosity", default=0, metavar="int", help="orca verbosity level (0=normal, 1=debug, -1=quiet, -3=silent)")
 parser.add_option("-r", "--policyRepository", type="string", action="store",
               dest="repository", default=None, metavar="dir",
@@ -29,6 +32,7 @@ parser.add_option("-q", "--quiet", action="store_const", const=-1,
                   dest="verbosity", help="print only warning & error messages")
 parser.add_option("-s", "--silent", action="store_const", const=-3,
                   dest="verbosity", help="print nothing (if possible)")
+parser.add_option("-P", "--pipeverb", type="int", action="store", dest="pipeverb", default=0, metavar="int", help="pipeline verbosity level (0=normal, 1=debug, -1=quiet, -3=silent)")
 run.addVerbosityOption(parser, dest="pipeverb")
 
 parser.opts = {}
@@ -63,8 +67,9 @@ orca.logger.log(Log.DEBUG,"pipelinePolicyFile = "+pipelinePolicyFile)
 orca.logger.log(Log.DEBUG, "runId = "+runId)
 
 # create the ProductionRunManager, configure it, and launch it
-productionRunManager = ProductionRunManager(pipeVerb=parser.opts.pipeverb)
-productionRunManager.configure(pipelinePolicyFile, runId)
-productionRunManager.checkConfiguration()
-productionRunManager.launch()
+#productionRunManager = ProductionRunManager(runId, pipelinePolicyFile, orca.logger, pipelineVerbosity=parser.opts.pipeverb)
+productionRunManager = ProductionRunManager(runId, pipelinePolicyFile, orca.logger)
 
+
+productionRunManager.runProduction(skipConfigCheck=parser.opts.skipconfigcheck, workflowVerbosity=parser.opts.pipeverb)
+productionRunManager.joinShutdownThread()
