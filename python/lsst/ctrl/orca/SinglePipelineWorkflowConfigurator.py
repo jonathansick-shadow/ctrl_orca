@@ -119,8 +119,8 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
         if self.prodPolicy.exists("eventBrokerHost"):
             oldPolicy.set("execute.eventBrokerHost", self.prodPolicy.get("eventBrokerHost"))
 
-        if self.prodPolicy.exists("shutdownTopic"):
-            oldPolicy.set("execute.shutdownTopic", self.prodPolicy.get("shutdownTopic"))
+        if self.wfPolicy.exists("shutdownTopic"):
+            oldPolicy.set("execute.shutdownTopic", self.wfPolicy.get("shutdownTopic"))
         if self.prodPolicy.exists("logThreshold"):
             oldPolicy.set("execute.logThreshold", self.prodPolicy.get("logThreshold"))
         newPolicyFile = os.path.join(workDir, filename)
@@ -143,8 +143,8 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
         if self.prodPolicy.exists("eventBrokerHost"):
             definitionPolicy.set("execute.eventBrokerHost", self.prodPolicy.get("eventBrokerHost"))
 
-        if self.prodPolicy.exists("shutdownTopic"):
-            definitionPolicy.set("execute.shutdownTopic", self.prodPolicy.get("shutdownTopic"))
+        if self.wfPolicy.exists("shutdownTopic"):
+            definitionPolicy.set("execute.shutdownTopic", self.wfPolicy.get("shutdownTopic"))
         if self.prodPolicy.exists("logThreshold"):
             definitionPolicy.set("execute.logThreshold", self.prodPolicy.get("logThreshold"))
         newPolicyFile = os.path.join(workDir, filename)
