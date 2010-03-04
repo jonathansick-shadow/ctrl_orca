@@ -5,4 +5,3 @@ verbosity = 0
 repository = None
 envscript = None
 logger = Log(Log.getDefaultLog(), "orca")
-
