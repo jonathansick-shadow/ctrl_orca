@@ -3,24 +3,34 @@ from lsst.pex.logging import Log
 from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
 
+##
+# @brief an abstract class for configuring a workflow
+#
+# This class should not be used directly but rather must be subclassed,
+# providing an implementation for _configureSpecialized.
+# 
 class WorkflowLauncher:
     ##
     # @brief
     #
-    def __init__(self, cmd, workflow, logger):
-        self.logger = logger
+    # This constructor should only be called from a subclass's
+    # constructor, in which case the fromSub parameter must be
+    # set to True.
+    # 
+    # @param wfPolcy     workflow policy
+    # @param logger      the logger used by the caller.  This class
+    #                       will set this create a child log with the
+    #                       subname "config".  A sub class may wish to
+    #                       reset the child logger for a different subname.
+    # 
+    def __init__(self, wfPolicy, logger = None):
+        if not logger:
+            logger = Log.getDefaultLog()
+        self.parentLogger = logger
+        self.logger = Log(logger, "launch")
         self.logger.log(Log.DEBUG, "WorkflowLauncher:__init__")
-        self.cmd = cmd
-        self.workflow = workflow
 
-    ##
-    # @brief launch this workflow
-    #
-    def launch(self):
-        self.logger.log(Log.DEBUG, "WorkflowLauncher:launch")
-
-        self.workflowMonitor = WorkflowMonitor(self.logger)
-        return self.workflowMonitor # returns WorkflowMonitor
+        self.wfPolicy = wfPolicy
 
     ##
     # @brief perform cleanup after workflow has ended.
@@ -29,9 +39,12 @@ class WorkflowLauncher:
         self.logger.log(Log.DEBUG, "WorkflowLauncher:cleanUp")
 
     ##
-    # @brief perform checks on validity of configuration of this workflow
+    # @brief launch this workflow
     #
-    def checkConfiguration(self, care):
-        # the level of care taken in the checks.  In general, the higher
-        # the number of checks that will be done.
-        self.logger.log(Log.DEBUG, "WorkflowLauncher:checkConfiguration")
+    def launch(self, statusListener):
+        self.logger.log(Log.DEBUG, "WorkflowLauncher:launch")
+
+        self.workflowMonitor = WorkflowMonitor(self.logger, self.wfPolicy)
+        if statusListener != None:
+            self.workflowMonitor.addStatusListener(statusListener)
+        return self.workflowMonitor # returns WorkflowMonitor

@@ -9,14 +9,14 @@ class BasicProductionRunConfigurator(ProductionRunConfigurator):
     ##
     # @brief create a production run given 
     #
-    def __init__(self, runid, policy, repository, logger, verbosity):
+    def __init__(self, logger, runid, policy, verbosity):
         self.logger = logger
         self.logger.log(Log.DEBUG, "BasicProductionConfigurator:__init__")
         self.runid = runid
         self.policy = policy
         self.databaseConfigurator = None
         self.verbosity = verbosity
-        self.repository = repository
+        self.repository = self.policy.get("respositoryDirectory")
         self.provenanceDict = {}
 
         # these are policy settings which can be overriden from what they
