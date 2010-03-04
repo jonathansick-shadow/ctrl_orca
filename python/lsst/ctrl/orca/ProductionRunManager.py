@@ -47,6 +47,9 @@ class ProductionRunManager:
         # cache them here
         self._workflowManagers = None
 
+        # a list of workflow Monitors
+        self._workflowMonitors = []
+
         # the cached ProductionRunConfigurator instance
         self._productionRunConfigurator = None
 
@@ -172,6 +175,7 @@ class ProductionRunManager:
                 statusListener = StatusListener(self.logger)
                 # this will block until the monitor is created.
                 monitor = mgr.runWorkflow(statusListener)
+                self._workflowMonitors.append(monitor)
 
         finally:
             self._locked.release()
@@ -179,13 +183,23 @@ class ProductionRunManager:
         # start the thread that will listen for shutdown events
         if self.policy.exists("productionShutdownTopic"):
             self._startShutdownThread()
-        print "done with shutdown thread"
 
     ##
     # @brief determine whether production is currently running
     #
     def isRunning(self):
-        return self._locked.running
+        #
+        # check each monitor.  If any of them are still running,
+        # the production is still running.
+        #
+        for monitor in self._workflowMonitors:
+            if monitor.isRunning() == True:
+                return True
+
+        with self._locked:
+            self._locked.running = False
+
+        return False
 
     ##
     # @brief determine whether production has completed
@@ -299,7 +313,7 @@ class ProductionRunManager:
                 self._locked.running = False
                 self._locked.done = True
         else:
-            self.logger.log(Log.FAIL, "Failed to shutdown pipelines within timeout: %ss" % timeout)
+            self.logger.log(Log.DEBUG, "Failed to shutdown pipelines within timeout: %ss" % timeout)
             return False
 
         return True
@@ -350,15 +364,16 @@ class ProductionRunManager:
             self._parent.logger.log(Log.DEBUG, "self._timeout = %s" % self._timeout)
             shutdownData = self._evsys.receive(self._topic, self._timeout)
             while self._parent.isRunning() and shutdownData is None:
-                # really don't need to poll here, since the event receive has a polling timeout
-                #time.sleep(self._pollintv)
+                time.sleep(self._pollintv)
                 #self._parent.logger.log(Log.DEBUG-10, "checking for shutdown event")
                 shutdownData = self._evsys.receive(self._topic, self._timeout)
+                #time.sleep(1)
+                #shutdownData = self._evsys.receive(self._topic, 10)
             self._parent.logger.log(Log.DEBUG, "DONE!")
 
             if shutdownData:
                 self._parent.stopProduction(shutdownData.getInt("level"))
-            self._parent.logger.log(Log.DEBUG, "All finished")
+            self._parent.logger.log(Log.DEBUG, "Everything shutdown - All finished")
 
     def _startShutdownThread(self):
         self._sdthread = ProductionRunManager._ShutdownThread(self)

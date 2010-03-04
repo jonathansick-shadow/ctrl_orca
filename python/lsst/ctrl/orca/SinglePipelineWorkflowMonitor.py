@@ -1,4 +1,5 @@
-import os, sys, subprocess
+from __future__ import with_statement
+import os, sys, subprocess, threading, time
 import lsst.ctrl.events as events
 
 from lsst.daf.base import PropertySet
@@ -29,6 +30,43 @@ class SinglePipelineWorkflowMonitor(WorkflowMonitor):
 
         self._eventBrokerHost = eventBrokerHost
         self._shutdownTopic = shutdownTopic
+        self._wfMonitorThread = None
+        self
+
+
+    class _WorkflowMonitorThread(threading.Thread):
+        def __init__(self, parent, eventBrokerHost, eventTopic):
+            threading.Thread.__init__(self)
+            self.setDaemon(True)
+            self._parent = parent
+            self._eventBrokerHost = eventBrokerHost
+            self._eventTopic = eventTopic
+            self._receiver = events.EventReceiver(self._eventBrokerHost, self._eventTopic)
+
+        def run(self):
+            self._parent.logger.log(Log.DEBUG, "SinglePipelineWorkflowMonitor Thread started")
+            # we don't decide when we finish, someone else does.
+            while True:
+                # TODO:  this timeout value should go away when the GIL lock relinquish is implemented in events.
+                time.sleep(1)
+                event = self._receiver.receive(1)
+                if event is not None:
+                    self._parent.handleEvent(event)
+
+    def startMonitorThread(self):
+        with self._locked:
+            self._wfMonitorThread = SinglePipelineWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic)
+            self._wfMonitorThread.start()
+            self._locked.running = True
+
+    def handleEvent(self, event):
+        self.logger.log(Log.DEBUG, "SinglePipelineWorkflowMonitor:handleEventCalled")
+
+        # make sure this is really for us.
+
+        # TODO: Temporarily set to false no matter what event we get.  This needs to differentiate which events it receives.
+        with self._locked:
+            self._locked.running = False
 
     ##
     # @brief stop the workflow

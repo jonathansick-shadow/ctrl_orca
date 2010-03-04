@@ -39,4 +39,5 @@ class SinglePipelineWorkflowLauncher(WorkflowLauncher):
         self.workflowMonitor = SinglePipelineWorkflowMonitor(eventBrokerHost, shutdownTopic, self.logger)
         if statusListener != None:
             self.workflowMonitor.addStatusListener(statusListener)
+        self.workflowMonitor.startMonitorThread()
         return self.workflowMonitor

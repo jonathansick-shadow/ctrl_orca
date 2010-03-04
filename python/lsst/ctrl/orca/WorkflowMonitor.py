@@ -44,7 +44,6 @@ class WorkflowMonitor:
     #        running
     #
     def isRunning(self):
-        self.logger.log(Log.DEBUG, "WorkflowMonitor:isRunning")
         return self._locked.running
 
     ##
