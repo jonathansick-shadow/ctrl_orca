@@ -61,6 +61,13 @@ class DC3Configurator:
         recorder = dc3.Recorder(self.runid, self.prodPolicy.get("shortName"), self.platformName, dbRun, dbGlobal, 0, None, self.logger)
         provSetup.addProductionRecorder(recorder)
 
+        arglist = []
+        arglist.append("--runid=%s" % self.runid)
+        arglist.append("--dbrun=%s" % dbRun)
+        arglist.append("--dbglobal=%s" % dbGlobal)
+        arglist.append("--runoffset=%s" % recorder.getRunOffset())
+        provSetup.addWorkflowRecordCmd("PipelineProvenanceRecorder.py", arglist)
+
     def setupInternal(self):
         self.logger.log(Log.DEBUG, "DC3Configurator:setupInternal")
 

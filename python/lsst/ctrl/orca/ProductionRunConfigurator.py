@@ -90,7 +90,7 @@ class ProductionRunConfigurator:
         #        self._provSetup.addProductionPolicyFile(name)
 
         print "self._prodPolicyFile = ",self._prodPolicyFile
-        self._provSetup.addAllProductionPolicyFiles(self._prodPolicyFile)
+        self._provSetup.addAllProductionPolicyFiles(self._prodPolicyFile, self.repository)
             
         #
         # setup the database for each database listed in production policy.

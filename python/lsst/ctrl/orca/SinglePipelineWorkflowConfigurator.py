@@ -37,7 +37,7 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
     def configure(self, provSetup, wfVerbosity):
         self.wfVerbosity = wfVerbosity
         self._configureDatabases(provSetup)
-        return self._configureSpecialized(self.wfPolicy)
+        return self._configureSpecialized(provSetup, self.wfPolicy)
     ##
     # @brief Setup as much as possible in preparation to execute the workflow
     #            and return a WorkflowLauncher object that will launch the
@@ -48,7 +48,7 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
     # @param repository policy file repository location
     #
     
-    def _configureSpecialized(self, wfPolicy):
+    def _configureSpecialized(self, provSetup, wfPolicy):
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:configure")
         self.shortName = wfPolicy.get("shortName")
         if wfPolicy.getValueType("platform") == pol.Policy.FILE:
@@ -62,7 +62,7 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
         for pipelinePolicy in pipelinePolicies:
             self.nodes = self.createNodeList(pipelinePolicy)
             self.createDirs(platformPolicy, pipelinePolicy)
-            launchCmd = self.deploySetup(pipelinePolicy)
+            launchCmd = self.deploySetup(provSetup, wfPolicy, pipelinePolicy)
             self.logger.log(Log.DEBUG, "launchCmd = %s" % launchCmd)
         workflowLauncher = SinglePipelineWorkflowLauncher(launchCmd, self.prodPolicy, wfPolicy, self.logger)
         return workflowLauncher
@@ -131,7 +131,7 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
     ##
     # @brief 
     #
-    def deploySetup(self, pipelinePolicy):
+    def deploySetup(self, provSetup, wfPolicy, pipelinePolicy):
         self.logger.log(Log.DEBUG, "SinglePipelineWorkflowConfigurator:deploySetup")
 
         # add things to the pipeline policy and write it out to "work"
@@ -204,7 +204,6 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
         execPath = definitionPolicy.get("framework.exec")
         execCmd = EnvString.resolve(execPath)
 
-        
         #cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % (self.dirs.get("work"), self.script, execCmd, filename, self.runid, self.wfVerbosity) ]
 
         # write out the launch script
@@ -218,7 +217,23 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
         launcher.write("cd %s\n" % self.dirs.get("work"))
         launcher.write("source %s\n" %self.script)
         launcher.write("eups list 2>/dev/null | grep Setup >eups-env.txt\n")
-        #launcher.write(s)
+
+        cmds = provSetup.getCmds()
+        workflowPolicies = self.prodPolicy.getArray("workflow")
+        # append the other information we previously didn't have access to
+        for cmd in cmds:
+            wfShortName = wfPolicy.get("shortName")
+            cmd.append("--activityname=%s" % wfShortName)
+            cmd.append("--platform=%s" % wfPolicy.get("platform").getPath())
+            workflowIndex = 0
+            for wfPolicy in workflowPolicies:
+                if wfPolicy.get("shortName") == wfShortName:
+                    cmd.append("--activOffset=%s" % workflowIndex)
+                    break
+                workflowIndex = workflowIndex + 1
+            launchCmd = ' '.join(cmd)
+            launcher.write("# %s\n" % launchCmd)
+        
         launcher.write("%s %s %s -L %s\n" % (execCmd, filename, self.runid, self.wfVerbosity))
         launcher.close()
         # make it executable
