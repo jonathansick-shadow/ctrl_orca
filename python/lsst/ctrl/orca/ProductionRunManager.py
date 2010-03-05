@@ -167,7 +167,7 @@ class ProductionRunManager:
 
             provSetup = self._productionRunConfigurator.getProvenanceSetup()
             # SRP - temp comment out the next line
-            #provSetup.recordProduction()
+            provSetup.recordProduction()
 
             for workflow in self._workflowManagers["__order"]:
                 mgr = self._workflowManagers[workflow.getName()]

@@ -1,6 +1,5 @@
 import os
 from lsst.ctrl.orca.DatabaseConfigurator import DatabaseConfigurator
-from lsst.ctrl.orca.provenance.Provenance import Provenance
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.ctrl.orca.WorkflowManager import WorkflowManager
 from lsst.pex.logging import Log
