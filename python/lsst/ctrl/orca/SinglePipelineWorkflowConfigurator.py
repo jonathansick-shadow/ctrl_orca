@@ -220,19 +220,26 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
 
         cmds = provSetup.getCmds()
         workflowPolicies = self.prodPolicy.getArray("workflow")
-        # append the other information we previously didn't have access to
+
+        # append the other information we previously didn't have access to, but need for recording.
         for cmd in cmds:
             wfShortName = wfPolicy.get("shortName")
             cmd.append("--activityname=%s" % wfShortName)
             cmd.append("--platform=%s" % wfPolicy.get("platform").getPath())
-            workflowIndex = 0
+            cmd.append("--localrepos=%s" % self.dirs.get("work"))
+            workflowIndex = 1
             for wfPolicy in workflowPolicies:
                 if wfPolicy.get("shortName") == wfShortName:
-                    cmd.append("--activOffset=%s" % workflowIndex)
+                    cmd.append("--activoffset=%s" % workflowIndex)
                     break
                 workflowIndex = workflowIndex + 1
             launchCmd = ' '.join(cmd)
-            launcher.write("# %s\n" % launchCmd)
+
+            # extract the pipeline policy and all the files it includes, and add it to the command
+            filelist = provSetup.extractSinglePipelineFileNames(pipelinePolicy, repos, self.logger)
+            fileargs = ' '.join(filelist)
+            launcher.write("%s %s\n" % (launchCmd, fileargs))
+
         
         launcher.write("%s %s %s -L %s\n" % (execCmd, filename, self.runid, self.wfVerbosity))
         launcher.close()
