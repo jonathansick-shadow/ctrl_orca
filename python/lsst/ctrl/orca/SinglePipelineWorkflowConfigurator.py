@@ -210,7 +210,6 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
         # write out the script we use to kick things off
         name = os.path.join(self.dirs.get("work"), "orca_launch.sh")
 
-        #s = "ProvenanceRecorder.py --type=%s --user=%s --runid=%s --dbrun=%s --dbglobal=%s --filename=%s --repos=%s\n" % ("lsst.ctrl.orca.provenance.BasicRecorder", user, runid, dbrun, dbglobal, filename, repos)
 
         launcher = open(name, 'w')
         launcher.write("#!/bin/sh\n")
