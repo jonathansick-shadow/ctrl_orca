@@ -1,16 +1,23 @@
+#! /usr/bin/env python
+
 import lsst.pex.policy as Policy
 import lsst.pex.exceptions as pexExcept
+
+import lsst.daf.base as dafBase
+from lsst.daf.base import *
+
 import os
 
 ##
 # @brief   a determination of the various directory roots that can be 
-#              used by a pipeline.  
+#              used by a workflow.  
 #
-# This class takes a "dir" policy (found in platform policies or pipeline
-# configuration policies) and a run identfier and converts the values into
-# a set of directory paths that a pipeline is allowed to use.  A typical 
+# This class takes a "dir" policy (found in platform policies or workflow
+# configuration policies) and a run identifier and converts the values into
+# a set of directory paths that a workflow is allowed to use.  A typical 
 # use might be:
 # @code
+#   lookup = lsst.daf.base.PropertySet()
 #   dirs = Directories(dirPolicy, "rlp0220")
 #   lookup = dirs.getDirs()
 # @endcode
@@ -18,7 +25,7 @@ import os
 # The schema of the input policy is expected to have the following keys:
 # @verbatim
 #   defaultRoot        the default root directory all files read or 
-#                         written by pipelines deployed on this platform.  
+#                         written by workflows deployed on this platform.  
 #                         This must be an absolute directory.  This can be 
 #                         overriden by any of the "named role" directories 
 #                         below.
@@ -30,26 +37,28 @@ import os
 #                           runid     the unique identifier for the 
 #                                     production run
 #   work               a named directory representing the working directory
-#                         where pipeline policy files are deployed and the 
-#                         pipeline is started from
+#                         where workflow policy files are deployed and the 
+#                         workflow is started from
 #   input              a named directory representing the directory to cache
 #                         or find input data
 #   output             a named directory representing the directory to write
 #                         output data
 #   update             a named directory where updatable data is deployed
 #   scratch            a named directory for temporary files that may be 
-#                         deleted upon completion ofthe pipeline
+#                         deleted upon completion ofthe workflow
 # @endverbatim
 class Directories:
 
     ## 
     # @brief determine the directories from the policy input
     # @param dirPolicy   the "dir" policy containing the 
-    # @param runId       the run ID for the pipeline run (default: "no-id")
-    def __init__(self, dirPolicy, runId="no-id"):
+    # @param shortName   the short name of the workflow
+    # @param runId       the run ID for the workflow run (default: "no-id")
+    def __init__(self, dirPolicy, shortName, runId="no-id"):
         self.policy = dirPolicy
         self.runid = runId
-        self.patdata = { "runid": self.runid }
+        self.shortname = shortName
+        self.patdata = { "runid": self.runid, "shortname": self.shortname }
         self.defroot = None
 
     ## 
@@ -69,7 +78,7 @@ class Directories:
     ##
     # @brief return the default run directory.  
     # This a subdirectory of the default root directory used specifically
-    # for the current run of the pipeline (given as an absolute path).
+    # for the current run of the workflow (given as an absolute path).
     def getDefaultRunDir(self):
         root = self.getDefaultRootDir()
 
@@ -88,12 +97,12 @@ class Directories:
     # A named directory is one that is intended for a particular role
     # and accessible via a logical name.  These include:
     # @verbatim
-    #   work             the working directory (where the pipeline is started)
+    #   work             the working directory (where the workflow is started)
     #   input            the directory to cache or find input data
     #   output           the directory to write output data
     #   update           the directory where updateable data is deployed
     #   scratch          a directory for temporary files that may be 
-    #                       deleted upon completion of the pipeline.
+    #                       deleted upon completion of the workflow.
     # @endverbatim
     # This function does not check that the name is one of these, so other 
     # names are supported.  If a name is give that was not specified in the
@@ -111,13 +120,11 @@ class Directories:
 
     ## 
     # return the absolute paths for the standard named directories as a
-    # dictionary.  The keys will include "work", "input", "output", 
+    # PropertySet.  The keys will include "work", "input", "output", 
     # "update", and "scratch".  
     def getDirs(self):
-        out = {}
+        out = lsst.daf.base.PropertySet()
         for name in "work input output update scratch".split():
-            #out[name] = self.getNamedDirectory(self, name)
-            out[name] = self.getNamedDirectory(name)
-
+            out.set(name, self.getNamedDirectory(name)) 
         return out
 
