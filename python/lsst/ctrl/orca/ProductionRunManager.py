@@ -294,8 +294,6 @@ class ProductionRunManager:
                             "Shutting down production (urgency=%s)" % urgency)
 
         for workflow in self._workflowManagers["__order"]:
-            print "workflow = ",workflow
-            print "workflow.getName() = ",workflow.getName()
             workflowMgr = self._workflowManagers[workflow.getName()]
             workflowMgr.stopWorkflow(urgency)
 

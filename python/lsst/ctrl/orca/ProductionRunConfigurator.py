@@ -89,7 +89,6 @@ class ProductionRunConfigurator:
         #        filename = self.prodPolicy.getFile(name).getPath()
         #        self._provSetup.addProductionPolicyFile(name)
 
-        print "self._prodPolicyFile = ",self._prodPolicyFile
         self._provSetup.addAllProductionPolicyFiles(self._prodPolicyFile, self.repository)
             
         #

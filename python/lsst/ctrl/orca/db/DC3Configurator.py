@@ -56,8 +56,6 @@ class DC3Configurator:
         dbRun = dbBaseURL+"/"+dbNames[0];
         dbGlobal = dbBaseURL+"/"+dbNames[1];
 
-        print "dbRun =",dbRun
-        print "dbGlobal =",dbGlobal
         recorder = dc3.Recorder(self.runid, self.prodPolicy.get("shortName"), self.platformName, dbRun, dbGlobal, 0, None, self.logger)
         provSetup.addProductionRecorder(recorder)
 

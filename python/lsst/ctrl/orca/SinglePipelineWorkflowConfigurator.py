@@ -247,7 +247,7 @@ class SinglePipelineWorkflowConfigurator(WorkflowConfigurator):
 
         launchCmd = ["ssh", self.masterNode, name]
 
-        print "cmd to execute is: ",launchCmd
+        #print "cmd to execute is: ",launchCmd
         return launchCmd
 
     ##

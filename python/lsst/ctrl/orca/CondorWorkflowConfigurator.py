@@ -113,7 +113,6 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
             policyName = shortName
         launchArgs = "%s %s -L %s -S %s" % \
              (policyName+".paf", self.runid, self.wfVerbosity, remoteSetupScriptName)
-        print "launchArgs = %s",launchArgs
 
 
         # get the name of this pipeline
@@ -148,14 +147,10 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
 
     
     def stageLocally(self, localName, remoteName):
-        self.logger.log(Log.DEBUG, "CondorWorkflowConfigurator:stageLocally")
-
-        print "local name  = "+localName
-        print "remote name  = "+remoteName
+        self.logger.log(Log.DEBUG, "CondorWorkflowConfigurator:stageLocally %s -> %s" % (localName, remoteName))
 
         localStageName = os.path.join(self.localStagingDir, remoteName)
 
-        print "localName = %s, localStageName = %s\n",(localName,localStageName)
         if os.path.exists(os.path.dirname(localStageName)) == False:
             os.makedirs(os.path.dirname(localStageName))
         shutil.copyfile(localName, localStageName)
@@ -166,9 +161,10 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
         localNameURL = "%s%s" % ("file://",localName)
         remoteNameURL = "%s%s" % (self.transferProtocolPrefix, remoteName)
 
-        cmd = "globus-url-copy -r -vb -cd %s %s " % (localNameURL, remoteNameURL)
+        # this next line has the verbose option turned on
+        #cmd = "globus-url-copy -r -vb -cd %s %s " % (localNameURL, remoteNameURL)
+        cmd = "globus-url-copy -r -cd %s %s " % (localNameURL, remoteNameURL)
         
-        print "cmd = ",cmd
         # perform this copy from the local machine to the remote machine
         pid = os.fork()
         if not pid:
@@ -187,7 +183,7 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
     def remoteMkdir(self, remoteDir):
         self.logger.log(Log.DEBUG, "CondorWorkflowConfigurator:remoteMkdir")
         cmd = "gsissh %s mkdir -p %s" % (self.remoteLoginName, remoteDir)
-        print "running: "+cmd
+        
         pid = os.fork()
         if not pid:
             os.execvp("gsissh",cmd.split())
@@ -240,13 +236,11 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
         PolicyUtils.getAllFilenames(repos, definitionPolicy, pipelinePolicySet)
 
         for filename in pipelinePolicySet:
-            print "working on filename = "+filename
-            print "working on repository = "+repos
 
             localStageNames = filename.split(repos)
             localStageName = "work"+localStageNames[1]
             localStageName = os.path.join(self.localStagingDir, localStageName)
-            print "localStageName = "+localStageName
+
             self.stageLocally(filename, localStageName)
 
         shortName = pipelinePolicy.get("shortName")
@@ -288,7 +282,7 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
     def createLaunchScript(self):
 
         localWorkDir = os.path.join(self.localStagingDir, "work")
-        print "localWorkDir =", localWorkDir
+        
         
         if not os.path.exists(localWorkDir):
             os.makedirs(localWorkDir)
