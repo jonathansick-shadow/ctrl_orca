@@ -59,7 +59,7 @@ class MultiPipelineWorkflowConfigurator(WorkflowConfigurator):
 
         self.defaultDomain = platformPolicy.get("deploy.defaultDomain")
         pipelinePolicies = wfPolicy.getPolicyArray("pipeline")
-        expandedPipelinePolicies = self.expandPolicies(pipelinePolicies)
+        expandedPipelinePolicies = self.expandPolicies(self.shortName, pipelinePolicies)
         launchCmd = {}
         for pipelinePolicyGroup in expandedPipelinePolicies:
             pipelinePolicy = pipelinePolicyGroup[0]
@@ -75,21 +75,50 @@ class MultiPipelineWorkflowConfigurator(WorkflowConfigurator):
         return workflowLauncher
 
     ##
-    # @brief given a list of pipelinePolicies, look at each one and expand them
-    # based on the "runCount"
-    def expandPolicies(self, pipelinePolicies):
-        expanded = []
-        totalCount = 1
-        for policy in pipelinePolicies:
-            # default to 1, if runCount doesn't exist
-            runCount = 1
-            if policy.exists("runCount"):
-                runCount = policy.get("runCount")
-            for i in range(0,runCount):
-                expanded.append((policy,i+1, totalCount))
-                totalCount = totalCount + 1
+    # @brief given a list of pipelinePolicies, number the section we're 
+    # interested in based on the order they are in, in the productionPolicy
+    # We use this number Provenance to uniquely identify this set of pipelines
+    #
+    def expandPolicies(self, wfShortName, pipelinePolicies):
+        # Pipeline provenance requires that "activoffset" be unique and 
+        # sequential for each pipeline in the production.  Each workflow
+        # in the production can have multiple pipelines, and even a call for
+        # duplicates of the same pipeline within it.
+        #
+        # Since these aren't numbered within the production policy file itself,
+        # we need to do this ourselves. This is slightly tricky, since each
+        # workflow is handled individually by orca and had has no reference 
+        # to the other workflows or the number of pipelines within 
+        # those workflows.
+        #
+        # Therefore, what we have to do is go through and count all the 
+        # pipelines in the other workflows so we can enumerate the pipelines
+        # in this particular workflow correctly. This needs to be reworked.
 
-        return expanded
+        wfPolicies = self.prodPolicy.getArray("workflow")
+        totalCount = 1
+        for wfPolicy in wfPolicies:
+            if wfPolicy.get("shortName") == wfShortName:
+                # we're in the policy which needs to be numbered
+               expanded = []
+               for policy in pipelinePolicies:
+                   # default to 1, if runCount doesn't exist
+                   runCount = 1
+                   if policy.exists("runCount"):
+                       runCount = policy.get("runCount")
+                   for i in range(0,runCount):
+                       expanded.append((policy,i+1, totalCount))
+                       totalCount = totalCount + 1
+       
+               return expanded
+            else:
+                policies = wfPolicy.getPolicyArray("pipeline")
+                for policy in policies:
+                    if policy.exists("runCount"):
+                        totalCount = totalCount + policy.get("runCount")
+                    else:
+                        totalCount = totalCount + 1
+        return None # should never reach here - this is an error
                 
                 
 
