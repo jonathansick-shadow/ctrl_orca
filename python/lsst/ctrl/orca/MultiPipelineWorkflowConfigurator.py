@@ -59,7 +59,6 @@ class MultiPipelineWorkflowConfigurator(WorkflowConfigurator):
 
         self.defaultDomain = platformPolicy.get("deploy.defaultDomain")
         pipelinePolicies = wfPolicy.getPolicyArray("pipeline")
-        print pipelinePolicies
         expandedPipelinePolicies = self.expandPolicies(pipelinePolicies)
         launchCmd = {}
         for pipelinePolicyGroup in expandedPipelinePolicies:
@@ -87,11 +86,9 @@ class MultiPipelineWorkflowConfigurator(WorkflowConfigurator):
             if policy.exists("runCount"):
                 runCount = policy.get("runCount")
             for i in range(0,runCount):
-                print "policy name = %s dot %d" % (policy.get("shortName"), i+1)
                 expanded.append((policy,i+1, totalCount))
                 totalCount = totalCount + 1
 
-        print "expanded = ",expanded
         return expanded
                 
                 
@@ -122,10 +119,11 @@ class MultiPipelineWorkflowConfigurator(WorkflowConfigurator):
     ##
     # @brief write the node list to the "work" directory
     #
-    def writeNodeList(self):
+    def writeNodeList(self, logDir):
         
         # write this only for debug
-        nodelist = open(os.path.join(self.dirs.get("work"), "nodelist.scr"), 'w')
+        nodelist = open(os.path.join(logDir, "nodelist.scr"), 'w')
+        #nodelist = open(os.path.join(self.dirs.get("work"), "nodelist.scr"), 'w')
         for node in self.nodes:
             print >> nodelist, node
         nodelist.close()
@@ -135,7 +133,7 @@ class MultiPipelineWorkflowConfigurator(WorkflowConfigurator):
         for node in self.nodes:
             p.set("node%d" % x, node)
             x = x + 1
-        pw = pol.PAFWriter(os.path.join(self.dirs.get("work"), "nodelist.paf"))
+        pw = pol.PAFWriter(os.path.join(logDir, "nodelist.paf"))
         pw.write(p)
         pw.close()
 
@@ -163,17 +161,27 @@ class MultiPipelineWorkflowConfigurator(WorkflowConfigurator):
         self.logger.log(Log.DEBUG, "MultiPipelineWorkflowConfigurator:deploySetup")
 
         pipelinePolicy = pipelinePolicyGroup[0]
+        shortName = pipelinePolicy.get("shortName")
+
         pipelinePolicyNumber = pipelinePolicyGroup[1]
+        pipelineName = "%s_%d" % (shortName, pipelinePolicyNumber)
+
         globalPipelineOffset = pipelinePolicyGroup[2]
         # add things to the pipeline policy and write it out to "work"
         #self.rewritePipelinePolicy(pipelinePolicy)
 
         workDir = self.dirs.get("work")
+
+        # create the subdirectory for the pipeline specific files
+        logDir = os.path.join(self.dirs.get("work"), pipelineName)
+        if not os.path.exists(logDir):
+            os.makedirs(logDir)
+
         
         # only write out the policyfile once
+        filename = pipelinePolicy.getFile("definition").getPath()
+        definitionPolicy = pol.Policy.createPolicy(filename, False)
         if pipelinePolicyNumber == 1:
-            filename = pipelinePolicy.getFile("definition").getPath()
-            definitionPolicy = pol.Policy.createPolicy(filename, False)
             if self.prodPolicy.exists("eventBrokerHost"):
                 definitionPolicy.set("execute.eventBrokerHost", self.prodPolicy.get("eventBrokerHost"))
     
@@ -186,9 +194,8 @@ class MultiPipelineWorkflowConfigurator(WorkflowConfigurator):
             pw.write(definitionPolicy)
             pw.close()
 
-        
         # write the nodelist to "work"
-        self.writeNodeList()
+        self.writeNodeList(logDir)
 
         # copy /bin/sh script responsible for environment setting
 
@@ -244,12 +251,8 @@ class MultiPipelineWorkflowConfigurator(WorkflowConfigurator):
 
         # write out the launch script
         # write out the script we use to kick things off
-        shortName = pipelinePolicy.get("shortName")
-        pipelineName = "%s_%d" % (shortName, pipelinePolicyNumber)
         launchName = "launch_%s.sh" % pipelineName
-        logDir = os.path.join(self.dirs.get("work"), pipelineName)
-        if not os.path.exists(logDir):
-            os.makedirs(logDir)
+
         name = os.path.join(logDir, launchName)
 
 
@@ -257,7 +260,7 @@ class MultiPipelineWorkflowConfigurator(WorkflowConfigurator):
         launcher.write("#!/bin/sh\n")
         launcher.write("cd %s\n" % self.dirs.get("work"))
         launcher.write("source %s\n" % self.script)
-        launcher.write("eups list 2>/dev/null | grep Setup >eups-env_%s_%d.txt\n" % (shortName, pipelinePolicyNumber))
+        launcher.write("eups list 2>/dev/null | grep Setup >%s/eups-env_%s_%d.txt\n" % (logDir, shortName, pipelinePolicyNumber))
 
         cmds = provSetup.getCmds()
         workflowPolicies = self.prodPolicy.getArray("workflow")
@@ -291,7 +294,7 @@ class MultiPipelineWorkflowConfigurator(WorkflowConfigurator):
 
         launchCmd = ["ssh", self.masterNode, name]
 
-        print "cmd to execute is: ",launchCmd
+        # print "cmd to execute is: ",launchCmd
         return launchCmd
 
     ##
