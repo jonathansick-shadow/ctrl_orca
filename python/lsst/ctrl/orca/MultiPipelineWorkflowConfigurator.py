@@ -289,7 +289,7 @@ class MultiPipelineWorkflowConfigurator(WorkflowConfigurator):
         launcher.write("#!/bin/sh\n")
         launcher.write("cd %s\n" % self.dirs.get("work"))
         launcher.write("source %s\n" % self.script)
-        launcher.write("eups list 2>/dev/null | grep Setup >%s/eups-env_%s_%d.txt\n" % (logDir, shortName, pipelinePolicyNumber))
+        launcher.write("eups list 2>/dev/null | grep Setup >%s/eups-env.txt\n" % logDir)
 
         cmds = provSetup.getCmds()
         workflowPolicies = self.prodPolicy.getArray("workflow")
