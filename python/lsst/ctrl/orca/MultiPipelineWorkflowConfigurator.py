@@ -316,7 +316,7 @@ class MultiPipelineWorkflowConfigurator(WorkflowConfigurator):
             launcher.write("%s %s\n" % (launchCmd, fileargs))
 
         
-        launcher.write("%s %s %s -L %s\n" % (execCmd, filename, self.runid, self.wfVerbosity))
+        launcher.write("%s %s %s -L %s %s\n" % (execCmd, filename, self.runid, self.wfVerbosity, logDir))
         launcher.close()
         # make it executable
         os.chmod(name, stat.S_IRWXU)
