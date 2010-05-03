@@ -5,12 +5,12 @@ from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
 from lsst.ctrl.orca.WorkflowLauncher import WorkflowLauncher
 from lsst.ctrl.orca.SinglePipelineWorkflowMonitor import SinglePipelineWorkflowMonitor
 
-class MultiPipelineWorkflowLauncher(WorkflowLauncher):
+class GenericPipelineWorkflowLauncher(WorkflowLauncher):
     ##
     # @brief
     #
     def __init__(self, cmds, prodPolicy, wfPolicy, logger = None):
-        logger.log(Log.DEBUG, "MultiPipelineWorkflowLauncher:__init__")
+        logger.log(Log.DEBUG, "GenericPipelineWorkflowLauncher:__init__")
         self.logger = logger
         self.cmds = cmds
         self.wfPolicy = wfPolicy
@@ -20,13 +20,13 @@ class MultiPipelineWorkflowLauncher(WorkflowLauncher):
     # @brief perform cleanup after workflow has ended.
     #
     def cleanUp(self):
-        self.logger.log(Log.DEBUG, "MultiPipelineWorkflowLauncher:cleanUp")
+        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowLauncher:cleanUp")
 
     ##
     # @brief launch this workflow
     #
     def launch(self, statusListener):
-        self.logger.log(Log.DEBUG, "MultiPipelineWorkflowLauncher:launch")
+        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowLauncher:launch")
 
         for key in self.cmds.keys():
             cmd = self.cmds[key]

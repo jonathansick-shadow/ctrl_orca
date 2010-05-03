@@ -8,16 +8,16 @@ from lsst.pex.logging import Log
 from lsst.ctrl.orca.PolicyUtils import PolicyUtils
 from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowConfigurator import WorkflowConfigurator
-from lsst.ctrl.orca.MultiPipelineWorkflowLauncher import MultiPipelineWorkflowLauncher
+from lsst.ctrl.orca.GenericPipelineWorkflowLauncher import GenericPipelineWorkflowLauncher
 
 ##
 #
-# MultiPipelineWorkflowConfigurator 
+# GenericPipelineWorkflowConfigurator 
 #
-class MultiPipelineWorkflowConfigurator(WorkflowConfigurator):
+class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
     def __init__(self, runid, prodPolicy, wfPolicy, logger):
         self.logger = logger
-        self.logger.log(Log.DEBUG, "MultiPipelineWorkflowConfigurator:__init__")
+        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:__init__")
         self.runid = runid
         self.prodPolicy = prodPolicy
         self.wfPolicy = wfPolicy
@@ -49,7 +49,7 @@ class MultiPipelineWorkflowConfigurator(WorkflowConfigurator):
     #
     
     def _configureSpecialized(self, provSetup, wfPolicy):
-        self.logger.log(Log.DEBUG, "MultiPipelineWorkflowConfigurator:configure")
+        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:configure")
         self.shortName = wfPolicy.get("shortName")
         if wfPolicy.getValueType("platform") == pol.Policy.FILE:
             filename = wfPolicy.getFile("platform").getPath()
@@ -68,10 +68,10 @@ class MultiPipelineWorkflowConfigurator(WorkflowConfigurator):
             self.createDirs(platformPolicy, pipelinePolicy)
             pipelineShortName = pipelinePolicyGroup[0].get("shortName")
             launchName = "%s_%d" % (pipelineShortName, num)
-            self.logger.log(Log.DEBUG, "MultiPipelineWorkflowConfigurator: launchName = %s" % launchName)
+            self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator: launchName = %s" % launchName)
             launchCmd[launchName] = self.deploySetup(provSetup, wfPolicy, pipelinePolicyGroup)
             self.logger.log(Log.DEBUG, "launchCmd = %s" % launchCmd)
-        workflowLauncher = MultiPipelineWorkflowLauncher(launchCmd, self.prodPolicy, wfPolicy, self.logger)
+        workflowLauncher = GenericPipelineWorkflowLauncher(launchCmd, self.prodPolicy, wfPolicy, self.logger)
         return workflowLauncher
 
     ##
@@ -127,7 +127,7 @@ class MultiPipelineWorkflowConfigurator(WorkflowConfigurator):
     # @return the list of nodes
     #
     def createNodeList(self,  pipelinePolicy):
-        self.logger.log(Log.DEBUG, "MultiPipelineWorkflowConfigurator:createNodeList")
+        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:createNodeList")
         node = pipelinePolicy.getArray("deploy.processesOnNode")
 
         nodes = map(self.expandNodeHost, node)
@@ -187,7 +187,7 @@ class MultiPipelineWorkflowConfigurator(WorkflowConfigurator):
     # @brief 
     #
     def deploySetup(self, provSetup, wfPolicy, pipelinePolicyGroup):
-        self.logger.log(Log.DEBUG, "MultiPipelineWorkflowConfigurator:deploySetup")
+        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:deploySetup")
 
         pipelinePolicy = pipelinePolicyGroup[0]
         shortName = pipelinePolicy.get("shortName")
@@ -330,7 +330,7 @@ class MultiPipelineWorkflowConfigurator(WorkflowConfigurator):
     # @brief create the platform.dir directories
     #
     def createDirs(self, platformPolicy, pipelinePolicy):
-        self.logger.log(Log.DEBUG, "MultiPipelineWorkflowConfigurator:createDirs")
+        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:createDirs")
 
         dirPolicy = platformPolicy.getPolicy("dir")
         dirName = pipelinePolicy.get("shortName")
@@ -346,7 +346,7 @@ class MultiPipelineWorkflowConfigurator(WorkflowConfigurator):
     # @brief set up this workflow's database
     #
     def setupDatabase(self):
-        self.logger.log(Log.DEBUG, "MultiPipelineWorkflowConfigurator:setupDatabase")
+        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:setupDatabase")
 
     ##
     # @brief perform a node host name expansion
