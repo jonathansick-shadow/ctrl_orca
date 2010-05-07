@@ -345,16 +345,18 @@ class ProductionRunManager:
         return self._workflowManagers[name]
 
     class _ShutdownThread(threading.Thread):
-        def __init__(self, parent, pollingIntv=0.2, listenTimeout=10):
+        def __init__(self, parent, runid, pollingIntv=0.2, listenTimeout=10):
             threading.Thread.__init__(self)
             self.setDaemon(True)
+            self._runid = runid
             self._parent = parent
             self._pollintv = pollingIntv
             self._timeout = listenTimeout
             brokerhost = parent.policy.get("eventBrokerHost")
             self._topic = parent.policy.get("productionShutdownTopic")
             self._evsys = events.EventSystem.getDefaultEventSystem()
-            self._evsys.createReceiver(brokerhost, self._topic)
+            selector = "RUNID = '%s'" % self._runid
+            self._evsys.createReceiver(brokerhost, self._topic, selector)
 
         def run(self):
             self._parent.logger.log(Log.DEBUG,
@@ -376,7 +378,7 @@ class ProductionRunManager:
             self._parent.logger.log(Log.DEBUG, "Everything shutdown - All finished")
 
     def _startShutdownThread(self):
-        self._sdthread = ProductionRunManager._ShutdownThread(self)
+        self._sdthread = ProductionRunManager._ShutdownThread(self, self.runid)
         self._sdthread.start()
 
     def getShutdownThread(self):
