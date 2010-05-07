@@ -3,7 +3,7 @@ import lsst.ctrl.events as events
 from lsst.daf.base import PropertySet
 import sys
 
-# usage:  python bin/shutdownwf.py urgency_level runid
+# usage:  python bin/shutprod.py urgency_level runid
 if __name__ == "__main__":
     host = "lsst8.ncsa.uiuc.edu"
     
