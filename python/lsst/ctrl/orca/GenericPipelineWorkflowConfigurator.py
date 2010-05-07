@@ -71,7 +71,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
             self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator: launchName = %s" % launchName)
             launchCmd[launchName] = self.deploySetup(provSetup, wfPolicy, pipelinePolicyGroup)
             self.logger.log(Log.DEBUG, "launchCmd = %s" % launchCmd)
-        workflowLauncher = GenericPipelineWorkflowLauncher(launchCmd, self.prodPolicy, wfPolicy, self.logger)
+        workflowLauncher = GenericPipelineWorkflowLauncher(launchCmd, self.prodPolicy, wfPolicy, self.runid, self.logger)
         return workflowLauncher
 
     ##
@@ -316,7 +316,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
             launcher.write("%s %s\n" % (launchCmd, fileargs))
 
         
-        launcher.write("%s %s %s -L %s %s\n" % (execCmd, filename, self.runid, self.wfVerbosity, logDir))
+        launcher.write("%s %s %s -L %s --logdir %s\n" % (execCmd, filename, self.runid, self.wfVerbosity, logDir))
         launcher.close()
         # make it executable
         os.chmod(name, stat.S_IRWXU)
