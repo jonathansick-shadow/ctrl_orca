@@ -1,10 +1,10 @@
 setupRequired(cat >= 3.1)
 setupRequired(utils >= 3.4.1)
 setupRequired(pex_policy >= 3.4.2)
-setupRequired(pex_harness >= 3.5)
+setupRequired(pex_harness >= 3.6.6)
 setupRequired(daf_persistence >= 3.3.1)
 setupRequired(ctrl_events >= 3.6)
-setupRequired(ctrl_provenance >= 3.0)
+setupRequired(ctrl_provenance >= 3.1)
 #
 envAppend(PYTHONPATH, ${PRODUCT_DIR}/python)
 envPrepend(PATH, ${PRODUCT_DIR}/bin)
