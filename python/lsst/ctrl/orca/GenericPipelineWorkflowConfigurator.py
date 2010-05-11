@@ -60,7 +60,8 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         self.defaultDomain = platformPolicy.get("deploy.defaultDomain")
         pipelinePolicies = wfPolicy.getPolicyArray("pipeline")
         expandedPipelinePolicies = self.expandPolicies(self.shortName, pipelinePolicies)
-        launchCmd = {}
+        #launchCmd = {}
+        launchCmd = []
         for pipelinePolicyGroup in expandedPipelinePolicies:
             pipelinePolicy = pipelinePolicyGroup[0]
             num = pipelinePolicyGroup[1]
@@ -69,7 +70,9 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
             pipelineShortName = pipelinePolicyGroup[0].get("shortName")
             launchName = "%s_%d" % (pipelineShortName, num)
             self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator: launchName = %s" % launchName)
-            launchCmd[launchName] = self.deploySetup(provSetup, wfPolicy, pipelinePolicyGroup)
+            #launchCmd[launchName] = self.deploySetup(provSetup, wfPolicy, pipelinePolicyGroup)
+            val = self.deploySetup(provSetup, wfPolicy, pipelinePolicyGroup)
+            launchCmd.append(val)
             self.logger.log(Log.DEBUG, "launchCmd = %s" % launchCmd)
         workflowLauncher = GenericPipelineWorkflowLauncher(launchCmd, self.prodPolicy, wfPolicy, self.runid, self.logger)
         return workflowLauncher

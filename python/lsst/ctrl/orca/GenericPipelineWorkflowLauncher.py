@@ -32,8 +32,8 @@ class GenericPipelineWorkflowLauncher(WorkflowLauncher):
         if self.logger != None:
             self.logger.log(Log.DEBUG, "GenericPipelineWorkflowLauncher:launch")
 
-        for key in self.cmds.keys():
-            cmd = self.cmds[key]
+        for key in self.cmds:
+            cmd = key
             pid = os.fork()
             if not pid:
                 os.execvp(cmd[0], cmd)
