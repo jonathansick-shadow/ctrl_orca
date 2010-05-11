@@ -319,7 +319,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
             launcher.write("%s %s\n" % (launchCmd, fileargs))
 
         
-        launcher.write("%s %s %s -L %s --logdir %s\n" % (execCmd, filename, self.runid, self.wfVerbosity, logDir))
+        launcher.write("nohup %s %s %s -L %s --logdir %s >%s/launch.log 2>&1 &\n" % (execCmd, filename, self.runid, self.wfVerbosity, logDir, logDir))
         launcher.close()
         # make it executable
         os.chmod(name, stat.S_IRWXU)
