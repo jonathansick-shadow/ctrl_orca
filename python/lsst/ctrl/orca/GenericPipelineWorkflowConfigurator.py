@@ -26,6 +26,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
 
         self.nodes = None
         self.dirs = None
+        self.defaultRunDir = None
 
     ##
     # @brief Setup as much as possible in preparation to execute the workflow
@@ -74,6 +75,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
             val = self.deploySetup(provSetup, wfPolicy, pipelinePolicyGroup)
             launchCmd.append(val)
             self.logger.log(Log.DEBUG, "launchCmd = %s" % launchCmd)
+        self.deployData(wfPolicy)
         workflowLauncher = GenericPipelineWorkflowLauncher(launchCmd, self.prodPolicy, wfPolicy, self.runid, self.logger)
         return workflowLauncher
 
@@ -185,6 +187,33 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         pw = pol.PAFWriter(newPolicyFile)
         pw.write(oldPolicy)
         pw.close()
+
+    def deployData(self, wfPolicy):
+        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:deployData")
+
+        # add data deploy here
+
+        if wfPolicy.exists("configuration"):
+            configuration = wfPolicy.get("configuration")
+            if configuration.exists("deployData"):
+                deployPolicy = configuration.get("deployData")
+                dataRepository = deployPolicy.get("dataRepository")
+                dataRepository = EnvString.resolve(dataRepository)
+                deployScript = deployPolicy.get("script")
+                deployScript = EnvString.resolve(deployScript)
+                
+                if os.path.isfile(deployScript) == True:
+                    runDir = os.path.join(self.defaultRootDir, self.runid)
+                    deployCmd = [deployScript, runDir, dataRepository]
+                    print ">>> ",deployCmd
+                    pid = os.fork()
+                    if not pid:
+                        os.execvp(deployCmd[0], deployCmd)
+                    os.wait()[0]
+                else:
+                    self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:deployData: warning: script '%s' doesn't exist" % deployScript)
+        # end data deploy here
+
 
     ##
     # @brief 
@@ -339,6 +368,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         dirName = pipelinePolicy.get("shortName")
         directories = Directories(dirPolicy, dirName, self.runid)
         self.dirs = directories.getDirs()
+        self.defaultRootDir = directories.getDefaultRootDir()
 
         for name in self.dirs.names():
             localDirName = self.dirs.get(name)
