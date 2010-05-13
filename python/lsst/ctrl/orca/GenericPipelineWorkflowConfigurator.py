@@ -322,6 +322,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
 
         launcher = open(name, 'w')
         launcher.write("#!/bin/sh\n")
+        launcher.write("export SHELL=/bin/sh\n")
         launcher.write("cd %s\n" % self.dirs.get("work"))
         launcher.write("source %s\n" % self.script)
         launcher.write("eups list 2>/dev/null | grep Setup >%s/eups-env.txt\n" % logDir)
