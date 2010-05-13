@@ -4,7 +4,7 @@
 #
 shortName:           AlertProduction
 eventBrokerHost:     lsst8.ncsa.uiuc.edu
-repositoryDirectory: /home/unknown/working/pipeline
+repositoryDirectory: /home/srp/pipeline
 productionShutdownTopic:       productionShutdown
 
 # if a special productionRunConfigurator class is needed, specify it
@@ -26,7 +26,7 @@ database: {
 
     name: dc3bGlobal
 
-    #  normally points to platform-specific file: @lsst10-mysql.paf
+    #  normally points to platform-specific file: @fester-mysql.paf
     system: {   
         authInfo: {
             host: lsst10.ncsa.uiuc.edu
@@ -56,21 +56,18 @@ workflow: {
 
     configurationClass: lsst.ctrl.orca.GenericPipelineWorkflowConfigurator
     configuration: {
+        deployData: {
+            dataRepository: /lsst/DC3/data/obstest
+            collection: CFHTLS/D2
+            script: /home/srp/working/pipeline_new/deployData.sh
+        }
         # launchScript: 
     }
 
-    # this is workflow-level database setup.  Note that there can 
-    # be multiple database occurances.  The PipelineConfigurator will create a
-    # DatabaseConfigurator for each entry.  Each must also be copied into the 
-    # pipeline config file.
-    # 
-    # database: {
-    # 
-    # }
-
     pipeline: {
-       shortName:     association
-       definition:    @ap-simd-nfs.paf
+       shortName:     joboffices
+       definition:    @joboffice.paf
+       runCount: 1
        deploy: {
           # the schema for this node is determined by the above 
           # configuration class.  In this case, we can assign exactly the
@@ -83,7 +80,49 @@ workflow: {
           # differently by virtue of the fact that different 
           # WorkflowConfigurator class is used.  
           # 
-          processesOnNode: lsst10:2
+          processesOnNode: lsst8:1
+          
+       }
+       launch: true
+    }
+    pipeline: {
+       shortName:     isr
+       definition:    @cfht-isr-master.paf
+       runCount: 4
+       deploy: {
+          # the schema for this node is determined by the above 
+          # configuration class.  In this case, we can assign exactly the
+          # number of processes to run on each node.  The 
+          # 
+
+          # an assignment of processes to nodes.  The first entry will 
+          # be host the Pipeline process.  Note that while the name 
+          # is the same as in the IPSD workflow, the value is interpreted
+          # differently by virtue of the fact that different 
+          # WorkflowConfigurator class is used.  
+          # 
+          processesOnNode: lsst10:1
+          
+       }
+       launch: true
+    }
+    pipeline: {
+       shortName:     ccdassembly
+       definition:    @cfht-ca-master.paf
+       runCount: 2
+       deploy: {
+          # the schema for this node is determined by the above 
+          # configuration class.  In this case, we can assign exactly the
+          # number of processes to run on each node.  The 
+          # 
+
+          # an assignment of processes to nodes.  The first entry will 
+          # be host the Pipeline process.  Note that while the name 
+          # is the same as in the IPSD workflow, the value is interpreted
+          # differently by virtue of the fact that different 
+          # WorkflowConfigurator class is used.  
+          # 
+          processesOnNode: lsst10:1
           
        }
        launch: true

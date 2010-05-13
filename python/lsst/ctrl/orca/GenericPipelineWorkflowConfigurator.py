@@ -72,7 +72,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
             launchName = "%s_%d" % (pipelineShortName, num)
             self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator: launchName = %s" % launchName)
             #launchCmd[launchName] = self.deploySetup(provSetup, wfPolicy, pipelinePolicyGroup)
-            val = self.deploySetup(provSetup, wfPolicy, pipelinePolicyGroup)
+            val = self.deploySetup(provSetup, wfPolicy, platformPolicy, pipelinePolicyGroup)
             launchCmd.append(val)
             self.logger.log(Log.DEBUG, "launchCmd = %s" % launchCmd)
         self.deployData(wfPolicy)
@@ -201,10 +201,11 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
                 dataRepository = EnvString.resolve(dataRepository)
                 deployScript = deployPolicy.get("script")
                 deployScript = EnvString.resolve(deployScript)
+                collection = deployPolicy.get("collection")
                 
                 if os.path.isfile(deployScript) == True:
                     runDir = os.path.join(self.defaultRootDir, self.runid)
-                    deployCmd = [deployScript, runDir, dataRepository]
+                    deployCmd = [deployScript, runDir, dataRepository, collection]
                     print ">>> ",deployCmd
                     pid = os.fork()
                     if not pid:
@@ -218,7 +219,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
     ##
     # @brief 
     #
-    def deploySetup(self, provSetup, wfPolicy, pipelinePolicyGroup):
+    def deploySetup(self, provSetup, wfPolicy, platformPolicy, pipelinePolicyGroup):
         self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:deploySetup")
 
         pipelinePolicy = pipelinePolicyGroup[0]
@@ -243,6 +244,8 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         filename = pipelinePolicy.getFile("definition").getPath()
         definitionPolicy = pol.Policy.createPolicy(filename, False)
         if pipelinePolicyNumber == 1:
+            if platformPolicy.exists("dir"):
+                definitionPolicy.set("execute.dir", platformPolicy.get("dir"))
             if self.prodPolicy.exists("eventBrokerHost"):
                 definitionPolicy.set("execute.eventBrokerHost", self.prodPolicy.get("eventBrokerHost"))
     
