@@ -26,7 +26,6 @@ database: {
 
     name: dc3bGlobal
 
-    #  normally points to platform-specific file: @lsst10-mysql.paf
     system: {   
         authInfo: {
             host: lsst10.ncsa.uiuc.edu
