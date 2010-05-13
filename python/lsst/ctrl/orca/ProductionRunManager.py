@@ -364,16 +364,17 @@ class ProductionRunManager:
 
             self._parent.logger.log(Log.DEBUG-10, "checking for shutdown event")
             self._parent.logger.log(Log.DEBUG, "self._timeout = %s" % self._timeout)
-            shutdownData = self._evsys.receive(self._topic, self._timeout)
-            while self._parent.isRunning() and shutdownData is None:
+            shutdownEvent = self._evsys.receiveEvent(self._topic, self._timeout)
+            while self._parent.isRunning() and shutdownEvent is None:
                 time.sleep(self._pollintv)
                 #self._parent.logger.log(Log.DEBUG-10, "checking for shutdown event")
-                shutdownData = self._evsys.receive(self._topic, self._timeout)
+                shutdownEvent = self._evsys.receiveEvent(self._topic, self._timeout)
                 #time.sleep(1)
-                #shutdownData = self._evsys.receive(self._topic, 10)
+                #shutdownData = self._evsys.receiveEvent(self._topic, 10)
             self._parent.logger.log(Log.DEBUG, "DONE!")
 
-            if shutdownData:
+            if shutdownEvent:
+                shutdownData = shutdownEvent.getPropertySet()
                 self._parent.stopProduction(shutdownData.getInt("level"))
             self._parent.logger.log(Log.DEBUG, "Everything shutdown - All finished")
 
