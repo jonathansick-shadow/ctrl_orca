@@ -56,10 +56,13 @@ workflow: {
 
     configurationClass: lsst.ctrl.orca.GenericPipelineWorkflowConfigurator
     configuration: {
+        # this script is executed to perform symlinks of the data
+        # and is called by orca:
+        # script runid dataRepository collection
         deployData: {
             dataRepository: /lsst/DC3/data/obstest
             collection: CFHTLS/D2
-            script: /home/srp/working/pipeline_new/deployData.sh
+            script: /home/srp/pipeline/deployData.sh
         }
         # launchScript: 
     }
