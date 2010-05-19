@@ -266,7 +266,8 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         setupPath = definitionPolicy.get("framework.environment")
         if setupPath == None:
              raise RuntimeError("couldn't find framework.environment")
-        self.script = EnvString.resolve(setupPath)
+        #self.script = EnvString.resolve(setupPath)
+        self.script = setupPath
 
         if orca.envscript == None:
             print "using default setup.sh"
@@ -309,7 +310,8 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
 
         # create the launch command
         execPath = definitionPolicy.get("framework.exec")
-        execCmd = EnvString.resolve(execPath)
+        #execCmd = EnvString.resolve(execPath)
+        execCmd = execPath
 
         #cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % (self.dirs.get("work"), self.script, execCmd, filename, self.runid, self.wfVerbosity) ]
 
