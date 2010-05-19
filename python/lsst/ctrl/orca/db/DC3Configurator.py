@@ -117,7 +117,7 @@ class DC3Configurator:
 
         permissions = stat.S_IMODE(mode)
 
-        errorText = "File permissions on "+checkFile+" should not be readable by 'group' or 'other'.  Use chmod to fix this."
+        errorText = "File permissions on "+checkFile+" should not be readable, writable, or executable  by 'group' or 'other'.  Use chmod to fix this. (chmod 700 ~/.lsst)"
 
         if (mode & getattr(stat, "S_IRWXG")) != 0:
             raise RuntimeError(errorText)
