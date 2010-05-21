@@ -1,0 +1,12 @@
+	universe = Grid
+	Grid_Resource = gt2 grid-abe.ncsa.teragrid.org/jobmanager-fork
+	
+	executable = glidein_remote_setup.dc3b
+
+	arguments = "'$(DOLLAR)(HOME)/Condor_glidein' '$(DOLLAR)(HOME)/Condor_glidein/7.4.0-i686-pc-Linux-2.4' '7.4.0-i686-pc-Linux-2.4' '$(DOLLAR)(HOME)/Condor_glidein/local' 'http://dev.lsstcorp.org/condor/binaries/glidein' '0'"
+	#avoid trouble with scratch directory creation
+	remote_initialdir = /tmp
+	output = glidein_setup.output.dc3b
+	error = glidein_setup.error.dc3b
+	log = glidein_setup.log.dc3b
+	queue

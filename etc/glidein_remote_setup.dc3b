@@ -1,0 +1,203 @@
+#!/bin/sh
+
+	BASEDIR=$1
+	ARCHDIR=$2
+	ARCH=$3
+	LOCALDIR=$4
+	TARBALL_SERVERS=$5
+	FORCE=$6
+
+	CONFIG=$BASEDIR/glidein_condor_config
+	STARTUP=$ARCHDIR/glidein_startup
+	GRIDMAP=$BASEDIR/grid-security/grid-mapfile
+	TRUSTED_CA=$BASEDIR/grid-security/certificates
+
+	if [ "$GLOBUS_SH_TAR" = "" ]; then
+		#We must not have gotten executed via globus-sh-exec.
+		#(In the old days, that is how this script worked.)
+		#Set up the utility variables that we need.
+		GLOBUS_SH_TAR=tar;
+		GLOBUS_SH_GZIP=gzip;
+		GLOBUS_SH_RM=rm;
+		GLOBUS_SH_GREP=grep;
+		GLOBUS_SH_SED=sed;
+		GLOBUS_SH_MKDIR=mkdir;
+		export LD_LIBRARY_PATH=$GLOBUS_LOCATION/lib:$LD_LIBRARY_PATH
+	fi
+
+	for newdir in $BASEDIR $ARCHDIR $LOCALDIR; do
+		if [ ! -d $newdir ];
+			then $GLOBUS_SH_MKDIR $newdir;
+		fi
+	if [ ! -d $newdir ];
+			then echo "ERROR mkdir $newdir"
+			exit 1;
+		fi
+	done
+
+	if [ $FORCE -ne 0 -o ! -a $CONFIG ]; then
+		#Write config file
+		echo "Installing $CONFIG.";
+		cat > $CONFIG.$$ <<END_CONFIG
+
+LOG = \$(LOCAL_DIR)/log
+EXECUTE = \$(LOCAL_DIR)/execute
+ALLOW_ADMINISTRATOR = \$(HOSTNAME), \$(GLIDEIN_HOST)
+
+MAIL = /bin/mail
+DAEMON_LIST = MASTER, STARTD
+MASTER_ADDRESS_FILE = \$(LOG)/.master_address
+MASTER = \$(SBIN)/condor_master
+MASTER_LOG = \$(LOG)/MasterLog
+STARTD = \$(SBIN)/condor_startd
+STARTER = \$(SBIN)/condor_starter
+PROCD = \$(SBIN)/condor_procd
+PROCD_LOG = \$(LOG)/ProcLog
+PROCD_ADDRESS = \$(LOCK)/procd_address
+
+STARTER_STD = \$(SBIN)/condor_starter.std
+STARTER_LIST = STARTER, STARTER_STD
+
+USE_NFS = False
+USE_CKPT_SERVER = False
+
+COLLECTOR_HOST = lsst6.ncsa.uiuc.edu
+
+LOCK = \$(LOG)
+STARTD_LOG = \$(LOG)/StartLog
+STARTER_LOG = \$(LOG)/StarterLog
+
+STARTD_DEBUG = D_COMMAND
+
+SUSPEND = False
+CONTINUE = True
+PREEMPT = False
+WANT_VACATE = False
+WANT_SUSPEND = True
+SUSPEND_VANILLA = False
+WANT_SUSPEND_VANILLA = True
+KILL = False
+IS_GLIDEIN = True
+STARTD_EXPRS = IS_GLIDEIN, START, DaemonStopTime
+
+MASTER_WAITS_FOR_GCB_BROKER = False
+
+END_CONFIG
+		mv -f $CONFIG.$$ $CONFIG;
+	else
+		echo "Already installed: $CONFIG.";
+	fi
+
+	if [ $FORCE -ne 0 -o ! -x $STARTUP ]; then
+		#Write startup file
+		echo "Installing $STARTUP.";
+		cat > $STARTUP.$$ <<END_STARTUP
+#!/bin/sh
+
+if [ "\$_condor_LOCAL_DIR" = "." ]; then
+  export _condor_LOCAL_DIR=\$(pwd)
+fi
+
+#If we have an X509 user proxy, use it as the Condor daemon proxy.
+if [ "\$_condor_GSI_DAEMON_PROXY" = "" ] && [ -a "\$X509_USER_PROXY" ]; then
+  export _condor_GSI_DAEMON_PROXY="\$X509_USER_PROXY"
+fi
+
+exec \${_condor_SBIN}/condor_master "\$@"
+
+END_STARTUP
+		chmod a+x $STARTUP.$$;
+		mv -f $STARTUP.$$ $STARTUP;
+	else
+		echo "Already installed: $STARTUP.";
+	fi
+
+	if [ "0" = "0" ]; then
+		#User did not supply grid-mapfile.
+		echo > /dev/null  #nop
+	elif [ $FORCE -ne 0 -o ! -a $GRIDMAP ]; then
+		#Write grid-mapfile
+		echo "Installing $GRIDMAP.";
+		mkdir -p `dirname $GRIDMAP`
+		cat > $GRIDMAP.$$ <<END_CONFIG
+
+END_CONFIG
+		mv -f $GRIDMAP.$$ $GRIDMAP;
+	else
+		echo "Already installed: $CONFIG.";
+	fi
+
+	if [ "0" = "0" ]; then
+		#User did not supply trusted ca directory.
+		echo > /dev/null  #nop
+	elif [ $FORCE -ne 0 -o ! -d $TRUSTED_CA ]; then
+		#Write trusted ca files
+		echo "Installing $TRUSTED_CA.";
+		mkdir -p $TRUSTED_CA
+		mimencode -u > $TRUSTED_CA.$$.tar <<END_CONFIG
+
+END_CONFIG
+		tar -x -C $TRUSTED_CA -f $TRUSTED_CA.$$.tar
+	else
+		echo "Already installed: $TRUSTED_CA.";
+	fi
+
+
+	cd $ARCHDIR
+	GETFILES=0
+	for needexec in condor_master condor_startd condor_starter condor_starter.std; do
+		if [ ! -f $needexec ];
+			then GETFILES=1;
+		fi
+	done
+	if [ $FORCE -ne 0 -o $GETFILES -ne 0 ]; then
+		#Convert from comma separated URL list to space separated.
+		echo "Installing Condor daemons in $ARCHDIR.";
+		TARBALL_SERVER_LIST=`echo $TARBALL_SERVERS | $GLOBUS_SH_SED 's/,/ /g'`;
+		if [ "$?" != "0" ]; then
+			echo "Error: failed to process GLIDEIN_SERVER_URLS information.";
+			exit 1;
+		fi
+		DOWNLOAD_SUCCESS=0
+		GLOBUS_URL_COPY=$GLOBUS_LOCATION/bin/globus-url-copy
+		for TARBALL_SERVER in $TARBALL_SERVER_LIST; do
+			TARBALL_URL=$TARBALL_SERVER/$ARCH.tar.gz
+
+			$GLOBUS_URL_COPY $TARBALL_URL file:$ARCHDIR/$ARCH.tar.gz;
+			rc=$?;
+			if [ $rc != 0 -o ! -f $ARCHDIR/$ARCH.tar.gz ] &&
+			   echo $TARBALL_URL | $GLOBUS_SH_GREP -q -E '(^http)|(^ftp)'; then
+				echo "globus-url-copy failed; trying wget"
+				wget -q -O $ARCHDIR/$ARCH.tar.gz $TARBALL_URL
+				rc=$?;
+			fi
+
+			if [ $rc != 0 -o ! -f $ARCHDIR/$ARCH.tar.gz ]; then
+				echo "Failed to retrieve $TARBALL_URL";
+			else
+				if ! $GLOBUS_SH_GZIP -d $ARCHDIR/$ARCH.tar.gz; then
+					echo "Failed to gunzip glidein tarball."
+					exit 1;
+				elif ! $GLOBUS_SH_TAR xf $ARCHDIR/$ARCH.tar; then
+					echo "Failed to untar glidein tarball."
+					exit 1;
+				fi
+				$GLOBUS_SH_RM -f $ARCHDIR/$ARCH.tar;
+				DOWNLOAD_SUCCESS=1
+				echo
+				echo "Downloaded $TARBALL_URL to $ARCHDIR."
+				echo
+				break;
+			fi
+		done
+		if [ "$DOWNLOAD_SUCCESS" != "1" ]; then
+			echo "Glidein tarball not successfully downloaded from $TARBALL_SERVERS"
+			exit 1
+		fi
+	else
+		echo "Already installed: $ARCHDIR.";
+	fi
+	#NOTE: the following text is expected to verify success.
+	echo "Installation successfully completed.";
+	exit 0;
+
