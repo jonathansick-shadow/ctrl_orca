@@ -26,14 +26,13 @@ arguments = -dyn -f
 
 # Environment = CONDOR_CONFIG=$(DOLLAR)(HOME)/Condor_glidein/glidein_condor_config;_condor_CONDOR_HOST=lsst6.ncsa.uiuc.edu;_condor_GLIDEIN_HOST=lsst6.ncsa.uiuc.edu;_condor_LOCAL_DIR=$(DOLLAR)(HOME)/Condor_glidein/local;_condor_SBIN=$(DOLLAR)(HOME)/Condor_glidein/7.4.0-i686-pc-Linux-2.4;_condor_CONDOR_ADMIN=daues@ncsa.uiuc.edu;_condor_NUM_CPUS=1;_condor_UID_DOMAIN=ncsa.teragrid.org;_condor_FILESYSTEM_DOMAIN=ncsa.teragrid.org;_condor_MAIL=/bin/mail;_condor_STARTD_NOCLAIM_SHUTDOWN=300;_condor_START_owner=daues
 
-Environment = CONDOR_CONFIG=$(DOLLAR)(HOME)/Condor_glidein/glidein_condor_config;_condor_CONDOR_HOST=lsst6.ncsa.uiuc.edu;_condor_GLIDEIN_HOST=lsst6.ncsa.uiuc.edu;_condor_LOCAL_DIR=$(DOLLAR)(HOME)/Condor_glidein/local;_condor_SBIN=$(DOLLAR)(HOME)/Condor_glidein/7.4.0-i686-pc-Linux-2.4;_condor_CONDOR_ADMIN=srp@ncsa.uiuc.edu;_condor_NUM_CPUS=8;_condor_UID_DOMAIN=ncsa.teragrid.org;_condor_FILESYSTEM_DOMAIN=ncsa.teragrid.org;_condor_MAIL=/bin/mail;_condor_STARTD_NOCLAIM_SHUTDOWN=900;_condor_START_owner=srp
+Environment = CONDOR_CONFIG=$(DOLLAR)(HOME)/Condor_glidein/glidein_condor_config;_condor_CONDOR_HOST=lsst6.ncsa.uiuc.edu;_condor_GLIDEIN_HOST=lsst6.ncsa.uiuc.edu;_condor_LOCAL_DIR=$(DOLLAR)(HOME)/Condor_glidein/local;_condor_SBIN=$(DOLLAR)(HOME)/Condor_glidein/7.4.0-i686-pc-Linux-2.4;_condor_CONDOR_ADMIN=$CONDOR_ADMIN;_condor_NUM_CPUS=8;_condor_UID_DOMAIN=ncsa.teragrid.org;_condor_FILESYSTEM_DOMAIN=ncsa.teragrid.org;_condor_MAIL=/bin/mail;_condor_STARTD_NOCLAIM_SHUTDOWN=900;_condor_START_owner=$START_OWNER
 
 Transfer_Executable = False
 
 # globusrsl=(host_xcount = 2)(xcount = 1)(jobtype=multiple)(maxwalltime=15)
 # globusrsl=(count = 2)(jobtype=multiple)(maxwalltime=15)
-#globusrsl=(jobtype=multiple)(count=1)(hostcount=1)(maxwalltime=15)
-globusrsl=(jobtype=multiple)(count=1)(hostcount=1)(maxwalltime=15)(queue=debug)
+globusrsl=(jobtype=multiple)(count=$MACHINE_COUNT1)(hostcount=$MACHINE_COUNT)(maxwalltime=$MAXWALLTIME)
 
 output = run.output
 error = run.error
