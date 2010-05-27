@@ -83,7 +83,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator: launchName = %s" % launchName)
             #launchCmd = self.deploySetup(pipelinePolicy)
             self.deploySetup(provSetup, wfPolicy, platformPolicy, pipelinePolicyGroup)
-            condorFile = self.writeCondorFile(launchName, "%s.sh" % launchName)
+            condorFile = self.writeCondorFile(launchName, "launch_%s.sh" % launchName)
             launchCmd.append(condorFile)
             self.setupDatabase()
         self.logger.log(Log.DEBUG, "launchCmd = %s" % launchCmd)
@@ -110,7 +110,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             remoteFilename = os.path.join(remoteDir, filename)
             self.remoteChmodX(remoteFilename)
         
-        workflowLauncher = VanillaCondorWorkflowLauncher("", self.shortName, self.logger)
+        workflowLauncher = VanillaCondorWorkflowLauncher(launchCmds, self.shortName, self.logger)
         return workflowLauncher
 
     ##
@@ -120,16 +120,19 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
     def writeCondorFile(self, launchNamePrefix, launchScriptName):
         self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator:writeCondorFile")
 
-        condorJobFile =  os.path.join(self.localStagingDir, launchNamePrefix+".condor")
+        condorJobFile = os.path.join(self.localStagingDir, "work")
+        condorJobFile = os.path.join(condorJobFile, launchNamePrefix)
+        condorJobFile = os.path.join(condorJobFile, launchNamePrefix+".condor")
 
         clist = []
         clist.append("universe=vanilla\n")
         clist.append("executable=%s/%s\n" % (launchNamePrefix, launchScriptName))
         clist.append("transfer_executable=false\n")
-        clist.append("output=%s_Condor.out\n" % launchNamePrefix)
-        clist.append("error=%s_Condor.err\n" % launchNamePrefix)
-        clist.append("log=%s_Condor.log\n" % launchNamePrefix)
-        clist.append("should_transfer_files = NO\n")
+        clist.append("output=%s/Condor.out\n" % launchNamePrefix)
+        clist.append("error=%s/Condor.err\n" % launchNamePrefix)
+        clist.append("log=%s/Condor.log\n" % launchNamePrefix)
+        clist.append("should_transfer_files = YES\n")
+        clist.append("when_to_transfer_output = ON_EXIT\n")
         clist.append("remote_initialdir="+self.dirs.get("work")+"\n")
         clist.append("Requirements = (FileSystemDomain != \"dummy\") && (Arch != \"dummy\") && (OpSys != \"dummy\") && (Disk != -1) && (Memory != -1)\n")
         clist.append("queue\n")
@@ -331,7 +334,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             launcher.write("%s %s\n" % (launchCmd, fileargs))
 
         
-        launcher.write("nohup %s %s %s -L %s --logdir %s >%s/launch.log 2>&1 &\n" % (execCmd, filename, self.runid, self.wfVerbosity, remoteLogDir, remoteLogDir))
+        launcher.write("%s %s %s -L %s --logdir %s >%s/launch.log 2>&1\n" % (execCmd, filename, self.runid, self.wfVerbosity, remoteLogDir, remoteLogDir))
         launcher.close()
 
         return
