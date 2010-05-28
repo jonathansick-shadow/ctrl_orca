@@ -4,9 +4,10 @@ import os
 import sys
 import re
 
-class CondorJob:
+class CondorJobs:
     def __init__(self):
         return
+
     #Submitting job(s).
     #Logging submit event(s).
     #1 job(s) submitted to cluster 1317.
