@@ -19,7 +19,7 @@ class CondorJobs:
     # Logging submit event(s).
     # 1 job(s) submitted to cluster 1317.
     
-    def submitJob(condorFile):
+    def submitJob(self, condorFile):
         clusterexp = re.compile("1 job\(s\) submitted to cluster (\d+).")
     
         submitRequest = "condor_submit %s" % condorFile
@@ -41,7 +41,7 @@ class CondorJobs:
     #1016.0   srp             5/24 09:17   0+00:00:00 I  0   0.0  launch_joboffices_
     #1017.0   srp             5/24 09:18   0+00:00:00 R  0   0.0  launch_joboffices_
     
-    def waitForJobToRun(num):
+    def waitForJobToRun(self, num):
         jobNum = "%s.0" % num
         queueExp = re.compile("\S+")
         while 1:
@@ -63,3 +63,34 @@ class CondorJobs:
                     # throw exception here
                     return
             pop.close()
+            sleep(1)
+
+    def waitForAllJobsToRun(self, numList):
+        queueExp = re.compile("\S+")
+        jobList = list(numList)
+        while 1:
+            pop = os.popen("condor_q", "r")
+            while 1:
+                line = pop.readline()
+                if not line:
+                    break
+                values = queueExp.findall(line)
+                if len(values) == 0:
+                    continue
+                jobNum = values[0]
+                runstate = values[5]
+                for jobEntry in jobList:
+                    if (jobNum == jobEntry) and (runstate == 'R'):
+                        jobList = [job for job in jobList if job[:] != jobNum]
+                        pop.close()
+                        if len(jobList) == 0:
+                            return
+                        break
+                    else:
+                        continue
+                    if (jobNum == jobEntry) and (runstate == 'H'):
+                        pop.close()
+                        # throw exception here
+                        return
+            pop.close()
+            sleep(1)

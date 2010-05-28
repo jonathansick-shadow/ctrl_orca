@@ -8,10 +8,10 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
     ##
     # @brief
     #
-    def __init__(self, cmds, wfPolicy, logger = None):
+    def __init__(self, jobs, wfPolicy, logger = None):
         logger.log(Log.DEBUG, "VanillaCondorWorkflowLauncher:__init__")
         self.logger = logger
-        self.cmds = cmds
+        self.jobs = jobs
         self.wfPolicy = wfPolicy
 
     ##
@@ -33,14 +33,20 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
         # 3 - start joboffice job
         # wait for joboffice to start
         # 4 - start all other jobs.
-    
+
+        condor = CondorJobs()
+        glideinJobNumber = condor.submitJob(condorSubmitFile)
+
         # for now, make sure joboffice is the first job, launch and wait for it
-        for key in self.cmds:
-            cmd = key
-            pid = os.fork()
-            if not pid:
-                os.execvp(cmd[0], cmd)
-            os.wait()[0]
+        jobCount = 1
+        for job in self.jobs:
+            if jobCount == 1:
+                jobNumber = condor.submitJob(job)
+                condor.waitForJobToRun(jobNumber)
+            else:
+                jobNumber = condor.submitJob(job)
+                jobNumbers.append(jobNumber)
+        condor.waitforJobsToRun(jobNumbers)
 
         eventBrokerHost = self.prodPolicy.get("eventBrokerHost")
         shutdownTopic = self.wfPolicy.get("shutdownTopic")

@@ -84,6 +84,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             #launchCmd = self.deploySetup(pipelinePolicy)
             self.deploySetup(provSetup, wfPolicy, platformPolicy, pipelinePolicyGroup)
             condorFile = self.writeCondorFile(launchName, "launch_%s.sh" % launchName)
+            launchCmd = ["condor_submit", condorFile]
             launchCmd.append(condorFile)
             self.setupDatabase()
         self.logger.log(Log.DEBUG, "launchCmd = %s" % launchCmd)
@@ -358,34 +359,6 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         pw = pol.PAFWriter(newPolicyFile)
         pw.write(oldPolicy)
         pw.close()
-
-
-    ##
-    # @brief write a shell script to launch a workflow
-    #
-    def createLaunchScript(self):
-
-        localWorkDir = os.path.join(self.localStagingDir, "work")
-        print "localWorkDir =", localWorkDir
-        
-        if not os.path.exists(localWorkDir):
-            os.makedirs(localWorkDir)
-
-        tempName = os.path.join(localWorkDir, self.remoteScript)
-        launcher = open(tempName, 'w')
-        launcher.write("#!/bin/sh\n")
-        launcher.write("echo \"Running SimpleLaunch\"\n")
-        launcher.write("echo \"running:\"\n")
-        launcher.write("echo $@\n")
-        launcher.write("$@\n")
-        launcher.close()
-
-
-        # make it executable
-        os.chmod(tempName, stat.S_IRWXU)
-
-        self.launcherScript = tempName
-        return
 
     ##
     # @brief create the platform.dir directories
