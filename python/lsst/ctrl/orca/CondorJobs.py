@@ -4,13 +4,20 @@ import os
 import sys
 import re
 
+#
+# This class is highly dependent on the output of the condor commands 
+# condor_submit and condor_q
+#
 class CondorJobs:
     def __init__(self):
         return
 
-    #Submitting job(s).
-    #Logging submit event(s).
-    #1 job(s) submitted to cluster 1317.
+
+    # submit a condor file, and return the job number associated with it.
+    # expected output:
+    # Submitting job(s).
+    # Logging submit event(s).
+    # 1 job(s) submitted to cluster 1317.
     
     def submitJob(condorFile):
         clusterexp = re.compile("1 job\(s\) submitted to cluster (\d+).")
@@ -27,6 +34,8 @@ class CondorJobs:
     
     
     
+    # wait for a condor job to reach it's run state.
+    # expected output:
     #-- Submitter: srp@lsst6.ncsa.uiuc.edu : <141.142.15.103:40900> : lsst6.ncsa.uiuc.edu
     # ID      OWNER            SUBMITTED     RUN_TIME ST PRI SIZE CMD               
     #1016.0   srp             5/24 09:17   0+00:00:00 I  0   0.0  launch_joboffices_
