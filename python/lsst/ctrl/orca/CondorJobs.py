@@ -31,6 +31,9 @@ class CondorJobs:
         line = pop.readline()
         line = pop.readline()
         num = clusterexp.findall(line)
+        print "num = ",num
+        if len(num) == 0:
+            return None
         return num[0]
     
     
@@ -45,6 +48,8 @@ class CondorJobs:
     def waitForJobToRun(self, num):
         jobNum = "%s.0" % num
         queueExp = re.compile("\S+")
+        cJobSeen = 0
+        bJobSeenNow = 0
         while 1:
             pop = os.popen("condor_q", "r")
             while 1:
@@ -55,14 +60,30 @@ class CondorJobs:
                 if len(values) == 0:
                     continue
                 runstate = values[5]
+                if (values[0] == jobNum):
+                    cJobSeen = cJobSeen + 1
+                    bJobSeenNow = True
                 if (values[0] == jobNum) and (runstate == 'R'):
                     print values
                     pop.close()
-                    return
+                    return None
                 if (values[0] == jobNum) and (runstate == 'H'):
                     pop.close()
                     # throw exception here
-                    return
+                    return None
+                if (values[0] == jobNum) and (runstate == 'X'):
+                    print values
+                    pop.close()
+                    # throw exception here
+                    print "Saw the job, but it was being aborted"
+                    return None
+            # check to see if we've seen the job before, but that
+            # it disappeared
+            if (cJobSeen > 0) and (bJobSeenNow == False):
+                pop.close()
+                print "Saw the job for a while, but it went away"
+                # throw exception
+                return None
             pop.close()
             time.sleep(1)
 

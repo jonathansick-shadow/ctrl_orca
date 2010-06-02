@@ -69,7 +69,8 @@ class ProductionRunConfigurator:
     #
     def configure(self, workflowVerbosity):
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:configure")
-        self.repository = self.prodPolicy.get("repositoryDirectory")
+        # TODO:  Check this next line - shouldn't be reassigned.
+        # self.repository = self.prodPolicy.get("repositoryDirectory")
 
         self._provSetup = ProvenanceSetup()
 

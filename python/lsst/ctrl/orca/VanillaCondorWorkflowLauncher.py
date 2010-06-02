@@ -9,10 +9,11 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
     ##
     # @brief
     #
-    def __init__(self, jobs, condorGlideinFile, wfPolicy, logger = None):
+    def __init__(self, jobs, localScratch, condorGlideinFile, wfPolicy, logger = None):
         logger.log(Log.DEBUG, "VanillaCondorWorkflowLauncher:__init__")
         self.logger = logger
         self.jobs = jobs
+        self.localScratch = localScratch
         self.condorGlideinFile = condorGlideinFile
         self.wfPolicy = wfPolicy
 
@@ -38,7 +39,10 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
 
         condor = CondorJobs()
 
+        curDir = os.getcwd()
+        os.chdir(self.localScratch)
         glideinJobNumber = condor.submitJob(self.condorGlideinFile)
+        os.chdir(curDir)
         condor.waitForJobToRun(glideinJobNumber)
 
         # for now, make sure joboffice is the first job, launch and wait for it

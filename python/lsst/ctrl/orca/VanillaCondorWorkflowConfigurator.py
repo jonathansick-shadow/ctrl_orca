@@ -118,7 +118,11 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         glideinFileName = self.writeGlideinRequest(wfPolicy.get("configuration"))
 
         #
-        workflowLauncher = VanillaCondorWorkflowLauncher(jobs, glideinFileName,  self.shortName, self.logger)
+        workDirSuffix = self.dirs.get("work")[len(self.directories.getDefaultRunDir()):]
+        workDirSuffix = workDirSuffix.lstrip("/")
+        workDir = os.path.join(self.localStagingDir, workDirSuffix)
+
+        workflowLauncher = VanillaCondorWorkflowLauncher(jobs, workDir, glideinFileName,  self.shortName, self.logger)
         return workflowLauncher
 
     ##
@@ -133,17 +137,17 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         #condorJobFile = os.path.join(self.localStagingDir, "work")
         workDirSuffix = self.dirs.get("work")[len(self.directories.getDefaultRunDir()):]
         workDirSuffix = workDirSuffix.lstrip("/")
-        condorJobFile = os.path.join(self.localStagingDir, workDirSuffix)
-        condorJobFile = os.path.join(condorJobFile, launchNamePrefix)
+        workDir = os.path.join(self.localStagingDir, workDirSuffix)
+        condorJobFile = os.path.join(workDir, launchNamePrefix)
         condorJobFile = os.path.join(condorJobFile, launchNamePrefix+".condor")
 
         clist = []
         clist.append("universe=vanilla\n")
         clist.append("executable=%s/%s\n" % (launchNamePrefix, launchScriptName))
         clist.append("transfer_executable=false\n")
-        clist.append("output=%s/Condor.out\n" % launchNamePrefix)
-        clist.append("error=%s/Condor.err\n" % launchNamePrefix)
-        clist.append("log=%s/Condor.log\n" % launchNamePrefix)
+        clist.append("output=%s/%s/Condor.out\n" % (workDir, launchNamePrefix))
+        clist.append("error=%s/%s/Condor.err\n" % (workDir, launchNamePrefix))
+        clist.append("log=%s/%s/Condor.log\n" % (workDir, launchNamePrefix))
         clist.append("should_transfer_files = YES\n")
         clist.append("when_to_transfer_output = ON_EXIT\n")
         clist.append("remote_initialdir="+self.dirs.get("work")+"\n")

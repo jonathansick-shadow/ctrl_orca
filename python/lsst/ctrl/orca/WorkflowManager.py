@@ -60,6 +60,7 @@ class WorkflowManager:
             if self._workflowConfigurator == None:
                 self._workflowLauncher = self.configure()
             self._monitor = self._workflowLauncher.launch(statusListener)
+            
             # self.cleanUp()
 
         finally:
