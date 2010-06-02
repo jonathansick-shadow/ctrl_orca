@@ -3,6 +3,7 @@
 import os
 import sys
 import re
+import time
 
 #
 # This class is highly dependent on the output of the condor commands 
@@ -63,7 +64,7 @@ class CondorJobs:
                     # throw exception here
                     return
             pop.close()
-            sleep(1)
+            time.sleep(1)
 
     def waitForAllJobsToRun(self, numList):
         queueExp = re.compile("\S+")
