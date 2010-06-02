@@ -115,9 +115,9 @@ class CondorJobs:
                 jobNum = values[0]
                 runstate = values[5]
                 for jobEntry in jobList:
-                    if (jobNum == jobEntry) and (runstate == 'R'):
-                        jobList = [job for job in jobList if job[:] != jobNum]
-                        pop.close()
+                    jobId = "%s.0" % jobEntry
+                    if (jobNum == jobId) and (runstate == 'R'):
+                        jobList = [job for job in jobList if job[:] != jobEntry]
                         if len(jobList) == 0:
                             return
                         break

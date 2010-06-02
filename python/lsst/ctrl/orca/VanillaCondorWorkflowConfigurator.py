@@ -119,7 +119,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
 
         #
 
-        workflowLauncher = VanillaCondorWorkflowLauncher(jobs, self.localWorkDir, glideinFileName,  self.shortName, self.logger)
+        workflowLauncher = VanillaCondorWorkflowLauncher(jobs, self.localWorkDir, glideinFileName,  self.prodPolicy, self.wfPolicy, self.runid, self.logger)
         return workflowLauncher
 
     ##

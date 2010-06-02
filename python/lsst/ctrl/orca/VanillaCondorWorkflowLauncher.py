@@ -4,30 +4,36 @@ from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
 from lsst.ctrl.orca.WorkflowLauncher import WorkflowLauncher
 from lsst.ctrl.orca.CondorJobs import CondorJobs
+from lsst.ctrl.orca.VanillaCondorWorkflowMonitor import VanillaCondorWorkflowMonitor
 
 class VanillaCondorWorkflowLauncher(WorkflowLauncher):
     ##
     # @brief
     #
-    def __init__(self, jobs, localScratch, condorGlideinFile, wfPolicy, logger = None):
-        logger.log(Log.DEBUG, "VanillaCondorWorkflowLauncher:__init__")
+    def __init__(self, jobs, localScratch, condorGlideinFile, prodPolicy, wfPolicy, runid, logger = None):
+        if logger != None:
+            logger.log(Log.DEBUG, "VanillaCondorWorkflowLauncher:__init__")
         self.logger = logger
         self.jobs = jobs
         self.localScratch = localScratch
         self.condorGlideinFile = condorGlideinFile
+        self.prodPolicy = prodPolicy
         self.wfPolicy = wfPolicy
+        self.runid = runid
 
     ##
     # @brief perform cleanup after workflow has ended.
     #
     def cleanUp(self):
-        self.logger.log(Log.DEBUG, "VanillaCondorWorkflowLauncher:cleanUp")
+        if self.logger != None:
+            self.logger.log(Log.DEBUG, "VanillaCondorWorkflowLauncher:cleanUp")
 
     ##
     # @brief launch this workflow
     #
     def launch(self, statusListener):
-        self.logger.log(Log.DEBUG, "VanillaCondorWorkflowLauncher:launch")
+        if self.logger != None:
+            self.logger.log(Log.DEBUG, "VanillaCondorWorkflowLauncher:launch")
 
         # Three step launch process
         # 1 - deploy condor
