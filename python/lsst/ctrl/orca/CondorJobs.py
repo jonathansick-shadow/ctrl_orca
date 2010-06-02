@@ -74,7 +74,7 @@ class CondorJobs:
                 if (values[0] == jobNum) and (runstate == 'R'):
                     print values
                     pop.close()
-                    print "Saw the job, but it was being run"
+                    print "Saw the job and it was being run. We're done here."
                     return None
                 if (values[0] == jobNum) and (runstate == 'H'):
                     pop.close()

@@ -1,4 +1,5 @@
 import os, sys, subprocess
+import lsst.ctrl.orca as orca
 from lsst.pex.logging import Log
 from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
@@ -36,20 +37,23 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
             self.logger.log(Log.DEBUG, "VanillaCondorWorkflowLauncher:launch")
 
         # Three step launch process
-        # 1 - deploy condor
-        # 2 - Glidein request
+        # 1 - Glidein request
         # wait for glidein to complete
-        # 3 - start joboffice job
+        # 2 - start joboffice job
         # wait for joboffice to start
-        # 4 - start all other jobs.
+        # 3 - start all other jobs.
+        # wait for all other jobs to start
+        # notify the user it's time to do the announceData
 
         condor = CondorJobs(self.logger)
 
-        curDir = os.getcwd()
-        os.chdir(self.localScratch)
-        glideinJobNumber = condor.submitJob(self.condorGlideinFile)
-        os.chdir(curDir)
-        condor.waitForJobToRun(glideinJobNumber)
+        # if we've set the "skipglidein", just don't do that.
+        if orca.skipglidein == False:
+            curDir = os.getcwd()
+            os.chdir(self.localScratch)
+            glideinJobNumber = condor.submitJob(self.condorGlideinFile)
+            os.chdir(curDir)
+            condor.waitForJobToRun(glideinJobNumber)
 
         # for now, make sure joboffice is the first job, launch and wait for it
         firstJob = True

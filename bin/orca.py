@@ -9,11 +9,13 @@ from lsst.pex.logging import Log
 from lsst.pex.policy import Policy
 from lsst.ctrl.orca.ProductionRunManager import ProductionRunManager 
 
-usage = """usage: %prog [-ndvqsc] [-r dir] [-e script] [-V int][-L lev] pipelinePolicyFile runId"""
+usage = """usage: %prog [-gndvqsc] [-r dir] [-e script] [-V int][-L lev] pipelinePolicyFile runId"""
 
 parser = optparse.OptionParser(usage)
 # TODO: handle "--dryrun"
 parser.add_option("-n", "--dryrun", action="store_true", dest="dryrun", default=False, help="print messages, but don't execute anything")
+
+parser.add_option("-g", "--skipglidein", action="store_true", dest="skipglidein", default=False, help="if this run uses condor glidein, skip doing it")
 
 parser.add_option("-c", "--configcheck", action="store_true", dest="skipconfigcheck", default=False, help="skip configuration check")
 
@@ -47,6 +49,7 @@ if len(parser.args) < 2:
 pipelinePolicyFile = parser.args[0]
 runId = parser.args[1]
 
+orca.skipglidein = parser.opts.skipglidein
 orca.dryrun = parser.opts.dryrun
 orca.repository = parser.opts.repository
 orca.envscript = parser.opts.envscript
