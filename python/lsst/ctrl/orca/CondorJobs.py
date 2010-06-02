@@ -4,13 +4,17 @@ import os
 import sys
 import re
 import time
+from lsst.pex.logging import Log
+
 
 #
 # This class is highly dependent on the output of the condor commands 
 # condor_submit and condor_q
 #
 class CondorJobs:
-    def __init__(self):
+    def __init__(self, logger):
+        self.logger = logger
+        self.logger.log(Log.DEBUG, "CondorJobs:__init__")
         return
 
 
@@ -21,6 +25,7 @@ class CondorJobs:
     # 1 job(s) submitted to cluster 1317.
     
     def submitJob(self, condorFile):
+        self.logger.log(Log.DEBUG, "CondorJobs:submitJob")
         clusterexp = re.compile("1 job\(s\) submitted to cluster (\d+).")
     
         submitRequest = "condor_submit %s" % condorFile
@@ -46,12 +51,14 @@ class CondorJobs:
     #1017.0   srp             5/24 09:18   0+00:00:00 R  0   0.0  launch_joboffices_
     
     def waitForJobToRun(self, num):
+        self.logger.log(Log.DEBUG, "CondorJobs:waitForJobToRun")
         jobNum = "%s.0" % num
         queueExp = re.compile("\S+")
         cJobSeen = 0
-        bJobSeenNow = 0
+        print "watching for job ",jobNum
         while 1:
             pop = os.popen("condor_q", "r")
+            bJobSeenNow = False
             while 1:
                 line = pop.readline()
                 if not line:
@@ -61,15 +68,18 @@ class CondorJobs:
                     continue
                 runstate = values[5]
                 if (values[0] == jobNum):
+                    print "saw for job ",jobNum
                     cJobSeen = cJobSeen + 1
                     bJobSeenNow = True
                 if (values[0] == jobNum) and (runstate == 'R'):
                     print values
                     pop.close()
+                    print "Saw the job, but it was being run"
                     return None
                 if (values[0] == jobNum) and (runstate == 'H'):
                     pop.close()
                     # throw exception here
+                    print "Saw the job, but it was being held"
                     return None
                 if (values[0] == jobNum) and (runstate == 'X'):
                     print values
@@ -84,10 +94,13 @@ class CondorJobs:
                 print "Saw the job for a while, but it went away"
                 # throw exception
                 return None
+            else:
+                print "cJobSeen = ",cJobSeen," bJobSeenNow = ",bJobSeenNow
             pop.close()
             time.sleep(1)
 
     def waitForAllJobsToRun(self, numList):
+        self.logger.log(Log.DEBUG, "CondorJobs:waitForAllJobsToRun")
         queueExp = re.compile("\S+")
         jobList = list(numList)
         while 1:
@@ -115,4 +128,4 @@ class CondorJobs:
                         # throw exception here
                         return
             pop.close()
-            sleep(1)
+            time.sleep(1)

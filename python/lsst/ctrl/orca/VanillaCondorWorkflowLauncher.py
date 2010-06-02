@@ -37,7 +37,7 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
         # wait for joboffice to start
         # 4 - start all other jobs.
 
-        condor = CondorJobs()
+        condor = CondorJobs(self.logger)
 
         curDir = os.getcwd()
         os.chdir(self.localScratch)
@@ -46,15 +46,17 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
         condor.waitForJobToRun(glideinJobNumber)
 
         # for now, make sure joboffice is the first job, launch and wait for it
-        jobCount = 1
+        firstJob = True
+        jobNumbers = []
         for job in self.jobs:
-            if jobCount == 1:
+            if firstJob == True:
                 jobNumber = condor.submitJob(job)
                 condor.waitForJobToRun(jobNumber)
+                firstJob = False
             else:
                 jobNumber = condor.submitJob(job)
                 jobNumbers.append(jobNumber)
-        condor.waitforJobsToRun(jobNumbers)
+        condor.waitForAllJobsToRun(jobNumbers)
 
         eventBrokerHost = self.prodPolicy.get("eventBrokerHost")
         shutdownTopic = self.wfPolicy.get("shutdownTopic")

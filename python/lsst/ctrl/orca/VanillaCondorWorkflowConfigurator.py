@@ -118,11 +118,8 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         glideinFileName = self.writeGlideinRequest(wfPolicy.get("configuration"))
 
         #
-        workDirSuffix = self.dirs.get("work")[len(self.directories.getDefaultRunDir()):]
-        workDirSuffix = workDirSuffix.lstrip("/")
-        workDir = os.path.join(self.localStagingDir, workDirSuffix)
 
-        workflowLauncher = VanillaCondorWorkflowLauncher(jobs, workDir, glideinFileName,  self.shortName, self.logger)
+        workflowLauncher = VanillaCondorWorkflowLauncher(jobs, self.localWorkDir, glideinFileName,  self.shortName, self.logger)
         return workflowLauncher
 
     ##
@@ -135,19 +132,19 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         # The name "work" should be the suffix of the self.dirs.get("work") portion of the name.  We can't guarantee the name
         # of the directory is "work".
         #condorJobFile = os.path.join(self.localStagingDir, "work")
-        workDirSuffix = self.dirs.get("work")[len(self.directories.getDefaultRunDir()):]
-        workDirSuffix = workDirSuffix.lstrip("/")
-        workDir = os.path.join(self.localStagingDir, workDirSuffix)
-        condorJobFile = os.path.join(workDir, launchNamePrefix)
+        #workDirSuffix = self.dirs.get("work")[len(self.directories.getDefaultRunDir()):]
+        #workDirSuffix = workDirSuffix.lstrip("/")
+        #workDir = os.path.join(self.localStagingDir, workDirSuffix)
+        condorJobFile = os.path.join(self.localWorkDir, launchNamePrefix)
         condorJobFile = os.path.join(condorJobFile, launchNamePrefix+".condor")
 
         clist = []
         clist.append("universe=vanilla\n")
         clist.append("executable=%s/%s\n" % (launchNamePrefix, launchScriptName))
         clist.append("transfer_executable=false\n")
-        clist.append("output=%s/%s/Condor.out\n" % (workDir, launchNamePrefix))
-        clist.append("error=%s/%s/Condor.err\n" % (workDir, launchNamePrefix))
-        clist.append("log=%s/%s/Condor.log\n" % (workDir, launchNamePrefix))
+        clist.append("output=%s/%s/Condor.out\n" % (self.localWorkDir, launchNamePrefix))
+        clist.append("error=%s/%s/Condor.err\n" % (self.localWorkDir, launchNamePrefix))
+        clist.append("log=%s/%s/Condor.log\n" % (self.localWorkDir, launchNamePrefix))
         clist.append("should_transfer_files = YES\n")
         clist.append("when_to_transfer_output = ON_EXIT\n")
         clist.append("remote_initialdir="+self.dirs.get("work")+"\n")
@@ -226,18 +223,18 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         # add things to the pipeline policy and write it out to "work"
         #self.rewritePipelinePolicy(pipelinePolicy)
 
-        workDirSuffix = self.dirs.get("work")[len(self.directories.getDefaultRunDir()):]
-        print "self.directories.getDefaultRunDir() = %s" % self.directories.getDefaultRunDir()
-        print 'self.dirs.get("work") = %s' % self.dirs.get("work")
-        print "workDirSuffix = %s" % workDirSuffix
-        workDirSuffix = workDirSuffix.lstrip("/")
-        workDir = os.path.join(self.localStagingDir, workDirSuffix)
-        print "localStagingDir = %s" % self.localStagingDir
-        print "workDir = %s" % workDir
+        #workDirSuffix = self.dirs.get("work")[len(self.directories.getDefaultRunDir()):]
+        #print "self.directories.getDefaultRunDir() = %s" % self.directories.getDefaultRunDir()
+        #print 'self.dirs.get("work") = %s' % self.dirs.get("work")
+        #print "workDirSuffix = %s" % workDirSuffix
+        #workDirSuffix = workDirSuffix.lstrip("/")
+        #workDir = os.path.join(self.localStagingDir, workDirSuffix)
+        #print "localStagingDir = %s" % self.localStagingDir
+        #print "workDir = %s" % workDir
 
         # create the subdirectory for the pipeline specific files
         #logDir = os.path.join(self.dirs.get("work"), pipelineName)
-        logDir = os.path.join(workDir, pipelineName)
+        logDir = os.path.join(self.localWorkDir, pipelineName)
         if not os.path.exists(logDir):
             os.makedirs(logDir)
 
@@ -255,7 +252,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
                 definitionPolicy.set("execute.shutdownTopic", self.wfPolicy.get("shutdownTopic"))
             if self.prodPolicy.exists("logThreshold"):
                 definitionPolicy.set("execute.logThreshold", self.prodPolicy.get("logThreshold"))
-            newPolicyFile = os.path.join(workDir, filename)
+            newPolicyFile = os.path.join(self.localWorkDir, filename)
             pw = pol.PAFWriter(newPolicyFile)
             pw.write(definitionPolicy)
             pw.close()
@@ -278,7 +275,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
 
         # only copy the setup script once
         if pipelinePolicyNumber == 1:
-            shutil.copy(self.script, workDir)
+            shutil.copy(self.script, self.localWorkDir)
 
         # now point at the new location for the setup script
         self.script = os.path.join(self.dirs.get("work"), os.path.basename(self.script))
@@ -302,9 +299,9 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
                 tokens = destName.split('/')
                 tokensLength = len(tokens)
                 destinationFile = tokens[len(tokens)-1]
-                destintationDir = workDir
+                destintationDir = self.localWorkDir
                 for newDestinationDir in tokens[:len(tokens)-1]:
-                    newDir = os.path.join(workDir, newDestinationDir)
+                    newDir = os.path.join(self.localWorkDir, newDestinationDir)
                     if os.path.exists(newDir) == False:
                         os.mkdir(newDir)
                     destinationDir = newDir
@@ -363,8 +360,8 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         return
 
     def rewritePipelinePolicy(self, pipelinePolicy):
-        workDirSuffix = self.dirs.get("work")[len(self.dirs.getDefaultRunDir()):]
-        localWorkDir = os.path.join(self.localStagingDir, workDirSuffix)
+        #workDirSuffix = self.dirs.get("work")[len(self.dirs.getDefaultRunDir()):]
+        #localWorkDir = os.path.join(self.localStagingDir, workDirSuffix)
         
         filename = pipelinePolicy.getFile("definition").getPath()
         oldPolicy = pol.Policy.createPolicy(filename, False)
@@ -378,7 +375,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         if self.prodPolicy.exists("logThreshold"):
             oldPolicy.set("execute.logThreshold", self.prodPolicy.get("logThreshold"))
 
-        newPolicyFile = os.path.join(localWorkDir, filename)
+        newPolicyFile = os.path.join(self.localWorkDir, filename)
         pw = pol.PAFWriter(newPolicyFile)
         pw.write(oldPolicy)
         pw.close()
@@ -398,6 +395,11 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         remoteRunDir = self.directories.getDefaultRunDir()
         suffix = remoteRunDir.split(remoteRootDir)
         self.localStagingDir = os.path.join(self.localScratch, suffix[1][1:])
+
+        workDirSuffix = self.dirs.get("work")[len(self.directories.getDefaultRunDir()):]
+        workDirSuffix = workDirSuffix.lstrip("/")
+        self.localWorkDir = os.path.join(self.localStagingDir, workDirSuffix)
+
         print "self.localStagingDir = ",self.localStagingDir
 
         for name in self.dirs.names():
@@ -461,10 +463,10 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         outputFileName = glideinRequest.get("outputFileName")
         keyValuePairs = glideinRequest.get("keyValuePairs")
 
-        workDirSuffix = self.dirs.get("work")[len(self.directories.getDefaultRunDir()):]
-        workDirSuffix = workDirSuffix.lstrip("/")
-        realOutputDir = os.path.join(self.localStagingDir, workDirSuffix)
-        realFileName = os.path.join(realOutputDir, outputFileName)
+        #workDirSuffix = self.dirs.get("work")[len(self.directories.getDefaultRunDir()):]
+        #workDirSuffix = workDirSuffix.lstrip("/")
+        #realOutputDir = os.path.join(self.localStagingDir, workDirSuffix)
+        realFileName = os.path.join(self.localWorkDir, outputFileName)
         writer = TemplateWriter()
         writer.rewrite(templateFileName, realFileName, keyValuePairs)
 
