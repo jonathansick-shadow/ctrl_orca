@@ -3,15 +3,17 @@ from lsst.pex.logging import Log
 from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
 from lsst.ctrl.orca.WorkflowLauncher import WorkflowLauncher
+from lsst.ctrl.orca.CondorJobs import CondorJobs
 
 class VanillaCondorWorkflowLauncher(WorkflowLauncher):
     ##
     # @brief
     #
-    def __init__(self, jobs, wfPolicy, logger = None):
+    def __init__(self, jobs, condorGlideinFile, wfPolicy, logger = None):
         logger.log(Log.DEBUG, "VanillaCondorWorkflowLauncher:__init__")
         self.logger = logger
         self.jobs = jobs
+        self.condorGlideinFile = condorGlideinFile
         self.wfPolicy = wfPolicy
 
     ##
@@ -35,7 +37,9 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
         # 4 - start all other jobs.
 
         condor = CondorJobs()
-        glideinJobNumber = condor.submitJob(condorSubmitFile)
+
+        glideinJobNumber = condor.submitJob(self.condorGlideinFile)
+        condor.waitForJobToRun(glideinJobNumber)
 
         # for now, make sure joboffice is the first job, launch and wait for it
         jobCount = 1
