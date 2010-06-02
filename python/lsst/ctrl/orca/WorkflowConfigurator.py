@@ -12,7 +12,7 @@ from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 # out the non-database setup, including deploying the workflow onto the
 # remote platform.
 # 
-class WorkflowConfigurator:
+class WorkflowConfigurator(object):
 
     ##
     # @brief create the configurator

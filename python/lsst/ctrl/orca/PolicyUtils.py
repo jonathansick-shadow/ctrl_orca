@@ -1,7 +1,7 @@
 import os.path
 import lsst.pex.policy as pol
 
-class PolicyUtils:
+class PolicyUtils(object):
 
     ##
     # @brief given a policy, recursively add all child policies to a policy set

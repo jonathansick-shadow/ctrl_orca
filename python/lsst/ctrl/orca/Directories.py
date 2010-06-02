@@ -47,7 +47,7 @@ import os
 #   scratch            a named directory for temporary files that may be 
 #                         deleted upon completion ofthe workflow
 # @endverbatim
-class Directories:
+class Directories(object):
 
     ## 
     # @brief determine the directories from the policy input

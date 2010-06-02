@@ -11,7 +11,7 @@
 #
 # @brief
 #
-class DatabaseConfigurator:
+class DatabaseConfigurator(object):
     def __init__(self, runid, policy, logger):
         self.runid = runid
         self.policy = policy
