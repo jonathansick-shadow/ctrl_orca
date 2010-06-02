@@ -10,11 +10,11 @@ class TemplateWriter:
     def __init__(self):
         return
 
+    #
+    # given a input template, take the keys from the key/values in the policy
+    # object and substitute the values, and write those to the output file.
+    #
     def rewrite(self, input, output, pairs):
-        #pairs = [("$START_OWNER", "srp"), ("$ADMIN_EMAIL", "srp@ncsa.uiuc.edu"), ("$MACHINE_COUNT", "1"), ("$TIME_REQUESTED","15")]
-
-        print input, "-", output
-
         fpInput = open(input, 'r')
         fpOutput = open(output, 'w')
 
@@ -23,9 +23,11 @@ class TemplateWriter:
             if len(line) == 0:
                 break
 
-            for pair in pairs:
-                line = line.replace(pair[0],pair[1])
-            print line,
+            for name in pairs.names():
+                key = "$"+name
+                val = str(pairs.get(name))
+                line = line.replace(key, val)
+            fpOutput.write(line)
         fpInput.close()
         fpOutput.close()
 
