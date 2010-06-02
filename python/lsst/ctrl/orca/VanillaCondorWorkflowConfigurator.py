@@ -9,6 +9,7 @@ from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.PolicyUtils import PolicyUtils
 from lsst.ctrl.orca.WorkflowConfigurator import WorkflowConfigurator
 from lsst.ctrl.orca.VanillaCondorWorkflowLauncher import VanillaCondorWorkflowLauncher
+from lsst.ctrl.orca.TemplateWriter import TemplateWriter
 
 ##
 #
@@ -66,13 +67,14 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             platformPolicy = wfPolicy.getPolicy("platform")
 
         self.repository = self.prodPolicy.get("repositoryDirectory")
+        self.repository = EnvString.resolve(self.repository)
 
         self.shortName = self.wfPolicy.get("shortName")
 
         pipelinePolicies = wfPolicy.getPolicyArray("pipeline")
         expandedPipelinePolicies = self.expandPolicies(self.shortName, pipelinePolicies)
 
-        launchCmd = []
+        jobs = []
         for pipelinePolicyGroup in expandedPipelinePolicies:
             pipelinePolicy = pipelinePolicyGroup[0]
             num = pipelinePolicyGroup[1]
@@ -85,7 +87,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             self.deploySetup(provSetup, wfPolicy, platformPolicy, pipelinePolicyGroup)
             condorFile = self.writeCondorFile(launchName, "launch_%s.sh" % launchName)
             launchCmd = ["condor_submit", condorFile]
-            launchCmd.append(condorFile)
+            jobs.append(condorFile)
             self.setupDatabase()
         self.logger.log(Log.DEBUG, "launchCmd = %s" % launchCmd)
 
@@ -95,8 +97,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         # the extra "/" is required below to copy the entire directory
         self.copyToRemote(self.localStagingDir+"/", remoteDir+"/")
 
-        # TODO: run the linking script to the data 
-        #self.deployData(wfPolicy)
+        #self.runLinkScript(wfPolicy)
 
         # make remote scripts executable;  this is required because the copy doesn't
         # retain the execution bit setting.
@@ -109,9 +110,15 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             filename = "launch_%s_%d.sh" % (pipelineShortName, num)
             remoteDir = os.path.join(self.dirs.get("work"), "%s_%d" % (pipelineShortName, num))
             remoteFilename = os.path.join(remoteDir, filename)
-            self.remoteChmodX(remoteFilename)
+            # UNCOMMENT WHEN ABE IS RUNNING
+            # self.remoteChmodX(remoteFilename)
         
-        workflowLauncher = VanillaCondorWorkflowLauncher(launchCmds, self.shortName, self.logger)
+        # TODO: get script from template, write it, and pass it to the Launcher
+
+        glideinFileName = self.writeGlideinRequest(wfPolicy.get("configuration"))
+
+        #
+        workflowLauncher = VanillaCondorWorkflowLauncher(jobs, glideinFileName,  self.shortName, self.logger)
         return workflowLauncher
 
     ##
@@ -121,7 +128,12 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
     def writeCondorFile(self, launchNamePrefix, launchScriptName):
         self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator:writeCondorFile")
 
-        condorJobFile = os.path.join(self.localStagingDir, "work")
+        # The name "work" should be the suffix of the self.dirs.get("work") portion of the name.  We can't guarantee the name
+        # of the directory is "work".
+        #condorJobFile = os.path.join(self.localStagingDir, "work")
+        workDirSuffix = self.dirs.get("work")[len(self.directories.getDefaultRunDir()):]
+        workDirSuffix = workDirSuffix.lstrip("/")
+        condorJobFile = os.path.join(self.localStagingDir, workDirSuffix)
         condorJobFile = os.path.join(condorJobFile, launchNamePrefix)
         condorJobFile = os.path.join(condorJobFile, launchNamePrefix+".condor")
 
@@ -210,8 +222,14 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         # add things to the pipeline policy and write it out to "work"
         #self.rewritePipelinePolicy(pipelinePolicy)
 
-        #workDir = self.dirs.get("work")
-        workDir = os.path.join(self.localStagingDir, "work")
+        workDirSuffix = self.dirs.get("work")[len(self.directories.getDefaultRunDir()):]
+        print "self.directories.getDefaultRunDir() = %s" % self.directories.getDefaultRunDir()
+        print 'self.dirs.get("work") = %s' % self.dirs.get("work")
+        print "workDirSuffix = %s" % workDirSuffix
+        workDirSuffix = workDirSuffix.lstrip("/")
+        workDir = os.path.join(self.localStagingDir, workDirSuffix)
+        print "localStagingDir = %s" % self.localStagingDir
+        print "workDir = %s" % workDir
 
         # create the subdirectory for the pipeline specific files
         #logDir = os.path.join(self.dirs.get("work"), pipelineName)
@@ -341,7 +359,8 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         return
 
     def rewritePipelinePolicy(self, pipelinePolicy):
-        localWorkDir = os.path.join(self.localStagingDir, "work")
+        workDirSuffix = self.dirs.get("work")[len(self.dirs.getDefaultRunDir()):]
+        localWorkDir = os.path.join(self.localStagingDir, workDirSuffix)
         
         filename = pipelinePolicy.getFile("definition").getPath()
         oldPolicy = pol.Policy.createPolicy(filename, False)
@@ -389,3 +408,60 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
     def setupDatabase(self):
         self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator:setupDatabase")
 
+
+    def deployLinkScript(self, wfPolicy):
+        self.logger.log(Log.DEBUG, "VanillaPipelineWorkflowConfigurator:deployLinkScript")
+        if wfPolicy.exists("configuration"):
+            configuration = wfPolicy.get("configuration")
+            if configuration.exists("deployData"):
+                deployScript = deployPolicy.get("script")
+                deployScript = EnvString.resolve(deployScript)
+
+    def runLinkScript(self, wfPolicy):
+        self.logger.log(Log.DEBUG, "VanillaPipelineWorkflowConfigurator:runLinkScript")
+
+        if wfPolicy.exists("configuration"):
+            configuration = wfPolicy.get("configuration")
+            if configuration.exists("deployData"):
+                deployPolicy = configuration.get("deployData")
+                dataRepository = deployPolicy.get("dataRepository")
+                dataRepository = EnvString.resolve(dataRepository)
+                deployScript = deployPolicy.get("script")
+                deployScript = EnvString.resolve(deployScript)
+                collection = deployPolicy.get("collection")
+
+
+                if os.path.isfile(deployScript) == True:
+                    # copy the script to the remote side
+                    self.copyToRemote(deployScript, self.dirs.get("work"))
+                    runDir = os.path.join(self.defaultRootDir, self.runid)
+                    # run the linking script
+                    deployCmd = ["gsissh", loginNode, deployScript, runDir, dataRepository, collection]
+                    print ">>> ",deployCmd
+                    pid = os.fork()
+                    if not pid:
+                        os.execvp(deployCmd[0], deployCmd)
+                    os.wait()[0]
+                else:
+                    self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:deployData: warning: script '%s' doesn't exist" % deployScript)
+        return
+
+    def writeGlideinRequest(self, configPolicy):
+        self.logger.log(Log.DEBUG, "VanillaPipelineWorkflowConfigurator:writeGlideinRequest")
+        print "configPolicy:"
+        print configPolicy
+        print "++++"
+        glideinRequest = configPolicy.get("glideinRequest")
+        templateFileName = glideinRequest.get("templateFileName")
+        templateFileName = EnvString.resolve(templateFileName)
+        outputFileName = glideinRequest.get("outputFileName")
+        keyValuePairs = glideinRequest.get("keyValuePairs")
+
+        workDirSuffix = self.dirs.get("work")[len(self.directories.getDefaultRunDir()):]
+        workDirSuffix = workDirSuffix.lstrip("/")
+        realOutputDir = os.path.join(self.localStagingDir, workDirSuffix)
+        realFileName = os.path.join(realOutputDir, outputFileName)
+        writer = TemplateWriter()
+        writer.rewrite(templateFileName, realFileName, keyValuePairs)
+
+        return realFileName
