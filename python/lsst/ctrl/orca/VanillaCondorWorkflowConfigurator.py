@@ -110,8 +110,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             filename = "launch_%s_%d.sh" % (pipelineShortName, num)
             remoteDir = os.path.join(self.dirs.get("work"), "%s_%d" % (pipelineShortName, num))
             remoteFilename = os.path.join(remoteDir, filename)
-            # UNCOMMENT WHEN ABE IS RUNNING
-            # self.remoteChmodX(remoteFilename)
+            self.remoteChmodX(remoteFilename)
         
         # TODO: get script from template, write it, and pass it to the Launcher
 
@@ -354,7 +353,13 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             launcher.write("%s %s\n" % (launchCmd, fileargs))
 
         
-        launcher.write("%s %s %s -L %s --logdir %s >%s/launch.log 2>&1\n" % (execCmd, filename, self.runid, self.wfVerbosity, remoteLogDir, remoteLogDir))
+        # On condor, you have to launch the script, then wait until that
+        # script exits.
+        launcher.write("%s %s %s -L %s --logdir %s >%s/launch.log 2>&1 &\n" % (execCmd, filename, self.runid, self.wfVerbosity, remoteLogDir, remoteLogDir))
+        launcher.write("wait\n")
+        launcher.write('echo "from launcher"\n')
+        launcher.write("ps -ef\n")
+
         launcher.close()
 
         return

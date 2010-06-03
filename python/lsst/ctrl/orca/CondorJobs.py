@@ -75,18 +75,18 @@ class CondorJobs:
                     print values
                     pop.close()
                     print "Saw the job and it was being run. We're done here."
-                    return None
+                    return 'R'
                 if (values[0] == jobNum) and (runstate == 'H'):
                     pop.close()
                     # throw exception here
                     print "Saw the job, but it was being held"
-                    return None
+                    return 'H'
                 if (values[0] == jobNum) and (runstate == 'X'):
                     print values
                     pop.close()
                     # throw exception here
                     print "Saw the job, but it was being aborted"
-                    return None
+                    return 'X'
             # check to see if we've seen the job before, but that
             # it disappeared
             if (cJobSeen > 0) and (bJobSeenNow == False):
