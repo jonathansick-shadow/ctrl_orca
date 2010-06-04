@@ -1,8 +1,8 @@
-import os, os.path, shutil, sets, stat
+import sys, os, os.path, shutil, sets, stat
 import lsst.ctrl.orca as orca
 import lsst.pex.policy as pol
 
-from lsst.ctrl.orca.Directories import Directories
+from lsst.pex.harness.Directories import Directories
 from lsst.pex.logging import Log
 
 from lsst.ctrl.orca.EnvString import EnvString
@@ -182,10 +182,22 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
 
         cmd = "globus-url-copy -r -vb -cd %s %s " % (localNameURL, remoteNameURL)
         
-        print "cmd = ",cmd
         # perform this copy from the local machine to the remote machine
         pid = os.fork()
         if not pid:
+            # when forking stuff, gotta close *BOTH* the python and C level 
+            # file descriptors. not strictly needed here, since we're just
+            # shutting off stdout and stderr, but a good habit to be in.
+
+            # TODO: Change this to add a check to not close file descriptors
+            # if verbosity is set high enough, so you can see the output of the 
+            # globus-url-copy
+            sys.stdin.close()
+            sys.stdout.close()
+            sys.stderr.close()
+            os.close(0)
+            os.close(1)
+            os.close(2)
             os.execvp("globus-url-copy",cmd.split())
         os.wait()[0]
 
@@ -405,8 +417,6 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         workDirSuffix = workDirSuffix.lstrip("/")
         self.localWorkDir = os.path.join(self.localStagingDir, workDirSuffix)
 
-        print "self.localStagingDir = ",self.localStagingDir
-
         for name in self.dirs.names():
             localDirName = os.path.join(self.localStagingDir, name)
     
@@ -459,9 +469,6 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
 
     def writeGlideinRequest(self, configPolicy):
         self.logger.log(Log.DEBUG, "VanillaPipelineWorkflowConfigurator:writeGlideinRequest")
-        print "configPolicy:"
-        print configPolicy
-        print "++++"
         glideinRequest = configPolicy.get("glideinRequest")
         templateFileName = glideinRequest.get("templateFileName")
         templateFileName = EnvString.resolve(templateFileName)
