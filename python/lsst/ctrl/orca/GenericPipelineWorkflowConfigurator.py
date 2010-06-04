@@ -2,7 +2,7 @@ import sys,os, os.path, shutil, sets, stat
 import lsst.ctrl.orca as orca
 import lsst.pex.policy as pol
 
-from lsst.ctrl.orca.Directories import Directories
+from lsst.pex.harness.Directories import Directories
 from lsst.pex.logging import Log
 
 from lsst.ctrl.orca.PolicyUtils import PolicyUtils
