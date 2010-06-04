@@ -7,7 +7,7 @@ from lsst.pex.policy import Policy, NameNotFound
 from lsst.ctrl.provenance.ProvenanceSetup import ProvenanceSetup
 import lsst.pex.exceptions as pexEx
 
-class ProductionRunConfigurator(object):
+class ProductionRunConfigurator:
     ##
     # @brief create a basic production run.
     # Note that all ProductionRunConfigurator subclasses must support this
@@ -69,25 +69,10 @@ class ProductionRunConfigurator(object):
     #
     def configure(self, workflowVerbosity):
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:configure")
-        self.repository = self.prodPolicy.get("repositoryDirectory")
+        # TODO:  Check this next line - shouldn't be reassigned.
+        # self.repository = self.prodPolicy.get("repositoryDirectory")
 
         self._provSetup = ProvenanceSetup()
-
-        # cycle through the policies in the production policy file to get
-        # a list of files to record.
-        #
-        # TODO here:  Don't blindly add files as below.  We have to cycle through
-        # all of the files first, dereferencing each file at each level, add them
-        # adding them to a Set() to avoid recording provenance on a file more than
-        # once, and then add all of those files to provSetup.
-
-        #names = self.prodPolicy.fileNames()
-        #for name in names:
-        #    if self.prodPolicy.getValueType(name) == Policy.FILE:
-        #        # TODO: There's a bug in Policy that prevents retrieving all 
-        #        # files -  we want all files, not just one.  
-        #        filename = self.prodPolicy.getFile(name).getPath()
-        #        self._provSetup.addProductionPolicyFile(name)
 
         self._provSetup.addAllProductionPolicyFiles(self._prodPolicyFile, self.repository)
             
