@@ -18,7 +18,7 @@ from ProductionRunConfigurator import ProductionRunConfigurator
 # @brief A class in charge of launching, monitoring, managing, and stopping
 # a production run
 #
-class ProductionRunManager(object):
+class ProductionRunManager:
 
     ##
     # @brief initialize

@@ -1,5 +1,5 @@
 import re,os
-class EnvString(object):
+class EnvString:
 
     ##
     # given a string, look for any $ prefixed word, attempt to subsitute

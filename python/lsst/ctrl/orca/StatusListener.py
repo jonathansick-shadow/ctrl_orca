@@ -5,7 +5,7 @@ from lsst.pex.logging import Log
 # @brief an interface for getting notified about changes in the status
 # of a workflow: when it has started and when it has finished.
 #
-class StatusListener(object):
+class StatusListener:
     # 
     def __init__(self, logger):
         if not logger:

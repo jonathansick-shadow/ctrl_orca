@@ -4,7 +4,7 @@ from lsst.pex.logging import Log
 import lsst.pex.policy as pol
 from lsst.ctrl.orca.multithreading import SharedData
 
-class WorkflowManager(object):
+class WorkflowManager:
     ##
     # @brief 
     #
