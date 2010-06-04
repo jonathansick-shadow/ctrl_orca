@@ -74,23 +74,6 @@ class ProductionRunConfigurator:
 
         self._provSetup = ProvenanceSetup()
 
-        # cycle through the policies in the production policy file to get
-        # a list of files to record.
-        #
-        # TODO here:  Don't blindly add files as below.  We have to cycle through
-        # all of the files first, dereferencing each file at each level, add them
-        # adding them to a Set() to avoid recording provenance on a file more than
-        # once, and then add all of those files to provSetup.
-
-        #names = self.prodPolicy.fileNames()
-        #for name in names:
-        #    if self.prodPolicy.getValueType(name) == Policy.FILE:
-        #        # TODO: There's a bug in Policy that prevents retrieving all 
-        #        # files -  we want all files, not just one.  
-        #        filename = self.prodPolicy.getFile(name).getPath()
-        #        self._provSetup.addProductionPolicyFile(name)
-
-        print "self._prodPolicyFile = ",self._prodPolicyFile
         self._provSetup.addAllProductionPolicyFiles(self._prodPolicyFile, self.repository)
             
         #
