@@ -51,9 +51,9 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
         if orca.skipglidein == False:
             curDir = os.getcwd()
             os.chdir(self.localScratch)
-            glideinJobNumber = condor.submitJob("glidein", self.condorGlideinFile)
+            glideinJobNumber = condor.submitJob(self.condorGlideinFile)
             os.chdir(curDir)
-            condor.waitForJobToRun(glideinJobNumber)
+            condor.waitForJobToRun(glideinJobNumber, "this might take a few minutes.")
         else:
             print "Command line request to skip condor glidein.  Skipping."
 
