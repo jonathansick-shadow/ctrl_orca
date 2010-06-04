@@ -1,6 +1,6 @@
 ##
 # @brief create a new class object
-class NamedClassFactory:
+class NamedClassFactory(object):
     ##
     # @brief create a new "name" class object
     def createClass(self, name):

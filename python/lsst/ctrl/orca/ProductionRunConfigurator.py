@@ -7,7 +7,7 @@ from lsst.pex.policy import Policy, NameNotFound
 from lsst.ctrl.provenance.ProvenanceSetup import ProvenanceSetup
 import lsst.pex.exceptions as pexEx
 
-class ProductionRunConfigurator:
+class ProductionRunConfigurator(object):
     ##
     # @brief create a basic production run.
     # Note that all ProductionRunConfigurator subclasses must support this

@@ -9,7 +9,7 @@ from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
 # This class should not be used directly but rather must be subclassed,
 # providing an implementation for _configureSpecialized.
 # 
-class WorkflowLauncher:
+class WorkflowLauncher(object):
     ##
     # @brief
     #

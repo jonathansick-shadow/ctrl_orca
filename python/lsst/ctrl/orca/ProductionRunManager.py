@@ -18,7 +18,7 @@ from ProductionRunConfigurator import ProductionRunConfigurator
 # @brief A class in charge of launching, monitoring, managing, and stopping
 # a production run
 #
-class ProductionRunManager:
+class ProductionRunManager(object):
 
     ##
     # @brief initialize
@@ -343,16 +343,18 @@ class ProductionRunManager:
         return self._workflowManagers[name]
 
     class _ShutdownThread(threading.Thread):
-        def __init__(self, parent, pollingIntv=0.2, listenTimeout=10):
+        def __init__(self, parent, runid, pollingIntv=0.2, listenTimeout=10):
             threading.Thread.__init__(self)
             self.setDaemon(True)
+            self._runid = runid
             self._parent = parent
             self._pollintv = pollingIntv
             self._timeout = listenTimeout
             brokerhost = parent.policy.get("eventBrokerHost")
             self._topic = parent.policy.get("productionShutdownTopic")
             self._evsys = events.EventSystem.getDefaultEventSystem()
-            self._evsys.createReceiver(brokerhost, self._topic)
+            selector = "RUNID = '%s'" % self._runid
+            self._evsys.createReceiver(brokerhost, self._topic, selector)
 
         def run(self):
             self._parent.logger.log(Log.DEBUG,
@@ -360,21 +362,22 @@ class ProductionRunManager:
 
             self._parent.logger.log(Log.DEBUG-10, "checking for shutdown event")
             self._parent.logger.log(Log.DEBUG, "self._timeout = %s" % self._timeout)
-            shutdownData = self._evsys.receive(self._topic, self._timeout)
-            while self._parent.isRunning() and shutdownData is None:
+            shutdownEvent = self._evsys.receiveEvent(self._topic, self._timeout)
+            while self._parent.isRunning() and shutdownEvent is None:
                 time.sleep(self._pollintv)
                 #self._parent.logger.log(Log.DEBUG-10, "checking for shutdown event")
-                shutdownData = self._evsys.receive(self._topic, self._timeout)
+                shutdownEvent = self._evsys.receiveEvent(self._topic, self._timeout)
                 #time.sleep(1)
-                #shutdownData = self._evsys.receive(self._topic, 10)
+                #shutdownData = self._evsys.receiveEvent(self._topic, 10)
             self._parent.logger.log(Log.DEBUG, "DONE!")
 
-            if shutdownData:
+            if shutdownEvent:
+                shutdownData = shutdownEvent.getPropertySet()
                 self._parent.stopProduction(shutdownData.getInt("level"))
             self._parent.logger.log(Log.DEBUG, "Everything shutdown - All finished")
 
     def _startShutdownThread(self):
-        self._sdthread = ProductionRunManager._ShutdownThread(self)
+        self._sdthread = ProductionRunManager._ShutdownThread(self, self.runid)
         self._sdthread.start()
 
     def getShutdownThread(self):
