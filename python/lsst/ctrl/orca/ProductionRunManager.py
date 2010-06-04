@@ -184,6 +184,8 @@ class ProductionRunManager:
         if self.policy.exists("productionShutdownTopic"):
             self._startShutdownThread()
 
+        print "Production running. Waiting for events."
+
     ##
     # @brief determine whether production is currently running
     #
