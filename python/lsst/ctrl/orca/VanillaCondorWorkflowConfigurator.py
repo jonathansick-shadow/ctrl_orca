@@ -97,7 +97,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         # the extra "/" is required below to copy the entire directory
         self.copyToRemote(self.localStagingDir+"/", remoteDir+"/")
 
-        #self.runLinkScript(wfPolicy)
+        self.runLinkScript(wfPolicy)
 
         # make remote scripts executable;  this is required because the copy doesn't
         # retain the execution bit setting.
@@ -430,14 +430,6 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator:setupDatabase")
 
 
-    def deployLinkScript(self, wfPolicy):
-        self.logger.log(Log.DEBUG, "VanillaPipelineWorkflowConfigurator:deployLinkScript")
-        if wfPolicy.exists("configuration"):
-            configuration = wfPolicy.get("configuration")
-            if configuration.exists("deployData"):
-                deployScript = deployPolicy.get("script")
-                deployScript = EnvString.resolve(deployScript)
-
     def runLinkScript(self, wfPolicy):
         self.logger.log(Log.DEBUG, "VanillaPipelineWorkflowConfigurator:runLinkScript")
 
@@ -454,10 +446,12 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
 
                 if os.path.isfile(deployScript) == True:
                     # copy the script to the remote side
-                    self.copyToRemote(deployScript, self.dirs.get("work"))
-                    runDir = os.path.join(self.defaultRootDir, self.runid)
+                    remoteName = os.path.join(self.dirs.get("work"), os.path.basename(deployScript))
+                    self.copyToRemote(deployScript, remoteName)
+                    self.remoteChmodX(remoteName)
+                    runDir = self.directories.getDefaultRunDir()
                     # run the linking script
-                    deployCmd = ["gsissh", loginNode, deployScript, runDir, dataRepository, collection]
+                    deployCmd = ["gsissh", self.remoteLoginName, remoteName, runDir, dataRepository, collection]
                     print ">>> ",deployCmd
                     pid = os.fork()
                     if not pid:

@@ -3,7 +3,7 @@
 	
 	executable = glidein_remote_setup.dc3b
 
-	arguments = "'$(DOLLAR)(HOME)/Condor_glidein' '$(DOLLAR)(HOME)/Condor_glidein/7.4.0-i686-pc-Linux-2.4' '7.4.0-i686-pc-Linux-2.4' '$(DOLLAR)(HOME)/Condor_glidein/local' 'http://dev.lsstcorp.org/condor/binaries/glidein' '0'"
+	arguments = "'$(DOLLAR)(HOME)/Condor_glidein' '$(DOLLAR)(HOME)/Condor_glidein/7.4.2-i686-pc-Linux-2.4' '7.4.2-i686-pc-Linux-2.4' '$(DOLLAR)(HOME)/Condor_glidein/local' 'http://www.cs.wisc.edu/condor/glidein/binaries' '0'"
 	#avoid trouble with scratch directory creation
 	remote_initialdir = /tmp
 	output = glidein_setup.output.dc3b
