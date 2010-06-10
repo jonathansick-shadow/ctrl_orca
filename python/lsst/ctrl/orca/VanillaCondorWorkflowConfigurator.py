@@ -10,6 +10,7 @@ from lsst.ctrl.orca.PolicyUtils import PolicyUtils
 from lsst.ctrl.orca.WorkflowConfigurator import WorkflowConfigurator
 from lsst.ctrl.orca.VanillaCondorWorkflowLauncher import VanillaCondorWorkflowLauncher
 from lsst.ctrl.orca.TemplateWriter import TemplateWriter
+from lsst.ctrl.orca.FileWaiter import FileWaiter
 
 ##
 #
@@ -30,6 +31,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         self.directories = None
         self.nodes = None
         self.numNodes = None
+        self.logFileNames = []
 
     ##
     # @brief Setup as much as possible in preparation to execute the workflow
@@ -112,13 +114,19 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             remoteFilename = os.path.join(remoteDir, filename)
             self.remoteChmodX(remoteFilename)
         
+
+        # copy the file creation watching utility
+
+        remoteFileWaiterName = self.copyFileWaiterUtility()
+        fileWaiter = FileWaiter(self.remoteLoginName, remoteFileWaiterName, self.logFileNames, self.logger)
+        
         # TODO: get script from template, write it, and pass it to the Launcher
 
         glideinFileName = self.writeGlideinRequest(wfPolicy.get("configuration"))
 
         #
 
-        workflowLauncher = VanillaCondorWorkflowLauncher(jobs, self.localWorkDir, glideinFileName,  self.prodPolicy, self.wfPolicy, self.runid, self.logger)
+        workflowLauncher = VanillaCondorWorkflowLauncher(jobs, self.localWorkDir, glideinFileName,  self.prodPolicy, self.wfPolicy, self.runid, fileWaiter, self.logger)
         return workflowLauncher
 
     ##
@@ -209,6 +217,12 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             os.execvp("gsissh",cmd.split())
         os.wait()[0]
 
+    def copyFileWaiterUtility(self):
+        script = EnvString.resolve("$CTRL_ORCA_DIR/bin/filewaiter.py")
+        remoteName = os.path.join(self.dirs.get("work"), os.path.basename(script))
+        self.copyToRemote(script, remoteName)
+        self.remoteChmodX(remoteName)
+        return remoteName
 
     def remoteMkdir(self, remoteDir):
         self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator:remoteMkdir")
@@ -248,6 +262,9 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         logDir = os.path.join(self.localWorkDir, pipelineName)
         if not os.path.exists(logDir):
             os.makedirs(logDir)
+            logFile = os.path.join(pipelineName, "launch.log")
+            logFile = os.path.join(self.dirs.get("work"), logFile)
+            self.logFileNames.append(logFile)
 
         
         # only write out the policyfile once

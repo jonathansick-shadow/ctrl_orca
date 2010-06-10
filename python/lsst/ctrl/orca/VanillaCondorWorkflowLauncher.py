@@ -11,7 +11,7 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
     ##
     # @brief
     #
-    def __init__(self, jobs, localScratch, condorGlideinFile, prodPolicy, wfPolicy, runid, logger = None):
+    def __init__(self, jobs, localScratch, condorGlideinFile, prodPolicy, wfPolicy, runid, filewaiter, logger = None):
         if logger != None:
             logger.log(Log.DEBUG, "VanillaCondorWorkflowLauncher:__init__")
         self.logger = logger
@@ -21,6 +21,7 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
         self.prodPolicy = prodPolicy
         self.wfPolicy = wfPolicy
         self.runid = runid
+        self.filewaiter = filewaiter
 
     ##
     # @brief perform cleanup after workflow has ended.
@@ -64,11 +65,17 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
             if firstJob == True:
                 jobNumber = condor.submitJob(job)
                 condor.waitForJobToRun(jobNumber)
+                # Wait for that first log file to show up from joboffice
+                self.filewaiter.waitForFirstFile()
                 firstJob = False
             else:
                 jobNumber = condor.submitJob(job)
                 jobNumbers.append(jobNumber)
+
         condor.waitForAllJobsToRun(jobNumbers)
+
+        # wait for all jobs to launch
+        self.filewaiter.waitForAllFiles()
 
         eventBrokerHost = self.prodPolicy.get("eventBrokerHost")
         shutdownTopic = self.wfPolicy.get("shutdownTopic")
