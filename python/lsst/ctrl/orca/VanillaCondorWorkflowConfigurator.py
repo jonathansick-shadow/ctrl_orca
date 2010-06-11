@@ -1,4 +1,5 @@
 import sys, os, os.path, shutil, sets, stat, socket
+import getpass
 import lsst.ctrl.orca as orca
 import lsst.pex.policy as pol
 
@@ -511,6 +512,8 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
 
         # for glidein request, we add this additional keyword.
         keyValuePairs.set("ORCA_REMOTE_WORKDIR", self.dirs.get("work"))
+        if keyValuePairs.exists("START_OWNER") == False:
+            keyValuePairs.set("START_OWNER", getpass.getuser())
 
         writer = TemplateWriter()
         writer.rewrite(templateFileName, realFileName, keyValuePairs)
