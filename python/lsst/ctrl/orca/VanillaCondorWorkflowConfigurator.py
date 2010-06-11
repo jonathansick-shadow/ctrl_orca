@@ -1,4 +1,4 @@
-import sys, os, os.path, shutil, sets, stat
+import sys, os, os.path, shutil, sets, stat, socket
 import lsst.ctrl.orca as orca
 import lsst.pex.policy as pol
 
@@ -81,6 +81,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             pipelinePolicy = pipelinePolicyGroup[0]
             num = pipelinePolicyGroup[1]
             self.createDirs(platformPolicy, pipelinePolicy)
+
             pipelineShortName = pipelinePolicy.get("shortName")
             launchName = "%s_%d" % (pipelineShortName, num)
 
@@ -91,6 +92,17 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             launchCmd = ["condor_submit", condorFile]
             jobs.append(condorFile)
             self.setupDatabase()
+            # copy the $CTRL_ORCA_DIR/etc/condor_glidein_config to local
+            condorGlideinConfig = EnvString.resolve("$CTRL_ORCA_DIR/etc/glidein_condor_config")
+            condorDir = os.path.join(self.localWorkDir,"Condor_glidein")
+            stagedGlideinConfigFile = os.path.join(condorDir, "glidein_condor_config")
+
+            keyvalues = pol.Policy()
+            keyvalues.set("ORCA_LOCAL_HOSTNAME", socket.gethostname())
+            
+            writer = TemplateWriter()
+            writer.rewrite(condorGlideinConfig, stagedGlideinConfigFile, keyvalues)
+            
         self.logger.log(Log.DEBUG, "launchCmd = %s" % launchCmd)
 
         # after all the pipelines are created, copy them to the remote location
@@ -440,6 +452,12 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             if not os.path.exists(localDirName):
                 os.makedirs(localDirName)
 
+        # create Condor_glidein/local directory under "work"
+        condorDir = os.path.join(self.localWorkDir,"Condor_glidein")
+        condorLocalDir = os.path.join(condorDir, "local")
+        if not os.path.exists(condorLocalDir):
+            os.makedirs(condorLocalDir)
+
     ##
     # @brief set up this workflow's database
     #
@@ -490,6 +508,10 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         #workDirSuffix = workDirSuffix.lstrip("/")
         #realOutputDir = os.path.join(self.localStagingDir, workDirSuffix)
         realFileName = os.path.join(self.localWorkDir, outputFileName)
+
+        # for glidein request, we add this additional keyword.
+        keyValuePairs.set("ORCA_REMOTE_WORKDIR", self.dirs.get("work"))
+
         writer = TemplateWriter()
         writer.rewrite(templateFileName, realFileName, keyValuePairs)
 

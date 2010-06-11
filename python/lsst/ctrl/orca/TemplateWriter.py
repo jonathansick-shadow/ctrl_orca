@@ -1,6 +1,8 @@
 import os
 import sys
 import re
+import socket
+import lsst.pex.policy as pol
 
 #
 # This class takes template files and substitutes the values for the given
@@ -8,6 +10,8 @@ import re
 #
 class TemplateWriter:
     def __init__(self):
+        self.orcaValues = pol.Policy()
+        self.orcaValues.set("ORCA_LOCAL_HOSTNAME", socket.gethostname())
         return
 
     #
@@ -23,6 +27,13 @@ class TemplateWriter:
             if len(line) == 0:
                 break
 
+            # replace the "standard" orca names first
+            for name in self.orcaValues.names():
+                key = "$"+name
+                val = str(self.orcaValues.get(name))
+                line = line.replace(key,val)
+
+            # replace the user defined names
             for name in pairs.names():
                 key = "$"+name
                 val = str(pairs.get(name))
@@ -30,4 +41,3 @@ class TemplateWriter:
             fpOutput.write(line)
         fpInput.close()
         fpOutput.close()
-
