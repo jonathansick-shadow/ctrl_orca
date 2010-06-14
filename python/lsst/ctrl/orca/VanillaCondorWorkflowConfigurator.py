@@ -485,7 +485,6 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         if not os.path.exists(condorLocalDir):
             os.makedirs(condorLocalDir)
 
-    # TODO: remove this once the loop is fixed.
     def setDirs(self, indexedDirName):
         self.directories = self.directoryList[indexedDirName]
         self.dirs = self.directories.getDirs()
