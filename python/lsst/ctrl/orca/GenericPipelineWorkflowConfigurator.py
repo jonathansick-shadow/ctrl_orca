@@ -25,6 +25,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         self.wfVerbosity = None
 
         self.nodes = None
+        self.directories = None
         self.dirs = None
         self.defaultRunDir = None
 
@@ -204,7 +205,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
                 collection = deployPolicy.get("collection")
                 
                 if os.path.isfile(deployScript) == True:
-                    runDir = os.path.join(self.defaultRootDir, self.runid)
+                    runDir = self.directories.getDefaultRunDir()
                     deployCmd = [deployScript, runDir, dataRepository, collection]
                     print ">>> ",deployCmd
                     pid = os.fork()
@@ -372,9 +373,9 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
 
         dirPolicy = platformPolicy.getPolicy("dir")
         dirName = pipelinePolicy.get("shortName")
-        directories = Directories(dirPolicy, dirName, self.runid)
-        self.dirs = directories.getDirs()
-        self.defaultRootDir = directories.getDefaultRootDir()
+        self.directories = Directories(dirPolicy, dirName, self.runid)
+        self.dirs = self.directories.getDirs()
+        self.defaultRootDir = self.directories.getDefaultRootDir()
 
         for name in self.dirs.names():
             localDirName = self.dirs.get(name)
