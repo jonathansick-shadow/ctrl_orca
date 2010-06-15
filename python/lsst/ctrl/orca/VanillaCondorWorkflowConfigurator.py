@@ -85,8 +85,8 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         # that already exist.
         dirSet = Set()
         for pipelinePolicyGroup in expandedPipelinePolicies:
-            pipelinePolicy = pipelinePolicyGroup[0]
-            num = pipelinePolicyGroup[1]
+            pipelinePolicy = pipelinePolicyGroup.getPolicyName()
+            num = pipelinePolicyGroup.getPolicyNumber()
             self.collectDirNames(dirSet, platformPolicy, pipelinePolicy, num)
 
         # create all the directories we've collected, plus any local
@@ -102,8 +102,8 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         self.localStagingDir = os.path.join(self.localScratch, self.runid)
         self.localWorkflowDir = os.path.join(self.localStagingDir, self.shortName)
         for pipelinePolicyGroup in expandedPipelinePolicies:
-            pipelinePolicy = pipelinePolicyGroup[0]
-            num = pipelinePolicyGroup[1]
+            pipelinePolicy = pipelinePolicyGroup.getPolicyName()
+            num = pipelinePolicyGroup.getPolicyNumber()
 
             pipelineShortName = pipelinePolicy.get("shortName")
 
@@ -293,13 +293,13 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
     def deploySetup(self, provSetup, wfPolicy, platformPolicy, pipelinePolicyGroup):
         self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator:deploySetup")
 
-        pipelinePolicy = pipelinePolicyGroup[0]
+        pipelinePolicy = pipelinePolicyGroup.getPolicyName()
         shortName = pipelinePolicy.get("shortName")
 
-        pipelinePolicyNumber = pipelinePolicyGroup[1]
+        pipelinePolicyNumber = pipelinePolicyGroup.getPolicyNumber()
         pipelineName = "%s_%d" % (shortName, pipelinePolicyNumber)
 
-        globalPipelineOffset = pipelinePolicyGroup[2]
+        globalPipelineOffset = pipelinePolicyGroup.getGlobalOffset()
 
         logDir = os.path.join(self.localWorkDir, pipelineName)
         # create the log directories under the local scratch work

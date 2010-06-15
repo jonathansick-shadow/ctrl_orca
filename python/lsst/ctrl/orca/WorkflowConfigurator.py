@@ -14,6 +14,22 @@ from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 # 
 class WorkflowConfigurator:
 
+
+    class PolicyGroup:
+        def __init__(self, name, number, offset):
+            self.policyName = name
+            self.policyNumber = number
+            self.globalOffset = offset
+
+        def getPolicyName(self):
+            return self.policyName
+
+        def getPolicyNumber(self):
+            return self.policyNumber
+
+        def getGlobalOffset(self):
+            return self.globalOffset
+            
     ##
     # @brief create the configurator
     #
@@ -146,7 +162,8 @@ class WorkflowConfigurator:
                    if policy.exists("runCount"):
                        runCount = policy.get("runCount")
                    for i in range(0,runCount):
-                       expanded.append((policy,i+1, totalCount))
+                       #expanded.append((policy,i+1, totalCount))
+                       expanded.append(self.PolicyGroup(policy,i+1, totalCount))
                        totalCount = totalCount + 1
        
                return expanded

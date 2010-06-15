@@ -65,68 +65,20 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         #launchCmd = {}
         launchCmd = []
         for pipelinePolicyGroup in expandedPipelinePolicies:
-            pipelinePolicy = pipelinePolicyGroup[0]
-            num = pipelinePolicyGroup[1]
+            pipelinePolicy = pipelinePolicyGroup.getPolicyName()
+            num = pipelinePolicyGroup.getPolicyNumber()
+
             self.nodes = self.createNodeList(pipelinePolicy)
             self.createDirs(platformPolicy, pipelinePolicy)
-            pipelineShortName = pipelinePolicyGroup[0].get("shortName")
+            pipelineShortName = pipelinePolicy.get("shortName")
             launchName = "%s_%d" % (pipelineShortName, num)
             self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator: launchName = %s" % launchName)
-            #launchCmd[launchName] = self.deploySetup(provSetup, wfPolicy, pipelinePolicyGroup)
             val = self.deploySetup(provSetup, wfPolicy, platformPolicy, pipelinePolicyGroup)
             launchCmd.append(val)
             self.logger.log(Log.DEBUG, "launchCmd = %s" % launchCmd)
         self.deployData(wfPolicy)
         workflowLauncher = GenericPipelineWorkflowLauncher(launchCmd, self.prodPolicy, wfPolicy, self.runid, self.logger)
         return workflowLauncher
-
-    ##
-    # @brief given a list of pipelinePolicies, number the section we're 
-    # interested in based on the order they are in, in the productionPolicy
-    # We use this number Provenance to uniquely identify this set of pipelines
-    #
-    def expandPolicies(self, wfShortName, pipelinePolicies):
-        # Pipeline provenance requires that "activoffset" be unique and 
-        # sequential for each pipeline in the production.  Each workflow
-        # in the production can have multiple pipelines, and even a call for
-        # duplicates of the same pipeline within it.
-        #
-        # Since these aren't numbered within the production policy file itself,
-        # we need to do this ourselves. This is slightly tricky, since each
-        # workflow is handled individually by orca and had has no reference 
-        # to the other workflows or the number of pipelines within 
-        # those workflows.
-        #
-        # Therefore, what we have to do is go through and count all the 
-        # pipelines in the other workflows so we can enumerate the pipelines
-        # in this particular workflow correctly. This needs to be reworked.
-
-        wfPolicies = self.prodPolicy.getArray("workflow")
-        totalCount = 1
-        for wfPolicy in wfPolicies:
-            if wfPolicy.get("shortName") == wfShortName:
-                # we're in the policy which needs to be numbered
-               expanded = []
-               for policy in pipelinePolicies:
-                   # default to 1, if runCount doesn't exist
-                   runCount = 1
-                   if policy.exists("runCount"):
-                       runCount = policy.get("runCount")
-                   for i in range(0,runCount):
-                       expanded.append((policy,i+1, totalCount))
-                       totalCount = totalCount + 1
-       
-               return expanded
-            else:
-                policies = wfPolicy.getPolicyArray("pipeline")
-                for policy in policies:
-                    if policy.exists("runCount"):
-                        totalCount = totalCount + policy.get("runCount")
-                    else:
-                        totalCount = totalCount + 1
-        return None # should never reach here - this is an error
-                
-                
 
     ##
     # @brief creates a list of nodes from platform.deploy.nodes
@@ -223,13 +175,14 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
     def deploySetup(self, provSetup, wfPolicy, platformPolicy, pipelinePolicyGroup):
         self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:deploySetup")
 
-        pipelinePolicy = pipelinePolicyGroup[0]
+        pipelinePolicy = pipelinePolicyGroup.getPolicyName()
         shortName = pipelinePolicy.get("shortName")
 
-        pipelinePolicyNumber = pipelinePolicyGroup[1]
+        pipelinePolicyNumber = pipelinePolicyGroup.getPolicyNumber()
         pipelineName = "%s_%d" % (shortName, pipelinePolicyNumber)
 
-        globalPipelineOffset = pipelinePolicyGroup[2]
+        globalPipelineOffset = pipelinePolicyGroup.getGlobalOffset()
+
         # add things to the pipeline policy and write it out to "work"
         #self.rewritePipelinePolicy(pipelinePolicy)
 
