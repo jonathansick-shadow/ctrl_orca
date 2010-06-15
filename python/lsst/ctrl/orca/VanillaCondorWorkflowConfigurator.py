@@ -97,32 +97,37 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         firstGroup = True
         glideinFileName = None
         remoteFileWaiterName = None
+        linkScriptname = None
+
+        self.localStagingDir = os.path.join(self.localScratch, self.runid)
+        self.localWorkflowDir = os.path.join(self.localStagingDir, self.shortName)
         for pipelinePolicyGroup in expandedPipelinePolicies:
             pipelinePolicy = pipelinePolicyGroup[0]
             num = pipelinePolicyGroup[1]
-            # this appears to be creating the same directories over and over,
-            # but we do not know ahead of time how the directories are going
-            # to be created.  For example, some runs have directories in the
-            # the pattern <runid>/<shortname>/[input,output,work,scratch]
-            # other directories have the pattern
-            # the pattern <runid>/[input,output,work,scratch]
-            #self.createDirs(platformPolicy, pipelinePolicy)
 
             pipelineShortName = pipelinePolicy.get("shortName")
 
             # set this pipeline's self.directories and self.dirs
-            launchName = "%s_%d" % (pipelineShortName, num)
-            self.setDirs(launchName)
+            indexName = "%s_%d" % (pipelineShortName, num)
+
+            self.directories = self.directoryList[indexName]
+            self.dirs = self.directories.getDirs()
+
+            indexedNamedDir = os.path.join(self.localWorkflowDir, indexName)
+            self.localWorkDir = os.path.join(indexedNamedDir, "work")
+
             if not os.path.exists(self.localWorkDir):
                 os.makedirs(self.localWorkDir)
 
-            self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator: launchName = %s" % launchName)
+            self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator: indexName = %s" % indexName)
             #launchCmd = self.deploySetup(pipelinePolicy)
             self.deploySetup(provSetup, wfPolicy, platformPolicy, pipelinePolicyGroup)
-            condorFile = self.writeCondorFile(launchName, "launch_%s.sh" % launchName)
+            condorFile = self.writeCondorFile(indexName, "launch_%s.sh" % indexName)
             launchCmd = ["condor_submit", condorFile]
             jobs.append(condorFile)
             self.setupDatabase()
+
+            # There are some things that are only added to the first work directory
             if firstGroup == True:
                 self.createCondorDir(self.localWorkDir)
 
@@ -143,6 +148,9 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
                 # copy the file creation watching utility
                 remoteFileWaiterName = self.copyFileWaiterUtility()
 
+                # copy the link script once, to the first working directory
+                linkScriptName = self.copyLinkScript(wfPolicy)
+
                 firstGroup = False
             
             self.logger.log(Log.DEBUG, "launchCmd = %s" % launchCmd)
@@ -154,28 +162,15 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             #self.copyToRemote(self.localStagingDir+"/*", remoteDir+"/")
             self.copyToRemote(self.localWorkDir+"/*", remoteDir+"/")
 
-
-        firstGroup = True
-        # make remote scripts executable;  this is required because the copy doesn't
-        # retain the execution bit setting.
-        for pipelinePolicyGroup in expandedPipelinePolicies:
-            pipelinePolicy = pipelinePolicyGroup[0]
-            num = pipelinePolicyGroup[1]
-
-            pipelineShortName = pipelinePolicy.get("shortName")
-            launchName = "%s_%d" % (pipelineShortName, num)
-            self.setDirs(launchName)
-            # run the link script
-            if firstGroup == True:
-                self.copyAndRunLinkScript(wfPolicy)
-                firstGroup = False
-
             filename = "launch_%s_%d.sh" % (pipelineShortName, num)
             remoteDir = os.path.join(self.dirs.get("work"), "%s_%d" % (pipelineShortName, num))
             remoteFilename = os.path.join(remoteDir, filename)
             self.remoteChmodX(remoteFilename)
         
 
+        # Now that all the input directories are made, run the link script
+        if linkScriptName != None:
+            self.runLinkScript(wfPolicy, linkScriptName)
 
         # create the FileWaiter
         fileWaiter = FileWaiter(self.remoteLoginName, remoteFileWaiterName, self.logFileNames, self.logger)
@@ -485,14 +480,6 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         if not os.path.exists(condorLocalDir):
             os.makedirs(condorLocalDir)
 
-    def setDirs(self, indexedDirName):
-        self.directories = self.directoryList[indexedDirName]
-        self.dirs = self.directories.getDirs()
-        self.localStagingDir = os.path.join(self.localScratch, self.runid)
-        self.localWorkflowDir = os.path.join(self.localStagingDir, self.shortName)
-        self.indexedNamedDir = os.path.join(self.localWorkflowDir, indexedDirName)
-        self.localWorkDir = os.path.join(self.indexedNamedDir, "work")
-
     ##
     # @brief set up this workflow's database
     #
@@ -500,35 +487,48 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator:setupDatabase")
 
 
-    def copyAndRunLinkScript(self, wfPolicy):
-        self.logger.log(Log.DEBUG, "VanillaPipelineWorkflowConfigurator:copyAndRunLinkScript")
+    def copyLinkScript(self, wfPolicy):
+        self.logger.log(Log.DEBUG, "VanillaPipelineWorkflowConfigurator:copyLinkScript")
 
-        if wfPolicy.exists("configuration"):
-            configuration = wfPolicy.get("configuration")
-            if configuration.exists("deployData"):
-                deployPolicy = configuration.get("deployData")
-                dataRepository = deployPolicy.get("dataRepository")
-                dataRepository = EnvString.resolve(dataRepository)
-                deployScript = deployPolicy.get("script")
-                deployScript = EnvString.resolve(deployScript)
-                collection = deployPolicy.get("collection")
+        if wfPolicy.exists("configuration") == False:
+            return None
+        configuration = wfPolicy.get("configuration")
+        if configuration.exists("deployData") == False:
+            return None
+        deployPolicy = configuration.get("deployData")
+        dataRepository = deployPolicy.get("dataRepository")
+        deployScript = deployPolicy.get("script")
+        deployScript = EnvString.resolve(deployScript)
+        collection = deployPolicy.get("collection")
 
+        if os.path.isfile(deployScript) == True:
+            # copy the script to the remote side
+            remoteName = os.path.join(self.dirs.get("work"), os.path.basename(deployScript))
+            self.copyToRemote(deployScript, remoteName)
+            self.remoteChmodX(remoteName)
+            return remoteName
+        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:deployData: warning: script '%s' doesn't exist" % deployScript)
+        return None
 
-                if os.path.isfile(deployScript) == True:
-                    # copy the script to the remote side
-                    remoteName = os.path.join(self.dirs.get("work"), os.path.basename(deployScript))
-                    self.copyToRemote(deployScript, remoteName)
-                    self.remoteChmodX(remoteName)
-                    runDir = self.directories.getDefaultRunDir()
-                    # run the linking script
-                    deployCmd = ["gsissh", self.remoteLoginName, remoteName, runDir, dataRepository, collection]
-                    print ">>> ",deployCmd
-                    pid = os.fork()
-                    if not pid:
-                        os.execvp(deployCmd[0], deployCmd)
-                    os.wait()[0]
-                else:
-                    self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:deployData: warning: script '%s' doesn't exist" % deployScript)
+    def runLinkScript(self, wfPolicy, remoteName):
+        self.logger.log(Log.DEBUG, "VanillaPipelineWorkflowConfigurator:runLinkScript")
+        if wfPolicy.exists("configuration") == False:
+            return
+        configuration = wfPolicy.get("configuration")
+        if configuration.exists("deployData") == False:
+            return
+
+        deployPolicy = configuration.get("deployData")
+        dataRepository = deployPolicy.get("dataRepository")
+        collection = deployPolicy.get("collection")
+
+        runDir = self.directories.getDefaultRunDir()
+        # run the linking script
+        deployCmd = ["gsissh", self.remoteLoginName, remoteName, runDir, dataRepository, collection]
+        pid = os.fork()
+        if not pid:
+            os.execvp(deployCmd[0], deployCmd)
+            os.wait()[0]
         return
 
     def writeGlideinRequest(self, configPolicy):
