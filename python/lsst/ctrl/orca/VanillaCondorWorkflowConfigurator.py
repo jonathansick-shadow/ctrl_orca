@@ -36,6 +36,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         self.logFileNames = []
 
         self.directoryList = {}
+        self.initialWorkDir = None
         
     ##
     # @brief Setup as much as possible in preparation to execute the workflow
@@ -129,6 +130,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
 
             # There are some things that are only added to the first work directory
             if firstGroup == True:
+                self.initialWorkDir = self.localWorkDir
                 self.createCondorDir(self.localWorkDir)
 
                 # copy the $CTRL_ORCA_DIR/etc/condor_glidein_config to local
@@ -177,7 +179,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
 
         # create the Launcher
 
-        workflowLauncher = VanillaCondorWorkflowLauncher(jobs, self.localWorkDir, glideinFileName,  self.prodPolicy, self.wfPolicy, self.runid, fileWaiter, self.logger)
+        workflowLauncher = VanillaCondorWorkflowLauncher(jobs, self.initialWorkDir, glideinFileName,  self.prodPolicy, self.wfPolicy, self.runid, fileWaiter, self.logger)
         return workflowLauncher
 
     ##
@@ -528,7 +530,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         pid = os.fork()
         if not pid:
             os.execvp(deployCmd[0], deployCmd)
-            os.wait()[0]
+        os.wait()[0]
         return
 
     def writeGlideinRequest(self, configPolicy):
