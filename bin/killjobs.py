@@ -7,12 +7,12 @@ import lsst.pex.policy as pol
 class CondorJobInfo:
 
     class PipelineJob:
-        def __init__(self, scratchDir, wfName, pipelineShortName, pipelineNumber):
+        def __init__(self, scratchDir, wfName, pipelineName, pipelineNumber):
             self.wfName = wfName
-            self.pipelineShortName = pipelineShortName
+            self.pipelineName = pipelineName
             self.pipelineNumber = pipelineNumber
 
-            self.pipelineName = "%s_%s" % (pipelineShortName, pipelineNumber)
+            self.pipelineIndexedName = "%s_%s" % (pipelineName, pipelineNumber)
             self.wfScratchDir = os.path.join(scratchDir, self.wfName)
 
         def getWorkflowName(self):
@@ -22,13 +22,13 @@ class CondorJobInfo:
             return self.pipelineName
 
         def getPipelineNumber(self):
-            return self.pipelineNumber
+            return int(self.pipelineNumber)
 
         def getFileName(self):
-            pipelineDir = os.path.join(self.wfScratchDir, self.pipelineName)
+            pipelineDir = os.path.join(self.wfScratchDir, self.pipelineIndexedName)
             pipelineWorkDir = os.path.join(pipelineDir, "work")
-            pipelineJobDir = os.path.join(pipelineWorkDir, self.pipelineName)
-            pipelineJobFile = os.path.join(pipelineJobDir, "%s.job" % self.pipelineName)
+            pipelineJobDir = os.path.join(pipelineWorkDir, self.pipelineIndexedName)
+            pipelineJobFile = os.path.join(pipelineJobDir, "%s.job" % self.pipelineIndexedName)
             return pipelineJobFile
 
     class GlideinJob:
@@ -101,6 +101,7 @@ class JobKiller:
 
     # TODO: make this read multiple lines
     def killJob(self, filename):
+        print "killJob: ",filename
         try :
             input = open(filename, 'r')
         except Exception, e:
@@ -110,7 +111,7 @@ class JobKiller:
         line = line.strip('\n')
         cmd = ["condor_rm", line]
         jobname = os.path.basename(filename).split('.')[0]
-        print "killing %s" % jobname
+        
         pid = os.fork()
         if not pid:
             os.execvp(cmd[0], cmd)
@@ -128,16 +129,15 @@ class JobKiller:
     def processPipelineJob(self, job):
         jobFile = job.getFileName()
 
-        print "jobFile = ",jobFile
         if self.workflowName == None:
             self.killJob(jobFile)
         elif self.workflowName == job.getWorkflowName():
             if self.pipelineName == None:
                 self.killJob(jobFile)
-            elif self.pipelineName == group.getPipelineName():
+            elif self.pipelineName == job.getPipelineName():
                 if self.pipelineNumber == None:
                     self.killJob(jobFile)
-                elif self.pipelineNumber == group.getPipelineNumber():
+                elif self.pipelineNumber == job.getPipelineNumber():
                     self.killJob(jobFile)
         return
 
@@ -159,7 +159,9 @@ if __name__ == "__main__":
 
     workflowArg = parser.opts.workflowArg
     pipelineArg = parser.opts.pipelineArg
-    pipelineNumArg = parser.opts.pipelineNumArg
+    pipelineNumArg = None
+    if parser.opts.pipelineNumArg != None:
+        pipelineNumArg = int(parser.opts.pipelineNumArg)
     killGlidein = parser.opts.killglidein
 
     if len(parser.args) < 2:
