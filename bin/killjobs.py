@@ -1,4 +1,7 @@
+#!/usr/bin/env python
 import os, sys
+import subprocess
+import optparse
 import lsst.pex.policy as pol
 
 class WorkflowNumerator:
@@ -53,11 +56,54 @@ class WorkflowNumerator:
         localScratch = condorDataPolicy.get("localScratch")
         return localScratch
 
+class JobKiller:
+    def __init__(self):
+        return
+
+    def kill(self, filename):
+        try :
+            input = open(filename, 'r')
+        except Exception, e:
+            # couldn't find that file, so pass
+            return
+        line = input.readline()
+        line = line.strip('\n')
+        cmd = ["condor_rm", line]
+        jobname = os.path.basename(filename).split('.')[0]
+        print "killing %s" % jobname
+        pid = os.fork()
+        if not pid:
+            os.execvp(cmd[0], cmd)
+        os.wait()[0]
+        return
 
 
 if __name__ == "__main__":
-    prodPolicyFile = sys.argv[1]
-    runid = sys.argv[2]
+    usage = """usage %prog [-w workflow[-p pipeline [-n pipelineNum]] productionPolicyFile runId"""
+
+    parser = optparse.OptionParser(usage)
+
+    parser.add_option("-w", "--workflow", action="store", dest="workflowArg", default=None, help="workflow shortname")
+    parser.add_option("-p", "--pipeline", action="store", dest="pipelineArg", default=None, help="pipeline shortname")
+    parser.add_option("-n", "--pipelineNum", action="store", dest="pipelineNumArg", default=None, help="pipeline number")
+
+    parser.opts = {}
+    parser.args = []
+
+    (parser.opts, parser.args) = parser.parse_args()
+
+    workflowArg = parser.opts.workflowArg
+    pipelineArg = parser.opts.pipelineArg
+    pipelineNumArg = parser.opts.pipelineNumArg
+
+    if len(parser.args) < 2:
+        print usage
+        raise RuntimeError("Missing args: productionPolicyFile runId")
+
+
+    
+    prodPolicyFile = parser.args[0]
+    runid = parser.args[1]
 
     prodPolicy = pol.Policy.createPolicy(prodPolicyFile)
 
@@ -65,6 +111,7 @@ if __name__ == "__main__":
 
     policyGroups = wfn.expandPolicies()
 
+    killer = JobKiller()
     for group in policyGroups:
         name = group.getPipelineName()
         num = group.getPipelineNumber()
@@ -76,5 +123,15 @@ if __name__ == "__main__":
         fullname = os.path.join(localWorkflowDir, indexName)
         fullname = os.path.join(fullname, "work")
         fullname = os.path.join(fullname, pipelineJobFile)
-        print fullname
 
+        if workflowArg == None:
+            killer.kill(fullname)
+        elif workflowArg == group.getWorkflowName():
+            if pipelineArg == None:
+                killer.kill(fullname)
+            elif pipelineArg == pipelineName:
+                if pipelineNumArg == None:
+                    killer.kill(fullname)
+                elif pipelineNumArg == pipelineNum:
+                    killer.kill(fullname)
+        
