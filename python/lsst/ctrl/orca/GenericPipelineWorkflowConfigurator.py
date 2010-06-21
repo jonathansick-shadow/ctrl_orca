@@ -126,22 +126,6 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         pw.close()
 
 
-    def rewritePipelinePolicy(self, pipelinePolicy):
-        workDir = self.dirs.get("work")
-        filename = pipelinePolicy.getFile("definition").getPath()
-        oldPolicy = pol.Policy.createPolicy(filename, False)
-        if self.prodPolicy.exists("eventBrokerHost"):
-            oldPolicy.set("execute.eventBrokerHost", self.prodPolicy.get("eventBrokerHost"))
-
-        if self.wfPolicy.exists("shutdownTopic"):
-            oldPolicy.set("execute.shutdownTopic", self.wfPolicy.get("shutdownTopic"))
-        if self.prodPolicy.exists("logThreshold"):
-            oldPolicy.set("execute.logThreshold", self.prodPolicy.get("logThreshold"))
-        newPolicyFile = os.path.join(workDir, filename)
-        pw = pol.PAFWriter(newPolicyFile)
-        pw.write(oldPolicy)
-        pw.close()
-
     def deployData(self, wfPolicy):
         self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:deployData")
 
@@ -183,9 +167,6 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         pipelineName = "%s_%d" % (shortName, pipelinePolicyNumber)
 
         globalPipelineOffset = pipelinePolicyGroup.getGlobalOffset()
-
-        # add things to the pipeline policy and write it out to "work"
-        #self.rewritePipelinePolicy(pipelinePolicy)
 
         workDir = self.dirs.get("work")
 
