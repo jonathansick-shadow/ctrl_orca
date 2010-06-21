@@ -52,10 +52,10 @@ class ProductionRunConfigurator:
     ##
     # @brief create the WorkflowManager for the pipelien with the given shortName
     #
-    def createWorkflowManager(self, wfPolicy, prodPolicy):
+    def createWorkflowManager(self, prodPolicy, wfPolicy):
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:createWorkflowManager")
 
-        wfManager = WorkflowManager(None, self.runid, wfPolicy, prodPolicy, self.logger)
+        wfManager = WorkflowManager(None, self.runid, self.repository, prodPolicy, wfPolicy, self.logger)
         return wfManager
 
     ##
@@ -104,7 +104,7 @@ class ProductionRunConfigurator:
         for wfPolicy in workflowPolicies:
             # copy in appropriate production level info into workflow Node  -- ?
 
-            workflowManager = self.createWorkflowManager(wfPolicy, self.prodPolicy)
+            workflowManager = self.createWorkflowManager(self.prodPolicy, wfPolicy)
             workflowLauncher = workflowManager.configure(self._provSetup, workflowVerbosity)
             workflowManagers.append(workflowManager)
 

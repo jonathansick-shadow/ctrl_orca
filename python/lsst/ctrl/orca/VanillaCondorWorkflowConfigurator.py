@@ -19,11 +19,12 @@ from lsst.ctrl.orca.FileWaiter import FileWaiter
 # VanillaCondorWorkflowConfigurator 
 #
 class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
-    def __init__(self, runid, prodPolicy, wfPolicy, logger):
+    def __init__(self, runid, repository, prodPolicy, wfPolicy, logger):
         self.logger = logger
         self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator:__init__")
 
         self.runid = runid
+        self.repository = repository
         self.prodPolicy = prodPolicy
         self.wfPolicy = wfPolicy
 
@@ -72,9 +73,6 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             platformPolicy = pol.Policy.createPolicy(filename)
         else:
             platformPolicy = wfPolicy.getPolicy("platform")
-
-        self.repository = self.prodPolicy.get("repositoryDirectory")
-        self.repository = EnvString.resolve(self.repository)
 
         self.shortName = self.wfPolicy.get("shortName")
 
@@ -361,13 +359,13 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             # first, grab all the file names, and throw them into a Set() to 
             # avoid duplication
             pipelinePolicySet = sets.Set()
-            repos = self.prodPolicy.get("repositoryDirectory")
-            PolicyUtils.getAllFilenames(repos, definitionPolicy, pipelinePolicySet)
+
+            PolicyUtils.getAllFilenames(self.repository, definitionPolicy, pipelinePolicySet)
 
             # Cycle through the file names, creating subdirectories as required,
             # and copy them to the destination directory
             for policyFile in pipelinePolicySet:
-                destName = policyFile.replace(repos+"/","")
+                destName = policyFile.replace(self.repository+"/","")
                 tokens = destName.split('/')
                 tokensLength = len(tokens)
                 destinationFile = tokens[len(tokens)-1]
@@ -400,7 +398,6 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         cmds = provSetup.getCmds()
         workflowPolicies = self.prodPolicy.getArray("workflow")
 
-        repos = self.prodPolicy.get("repositoryDirectory")
         # append the other information we previously didn't have access to, but need for recording.
         for cmd in cmds:
             wfShortName = wfPolicy.get("shortName")
@@ -417,7 +414,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             launchCmd = ' '.join(cmd)
 
             # extract the pipeline policy and all the files it includes, and add it to the command
-            filelist = provSetup.extractSinglePipelineFileNames(pipelinePolicy, repos, self.logger)
+            filelist = provSetup.extractSinglePipelineFileNames(pipelinePolicy, self.repository, self.logger)
             fileargs = ' '.join(filelist)
             launcher.write("%s %s\n" % (launchCmd, fileargs))
 
