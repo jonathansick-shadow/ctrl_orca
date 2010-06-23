@@ -56,7 +56,12 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         self.shortName = wfPolicy.get("shortName")
         if wfPolicy.getValueType("platform") == pol.Policy.FILE:
             filename = wfPolicy.getFile("platform").getPath()
-            platformPolicy = pol.Policy.createPolicy(filename)
+            fullpath = None
+            if os.path.isabs(filename):
+                fullpath = filename
+            else:
+                fullpath = os.path.join(self.repository, filename)
+            platformPolicy = pol.Policy.createPolicy(fullpath)
         else:
             platformPolicy = wfPolicy.getPolicy("platform")
 
@@ -178,7 +183,12 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         
         # only write out the policyfile once
         filename = pipelinePolicy.getFile("definition").getPath()
-        definitionPolicy = pol.Policy.createPolicy(filename, False)
+        fullpath = None
+        if os.path.isabs(filename):
+            fullpath = filename
+        else:
+            fullpath = os.path.join(self.repository, filename)
+        definitionPolicy = pol.Policy.createPolicy(fullpath, False)
         if pipelinePolicyNumber == 1:
             if platformPolicy.exists("dir"):
                 definitionPolicy.set("execute.dir", platformPolicy.get("dir"))
