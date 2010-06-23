@@ -172,7 +172,7 @@ if __name__ == "__main__":
     prodPolicyFile = parser.args[0]
     runid = parser.args[1]
 
-    prodPolicy = pol.Policy.createPolicy(prodPolicyFile)
+    prodPolicy = pol.Policy.createPolicy(prodPolicyFile, False)
 
     jobInfo = CondorJobInfo(prodPolicy, runid)
 
@@ -183,6 +183,7 @@ if __name__ == "__main__":
         glideinJobs = jobInfo.getGlideinJobs()
         for job in glideinJobs:
             killer.processGlideinJob(job)
+        sys.exit(0)
 
     pipelineJobs = jobInfo.getPipelineJobs()
     for job in pipelineJobs:

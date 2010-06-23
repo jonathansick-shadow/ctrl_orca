@@ -38,6 +38,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
 
         self.directoryList = {}
         self.initialWorkDir = None
+        self.firstRemoteWorkDir = None
         
     ##
     # @brief Setup as much as possible in preparation to execute the workflow
@@ -70,7 +71,12 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
 
         if wfPolicy.getValueType("platform") == pol.Policy.FILE:
             filename = wfPolicy.getFile("platform").getPath()
-            platformPolicy = pol.Policy.createPolicy(filename)
+            fullpath = None
+            if os.path.isabs(filename):
+                fullpath = filename
+            else:
+                fullpath = os.path.join(self.repository, filename)
+            platformPolicy = pol.Policy.createPolicy(fullpath)
         else:
             platformPolicy = wfPolicy.getPolicy("platform")
 
@@ -151,6 +157,9 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
                 # copy the link script once, to the first working directory
                 linkScriptName = self.copyLinkScript(wfPolicy)
 
+                # keep the first working directory name... we need this later.
+                self.firstRemoteWorkDir = self.dirs.get("work")
+
                 firstGroup = False
             
             self.logger.log(Log.DEBUG, "launchCmd = %s" % launchCmd)
@@ -172,8 +181,19 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         if linkScriptName != None:
             self.runLinkScript(wfPolicy, linkScriptName)
 
+        # write the logFiles, and copy them over for the filewaiter utility to use
+        orcaLogFileName = os.path.join(self.initialWorkDir,'orca_logfiles.txt')
+
+        logFile = open(orcaLogFileName, 'w')
+        for name in self.logFileNames:
+            logFile.write("%s\n" % name)
+        logFile.close()
+
+        remoteLogNamesFile = os.path.join(self.firstRemoteWorkDir,'orca_logfiles.txt')
+        self.copyToRemote(orcaLogFileName, remoteLogNamesFile)
+
         # create the FileWaiter
-        fileWaiter = FileWaiter(self.remoteLoginName, remoteFileWaiterName, self.logFileNames, self.logger)
+        fileWaiter = FileWaiter(self.remoteLoginName, remoteFileWaiterName, remoteLogNamesFile, self.logger)
 
         # create the Launcher
 
@@ -314,7 +334,12 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         
         # only write out the policyfile once
         filename = pipelinePolicy.getFile("definition").getPath()
-        definitionPolicy = pol.Policy.createPolicy(filename, False)
+        fullpath = None
+        if os.path.isabs(filename):
+            fullpath = filename
+        else:
+            fullpath = os.path.join(self.repository, filename)
+        definitionPolicy = pol.Policy.createPolicy(fullpath, False)
         if pipelinePolicyNumber == 1:
             if platformPolicy.exists("dir"):
                 definitionPolicy.set("execute.dir", platformPolicy.get("dir"))
@@ -387,12 +412,14 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         name = os.path.join(logDir, launchName)
 
 
+        remoteLogDir = os.path.join(self.dirs.get("work"), pipelineName)
+
         launcher = open(name, 'w')
         launcher.write("#!/bin/sh\n")
         launcher.write("export SHELL=/bin/sh\n")
         launcher.write("cd %s\n" % self.dirs.get("work"))
+        launcher.write("/bin/rm -f %s/launch.log\n" % remoteLogDir)
         launcher.write("source %s\n" % self.script)
-        remoteLogDir = os.path.join(self.dirs.get("work"), pipelineName)
         launcher.write("eups list 2>/dev/null | grep Setup >%s/eups-env.txt\n" % remoteLogDir)
 
         cmds = provSetup.getCmds()
@@ -429,24 +456,6 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         launcher.close()
 
         return
-
-    def rewritePipelinePolicy(self, pipelinePolicy):
-        filename = pipelinePolicy.getFile("definition").getPath()
-        oldPolicy = pol.Policy.createPolicy(filename, False)
-
-        if self.prodPolicy.exists("eventBrokerHost"):
-            oldPolicy.set("execute.eventBrokerHost", self.prodPolicy.get("eventBrokerHost"))
-
-        if self.prodPolicy.exists("shutdownTopic"):
-            oldPolicy.set("execute.shutdownTopic", self.prodPolicy.get("shutdownTopic"))
-
-        if self.prodPolicy.exists("logThreshold"):
-            oldPolicy.set("execute.logThreshold", self.prodPolicy.get("logThreshold"))
-
-        newPolicyFile = os.path.join(self.localWorkDir, filename)
-        pw = pol.PAFWriter(newPolicyFile)
-        pw.write(oldPolicy)
-        pw.close()
 
     def collectDirNames(self, dirSet, platformPolicy, pipelinePolicy, num):
         self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator:collectDirNames")
