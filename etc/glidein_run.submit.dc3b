@@ -1,0 +1,47 @@
+# Parse in parameters 
+#
+# Environment variables: 
+# In order to run one Pipeline/Slice be core, we set _condor_NUM_CPUS to 8  
+# _condor_NUM_CPUS=8
+#
+# _condor_CONDOR_ADMIN=daues@ncsa.uiuc.edu
+# _condor_STARTD_NOCLAIM_SHUTDOWN=300;
+# _condor_START_owner=daues
+#
+# The count and hostcount for DC3b-PT1 should be the same,
+# as the total number of nodes we span (hostcount) will be the same as the 
+# number of glide-in jobs (condor_master's) that we want to run (one for each node).
+# globusrsl=>   (count=2)
+# globusrsl=>            (hostcount=2)
+# globusrsl=>                        (maxwalltime=15)
+# 
+# These would be customized as well
+# output
+# error
+# log 
+
+universe=globus
+#executable = $(DOLLAR)(HOME)/Condor_glidein/7.4.2-i686-pc-Linux-2.4/glidein_startup
+executable = $CONDOR_SBIN/glidein_startup
+arguments = -dyn -f
+
+# Environment = CONDOR_CONFIG=$(DOLLAR)(HOME)/Condor_glidein/glidein_condor_config;_condor_CONDOR_HOST=lsst6.ncsa.uiuc.edu;_condor_GLIDEIN_HOST=lsst6.ncsa.uiuc.edu;_condor_LOCAL_DIR=$(DOLLAR)(HOME)/Condor_glidein/local;_condor_SBIN=$(DOLLAR)(HOME)/Condor_glidein/7.4.2-i686-pc-Linux-2.4;_condor_CONDOR_ADMIN=daues@ncsa.uiuc.edu;_condor_NUM_CPUS=1;_condor_UID_DOMAIN=ncsa.teragrid.org;_condor_FILESYSTEM_DOMAIN=ncsa.teragrid.org;_condor_MAIL=/bin/mail;_condor_STARTD_NOCLAIM_SHUTDOWN=300;_condor_START_owner=daues
+
+Environment = CONDOR_CONFIG=$ORCA_REMOTE_WORKDIR/Condor_glidein/glidein_condor_config;_condor_CONDOR_HOST=$ORCA_LOCAL_HOSTNAME;_condor_GLIDEIN_HOST=$ORCA_LOCAL_HOSTNAME;_condor_LOCAL_DIR=$ORCA_REMOTE_WORKDIR/Condor_glidein/local;_condor_SBIN=$CONDOR_SBIN;_condor_NUM_CPUS=$CPU_COUNT;_condor_UID_DOMAIN=ncsa.teragrid.org;_condor_FILESYSTEM_DOMAIN=ncsa.teragrid.org;_condor_MAIL=/bin/mail;_condor_STARTD_NOCLAIM_SHUTDOWN=900;_condor_START_owner=$START_OWNER
+
+Transfer_Executable = False
+
+# globusrsl=(host_xcount = 2)(xcount = 1)(jobtype=multiple)(maxwalltime=15)
+# globusrsl=(count = 2)(jobtype=multiple)(maxwalltime=15)
+globusrsl=(jobtype=multiple)(count=$MACHINE_COUNT)(hostcount=$MACHINE_COUNT)(maxwalltime=$MAX_WALLTIME)(queue=debug)
+
+output = run.output
+error = run.error
+log = run.log
+
+
+Grid_Resource = gt2 grid-abe.ncsa.teragrid.org/jobmanager-pbs
+
+Notification = Never
+Queue
+

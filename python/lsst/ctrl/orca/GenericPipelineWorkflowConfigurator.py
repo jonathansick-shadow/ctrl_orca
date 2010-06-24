@@ -2,7 +2,7 @@ import sys,os, os.path, shutil, sets, stat
 import lsst.ctrl.orca as orca
 import lsst.pex.policy as pol
 
-from lsst.ctrl.orca.Directories import Directories
+from lsst.pex.harness.Directories import Directories
 from lsst.pex.logging import Log
 
 from lsst.ctrl.orca.PolicyUtils import PolicyUtils
@@ -15,16 +15,18 @@ from lsst.ctrl.orca.GenericPipelineWorkflowLauncher import GenericPipelineWorkfl
 # GenericPipelineWorkflowConfigurator 
 #
 class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
-    def __init__(self, runid, prodPolicy, wfPolicy, logger):
+    def __init__(self, runid, repository, prodPolicy, wfPolicy, logger):
         self.logger = logger
         self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:__init__")
         self.runid = runid
         self.prodPolicy = prodPolicy
         self.wfPolicy = wfPolicy
+        self.repository = repository
 
         self.wfVerbosity = None
 
         self.nodes = None
+        self.directories = None
         self.dirs = None
         self.defaultRunDir = None
 
@@ -54,7 +56,12 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         self.shortName = wfPolicy.get("shortName")
         if wfPolicy.getValueType("platform") == pol.Policy.FILE:
             filename = wfPolicy.getFile("platform").getPath()
-            platformPolicy = pol.Policy.createPolicy(filename)
+            fullpath = None
+            if os.path.isabs(filename):
+                fullpath = filename
+            else:
+                fullpath = os.path.join(self.repository, filename)
+            platformPolicy = pol.Policy.createPolicy(fullpath)
         else:
             platformPolicy = wfPolicy.getPolicy("platform")
 
@@ -64,68 +71,20 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         #launchCmd = {}
         launchCmd = []
         for pipelinePolicyGroup in expandedPipelinePolicies:
-            pipelinePolicy = pipelinePolicyGroup[0]
-            num = pipelinePolicyGroup[1]
+            pipelinePolicy = pipelinePolicyGroup.getPolicyName()
+            num = pipelinePolicyGroup.getPolicyNumber()
+
             self.nodes = self.createNodeList(pipelinePolicy)
             self.createDirs(platformPolicy, pipelinePolicy)
-            pipelineShortName = pipelinePolicyGroup[0].get("shortName")
+            pipelineShortName = pipelinePolicy.get("shortName")
             launchName = "%s_%d" % (pipelineShortName, num)
             self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator: launchName = %s" % launchName)
-            #launchCmd[launchName] = self.deploySetup(provSetup, wfPolicy, pipelinePolicyGroup)
             val = self.deploySetup(provSetup, wfPolicy, platformPolicy, pipelinePolicyGroup)
             launchCmd.append(val)
             self.logger.log(Log.DEBUG, "launchCmd = %s" % launchCmd)
         self.deployData(wfPolicy)
         workflowLauncher = GenericPipelineWorkflowLauncher(launchCmd, self.prodPolicy, wfPolicy, self.runid, self.logger)
         return workflowLauncher
-
-    ##
-    # @brief given a list of pipelinePolicies, number the section we're 
-    # interested in based on the order they are in, in the productionPolicy
-    # We use this number Provenance to uniquely identify this set of pipelines
-    #
-    def expandPolicies(self, wfShortName, pipelinePolicies):
-        # Pipeline provenance requires that "activoffset" be unique and 
-        # sequential for each pipeline in the production.  Each workflow
-        # in the production can have multiple pipelines, and even a call for
-        # duplicates of the same pipeline within it.
-        #
-        # Since these aren't numbered within the production policy file itself,
-        # we need to do this ourselves. This is slightly tricky, since each
-        # workflow is handled individually by orca and had has no reference 
-        # to the other workflows or the number of pipelines within 
-        # those workflows.
-        #
-        # Therefore, what we have to do is go through and count all the 
-        # pipelines in the other workflows so we can enumerate the pipelines
-        # in this particular workflow correctly. This needs to be reworked.
-
-        wfPolicies = self.prodPolicy.getArray("workflow")
-        totalCount = 1
-        for wfPolicy in wfPolicies:
-            if wfPolicy.get("shortName") == wfShortName:
-                # we're in the policy which needs to be numbered
-               expanded = []
-               for policy in pipelinePolicies:
-                   # default to 1, if runCount doesn't exist
-                   runCount = 1
-                   if policy.exists("runCount"):
-                       runCount = policy.get("runCount")
-                   for i in range(0,runCount):
-                       expanded.append((policy,i+1, totalCount))
-                       totalCount = totalCount + 1
-       
-               return expanded
-            else:
-                policies = wfPolicy.getPolicyArray("pipeline")
-                for policy in policies:
-                    if policy.exists("runCount"):
-                        totalCount = totalCount + policy.get("runCount")
-                    else:
-                        totalCount = totalCount + 1
-        return None # should never reach here - this is an error
-                
-                
 
     ##
     # @brief creates a list of nodes from platform.deploy.nodes
@@ -172,22 +131,6 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         pw.close()
 
 
-    def rewritePipelinePolicy(self, pipelinePolicy):
-        workDir = self.dirs.get("work")
-        filename = pipelinePolicy.getFile("definition").getPath()
-        oldPolicy = pol.Policy.createPolicy(filename, False)
-        if self.prodPolicy.exists("eventBrokerHost"):
-            oldPolicy.set("execute.eventBrokerHost", self.prodPolicy.get("eventBrokerHost"))
-
-        if self.wfPolicy.exists("shutdownTopic"):
-            oldPolicy.set("execute.shutdownTopic", self.wfPolicy.get("shutdownTopic"))
-        if self.prodPolicy.exists("logThreshold"):
-            oldPolicy.set("execute.logThreshold", self.prodPolicy.get("logThreshold"))
-        newPolicyFile = os.path.join(workDir, filename)
-        pw = pol.PAFWriter(newPolicyFile)
-        pw.write(oldPolicy)
-        pw.close()
-
     def deployData(self, wfPolicy):
         self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:deployData")
 
@@ -204,7 +147,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
                 collection = deployPolicy.get("collection")
                 
                 if os.path.isfile(deployScript) == True:
-                    runDir = os.path.join(self.defaultRootDir, self.runid)
+                    runDir = self.directories.getDefaultRunDir()
                     deployCmd = [deployScript, runDir, dataRepository, collection]
                     print ">>> ",deployCmd
                     pid = os.fork()
@@ -222,15 +165,13 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
     def deploySetup(self, provSetup, wfPolicy, platformPolicy, pipelinePolicyGroup):
         self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:deploySetup")
 
-        pipelinePolicy = pipelinePolicyGroup[0]
+        pipelinePolicy = pipelinePolicyGroup.getPolicyName()
         shortName = pipelinePolicy.get("shortName")
 
-        pipelinePolicyNumber = pipelinePolicyGroup[1]
+        pipelinePolicyNumber = pipelinePolicyGroup.getPolicyNumber()
         pipelineName = "%s_%d" % (shortName, pipelinePolicyNumber)
 
-        globalPipelineOffset = pipelinePolicyGroup[2]
-        # add things to the pipeline policy and write it out to "work"
-        #self.rewritePipelinePolicy(pipelinePolicy)
+        globalPipelineOffset = pipelinePolicyGroup.getGlobalOffset()
 
         workDir = self.dirs.get("work")
 
@@ -242,7 +183,12 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         
         # only write out the policyfile once
         filename = pipelinePolicy.getFile("definition").getPath()
-        definitionPolicy = pol.Policy.createPolicy(filename, False)
+        fullpath = None
+        if os.path.isabs(filename):
+            fullpath = filename
+        else:
+            fullpath = os.path.join(self.repository, filename)
+        definitionPolicy = pol.Policy.createPolicy(fullpath, False)
         if pipelinePolicyNumber == 1:
             if platformPolicy.exists("dir"):
                 definitionPolicy.set("execute.dir", platformPolicy.get("dir"))
@@ -264,14 +210,16 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         # copy /bin/sh script responsible for environment setting
 
         setupPath = definitionPolicy.get("framework.environment")
-        if setupPath == None:
-             raise RuntimeError("couldn't find framework.environment")
-        self.script = EnvString.resolve(setupPath)
+        if setupPath:
+            setupPath = EnvString.resolve(setupPath)        
+        self.script = setupPath
 
-        if orca.envscript == None:
-            print "using default setup.sh"
+        if orca.envscript is None:
+            self.logger.log(self.logger.INFO-1, "Using configured setup.sh")
         else:
             self.script = orca.envscript
+        if not self.script:
+             raise RuntimeError("couldn't find framework.environment")
 
         # only copy the setup script once
         if pipelinePolicyNumber == 1:
@@ -289,13 +237,13 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
             # first, grab all the file names, and throw them into a Set() to 
             # avoid duplication
             pipelinePolicySet = sets.Set()
-            repos = self.prodPolicy.get("repositoryDirectory")
-            PolicyUtils.getAllFilenames(repos, definitionPolicy, pipelinePolicySet)
+
+            PolicyUtils.getAllFilenames(self.repository, definitionPolicy, pipelinePolicySet)
 
             # Cycle through the file names, creating subdirectories as required,
             # and copy them to the destination directory
             for policyFile in pipelinePolicySet:
-                destName = policyFile.replace(repos+"/","")
+                destName = policyFile.replace(self.repository+"/","")
                 tokens = destName.split('/')
                 tokensLength = len(tokens)
                 destinationFile = tokens[len(tokens)-1]
@@ -309,7 +257,8 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
 
         # create the launch command
         execPath = definitionPolicy.get("framework.exec")
-        execCmd = EnvString.resolve(execPath)
+        #execCmd = EnvString.resolve(execPath)
+        execCmd = execPath
 
         #cmd = ["ssh", self.masterNode, "cd %s; source %s; %s %s %s -L %s" % (self.dirs.get("work"), self.script, execCmd, filename, self.runid, self.wfVerbosity) ]
 
@@ -330,7 +279,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         cmds = provSetup.getCmds()
         workflowPolicies = self.prodPolicy.getArray("workflow")
 
-        repos = self.prodPolicy.get("repositoryDirectory")
+
         # append the other information we previously didn't have access to, but need for recording.
         for cmd in cmds:
             wfShortName = wfPolicy.get("shortName")
@@ -347,7 +296,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
             launchCmd = ' '.join(cmd)
 
             # extract the pipeline policy and all the files it includes, and add it to the command
-            filelist = provSetup.extractSinglePipelineFileNames(pipelinePolicy, repos, self.logger)
+            filelist = provSetup.extractSinglePipelineFileNames(pipelinePolicy, self.repository, self.logger)
             fileargs = ' '.join(filelist)
             launcher.write("%s %s\n" % (launchCmd, fileargs))
 
@@ -370,9 +319,9 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
 
         dirPolicy = platformPolicy.getPolicy("dir")
         dirName = pipelinePolicy.get("shortName")
-        directories = Directories(dirPolicy, dirName, self.runid)
-        self.dirs = directories.getDirs()
-        self.defaultRootDir = directories.getDefaultRootDir()
+        self.directories = Directories(dirPolicy, dirName, self.runid)
+        self.dirs = self.directories.getDirs()
+        self.defaultRootDir = self.directories.getDefaultRootDir()
 
         for name in self.dirs.names():
             localDirName = self.dirs.get(name)

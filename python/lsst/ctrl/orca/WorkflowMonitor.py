@@ -1,7 +1,7 @@
 from lsst.pex.logging import Log
 from lsst.ctrl.orca.multithreading import SharedData
 
-class WorkflowMonitor(object):
+class WorkflowMonitor:
     ##
     # @brief in charge of monitoring and/or controlling the progress of a
     #        running workflow.

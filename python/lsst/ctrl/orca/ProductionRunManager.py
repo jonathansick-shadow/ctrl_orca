@@ -18,7 +18,7 @@ from ProductionRunConfigurator import ProductionRunConfigurator
 # @brief A class in charge of launching, monitoring, managing, and stopping
 # a production run
 #
-class ProductionRunManager(object):
+class ProductionRunManager:
 
     ##
     # @brief initialize
@@ -184,6 +184,8 @@ class ProductionRunManager(object):
         if self.policy.exists("productionShutdownTopic"):
             self._startShutdownThread()
 
+        print "Production running. Waiting for events."
+
     ##
     # @brief determine whether production is currently running
     #
@@ -294,8 +296,6 @@ class ProductionRunManager(object):
                             "Shutting down production (urgency=%s)" % urgency)
 
         for workflow in self._workflowManagers["__order"]:
-            print "workflow = ",workflow
-            print "workflow.getName() = ",workflow.getName()
             workflowMgr = self._workflowManagers[workflow.getName()]
             workflowMgr.stopWorkflow(urgency)
 

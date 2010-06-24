@@ -1,25 +1,30 @@
-import os, os.path, shutil, sets, stat
+import sys, os, os.path, shutil, sets, stat, socket
+from sets import Set
+import getpass
 import lsst.ctrl.orca as orca
 import lsst.pex.policy as pol
 
-from lsst.ctrl.orca.Directories import Directories
+from lsst.pex.harness.Directories import Directories
 from lsst.pex.logging import Log
 
 from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.PolicyUtils import PolicyUtils
 from lsst.ctrl.orca.WorkflowConfigurator import WorkflowConfigurator
 from lsst.ctrl.orca.VanillaCondorWorkflowLauncher import VanillaCondorWorkflowLauncher
+from lsst.ctrl.orca.TemplateWriter import TemplateWriter
+from lsst.ctrl.orca.FileWaiter import FileWaiter
 
 ##
 #
 # VanillaCondorWorkflowConfigurator 
 #
 class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
-    def __init__(self, runid, prodPolicy, wfPolicy, logger):
+    def __init__(self, runid, repository, prodPolicy, wfPolicy, logger):
         self.logger = logger
-        self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:__init__")
+        self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator:__init__")
 
         self.runid = runid
+        self.repository = repository
         self.prodPolicy = prodPolicy
         self.wfPolicy = wfPolicy
 
@@ -29,7 +34,12 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         self.directories = None
         self.nodes = None
         self.numNodes = None
+        self.logFileNames = []
 
+        self.directoryList = {}
+        self.initialWorkDir = None
+        self.firstRemoteWorkDir = None
+        
     ##
     # @brief Setup as much as possible in preparation to execute the workflow
     #            and return a WorkflowLauncher object that will launch the
@@ -40,7 +50,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
     def configure(self, provSetup, wfVerbosity):
         self.wfVerbosity = wfVerbosity
         self._configureDatabases(provSetup)
-        return self._configureSpecialized(self.wfPolicy)
+        return self._configureSpecialized(provSetup, self.wfPolicy)
 
     ##
     # @brief Setup as much as possible in preparation to execute the workflow
@@ -51,84 +61,162 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
     # @param provenanceDict a dictionary containing info to record provenance
     # @param repository policy file repository location
     #
-    def _configureSpecialized(self, wfPolicy):
-        self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:configure")
+    def _configureSpecialized(self, provSetup, wfPolicy):
+        self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator:configure")
 
-        self.remoteLoginName = wfPolicy.get("configuration.loginNode")
-        self.remoteFTPName = wfPolicy.get("configuration.ftpNode")
-        self.transferProtocolPrefix = wfPolicy.get("configuration.transferProtocol")+"://"+self.remoteFTPName
-        self.localScratch = wfPolicy.get("configuration.localScratch")
+        self.remoteLoginName = wfPolicy.get("configuration.condorData.loginNode")
+        self.remoteFTPName = wfPolicy.get("configuration.condorData.ftpNode")
+        self.transferProtocolPrefix = wfPolicy.get("configuration.condorData.transferProtocol")+"://"+self.remoteFTPName
+        self.localScratch = wfPolicy.get("configuration.condorData.localScratch")
 
         if wfPolicy.getValueType("platform") == pol.Policy.FILE:
             filename = wfPolicy.getFile("platform").getPath()
-            platformPolicy = pol.Policy.createPolicy(filename)
+            fullpath = None
+            if os.path.isabs(filename):
+                fullpath = filename
+            else:
+                fullpath = os.path.join(self.repository, filename)
+            platformPolicy = pol.Policy.createPolicy(fullpath)
         else:
             platformPolicy = wfPolicy.getPolicy("platform")
 
-        self.remoteScript = "orca_launch.sh"
-
-        self.repository = self.prodPolicy.get("repositoryDirectory")
-
-        self.workflow = self.wfPolicy.get("shortName")
+        self.shortName = self.wfPolicy.get("shortName")
 
         pipelinePolicies = wfPolicy.getPolicyArray("pipeline")
-        for pipelinePolicy in pipelinePolicies:
-            self.createDirs(platformPolicy, pipelinePolicy)
-            self.createLaunchScript()
-            launchCmd = self.deploySetup(pipelinePolicy)
-            condorFile = self.writeCondorFile(pipelinePolicy)
+        expandedPipelinePolicies = self.expandPolicies(self.shortName, pipelinePolicies)
+
+        # Collect the entire set of directories to create, and make them.
+        # This avoids needlessly making connections to Abe for directories
+        # that already exist.
+        dirSet = Set()
+        for pipelinePolicyGroup in expandedPipelinePolicies:
+            pipelinePolicy = pipelinePolicyGroup.getPolicyName()
+            num = pipelinePolicyGroup.getPolicyNumber()
+            self.collectDirNames(dirSet, platformPolicy, pipelinePolicy, num)
+
+        # create all the directories we've collected, plus any local
+        # directories we need.
+        self.createDirs(dirSet)
+
+        jobs = []
+        firstGroup = True
+        glideinFileName = None
+        remoteFileWaiterName = None
+        linkScriptname = None
+
+        self.localStagingDir = os.path.join(self.localScratch, self.runid)
+        self.localWorkflowDir = os.path.join(self.localStagingDir, self.shortName)
+        for pipelinePolicyGroup in expandedPipelinePolicies:
+            pipelinePolicy = pipelinePolicyGroup.getPolicyName()
+            num = pipelinePolicyGroup.getPolicyNumber()
+
+            pipelineShortName = pipelinePolicy.get("shortName")
+
+            # set this pipeline's self.directories and self.dirs
+            indexName = "%s_%d" % (pipelineShortName, num)
+
+            self.directories = self.directoryList[indexName]
+            self.dirs = self.directories.getDirs()
+
+            indexedNamedDir = os.path.join(self.localWorkflowDir, indexName)
+            self.localWorkDir = os.path.join(indexedNamedDir, "work")
+
+            if not os.path.exists(self.localWorkDir):
+                os.makedirs(self.localWorkDir)
+
+            self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator: indexName = %s" % indexName)
+            #launchCmd = self.deploySetup(pipelinePolicy)
+            self.deploySetup(provSetup, wfPolicy, platformPolicy, pipelinePolicyGroup)
+            condorFile = self.writeCondorFile(indexName, "launch_%s.sh" % indexName)
+            launchCmd = ["condor_submit", condorFile]
+            jobs.append(condorFile)
             self.setupDatabase()
 
+            # There are some things that are only added to the first work directory
+            if firstGroup == True:
+                self.initialWorkDir = self.localWorkDir
+                self.createCondorDir(self.localWorkDir)
+
+                # copy the $CTRL_ORCA_DIR/etc/condor_glidein_config to local
+                condorGlideinConfig = EnvString.resolve("$CTRL_ORCA_DIR/etc/glidein_condor_config")
+                condorDir = os.path.join(self.localWorkDir,"Condor_glidein")
+                stagedGlideinConfigFile = os.path.join(condorDir, "glidein_condor_config")
+
+                keyvalues = pol.Policy()
+                keyvalues.set("ORCA_LOCAL_HOSTNAME", socket.gethostname())
+            
+                writer = TemplateWriter()
+                writer.rewrite(condorGlideinConfig, stagedGlideinConfigFile, keyvalues)
+
+                # write the glidein request script
+                glideinFileName = self.writeGlideinRequest(wfPolicy.get("configuration"))
+
+                # copy the file creation watching utility
+                remoteFileWaiterName = self.copyFileWaiterUtility()
+
+                # copy the link script once, to the first working directory
+                linkScriptName = self.copyLinkScript(wfPolicy)
+
+                # keep the first working directory name... we need this later.
+                self.firstRemoteWorkDir = self.dirs.get("work")
+
+                firstGroup = False
+            
+            self.logger.log(Log.DEBUG, "launchCmd = %s" % launchCmd)
+
+            # after all the pipeline files are placed, copy them to the remote location
+            # all at once.
+            remoteDir = self.dirs.get("work")
+            # the extra "/" is required below to copy the entire directory
+            #self.copyToRemote(self.localStagingDir+"/*", remoteDir+"/")
+            self.copyToRemote(self.localWorkDir+"/*", remoteDir+"/")
+
+            filename = "launch_%s_%d.sh" % (pipelineShortName, num)
+            remoteDir = os.path.join(self.dirs.get("work"), "%s_%d" % (pipelineShortName, num))
+            remoteFilename = os.path.join(remoteDir, filename)
+            self.remoteChmodX(remoteFilename)
         
-        workflowLauncher = VanillaCondorWorkflowLauncher("", self.workflow, self.logger)
+
+        # Now that all the input directories are made, run the link script
+        if linkScriptName != None:
+            self.runLinkScript(wfPolicy, linkScriptName)
+
+        # write the logFiles, and copy them over for the filewaiter utility to use
+        orcaLogFileName = os.path.join(self.initialWorkDir,'orca_logfiles.txt')
+
+        logFile = open(orcaLogFileName, 'w')
+        for name in self.logFileNames:
+            logFile.write("%s\n" % name)
+        logFile.close()
+
+        remoteLogNamesFile = os.path.join(self.firstRemoteWorkDir,'orca_logfiles.txt')
+        self.copyToRemote(orcaLogFileName, remoteLogNamesFile)
+
+        # create the FileWaiter
+        fileWaiter = FileWaiter(self.remoteLoginName, remoteFileWaiterName, remoteLogNamesFile, self.logger)
+
+        # create the Launcher
+
+        workflowLauncher = VanillaCondorWorkflowLauncher(jobs, self.initialWorkDir, glideinFileName,  self.prodPolicy, self.wfPolicy, self.runid, fileWaiter, self.logger)
         return workflowLauncher
 
     ##
     # @brief create the command which will launch the workflow
     # @return a string containing the shell commands to execute
     #
-    def writeCondorFile(self, pipelinePolicy):
-        self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:writeCondorFile")
+    def writeCondorFile(self, launchNamePrefix, launchScriptName):
+        self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator:writeCondorFile")
 
-        filename = None
-        if pipelinePolicy.getValueType("definition") == pol.Policy.FILE:
-            filename = pipelinePolicy.getFile("definition").getPath()
-            definitionPolicy = pol.Policy.createPolicy(filename, False)
-        else:
-            definitionPolicy = pipelinePolicy.getPolicy("definition")
-
-        execPath = definitionPolicy.get("framework.exec")
-        #launchcmd = EnvString.resolve(execPath)
-        launchcmd = execPath
-
-        setupScriptBasename = os.path.basename(orca.envscript)
-        remoteSetupScriptName = os.path.join(self.dirs.get("work"), setupScriptBasename)
-       
-        shortName = pipelinePolicy.get("shortName")
-
-        if filename == None:
-            policyName = filename
-        else:
-            policyName = shortName
-        launchArgs = "%s %s -L %s -S %s" % \
-             (policyName+".paf", self.runid, self.wfVerbosity, remoteSetupScriptName)
-        print "launchArgs = %s",launchArgs
-
-
-        # get the name of this pipeline
-
-        shortName = pipelinePolicy.get("shortName")
-        # Write Condor file 
-        condorJobfile =  os.path.join(self.localStagingDir, shortName+".condor")
+        condorJobFile = os.path.join(self.localWorkDir, launchNamePrefix)
+        condorJobFile = os.path.join(condorJobFile, launchNamePrefix+".condor")
 
         clist = []
         clist.append("universe=vanilla\n")
-        clist.append("executable="+self.remoteScript+"\n")
-        clist.append("arguments="+launchcmd+" "+launchArgs+"\n")
+        clist.append("executable=%s/%s\n" % (launchNamePrefix, launchScriptName))
         clist.append("transfer_executable=false\n")
-        clist.append("output="+shortName+"_Condor.out\n")
-        clist.append("error="+shortName+"_Condor.err\n")
-        clist.append("log="+shortName+"_Condor.log\n")
+        clist.append("output=%s/%s/Condor.out\n" % (self.localWorkDir, launchNamePrefix))
+        clist.append("error=%s/%s/Condor.err\n" % (self.localWorkDir, launchNamePrefix))
+        clist.append("log=%s/%s/Condor.log\n" % (self.localWorkDir, launchNamePrefix))
         clist.append("should_transfer_files = YES\n")
         clist.append("when_to_transfer_output = ON_EXIT\n")
         clist.append("remote_initialdir="+self.dirs.get("work")+"\n")
@@ -136,18 +224,18 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         clist.append("queue\n")
 
         # Create a file object: in "write" mode
-        condorFILE = open(condorJobfile,"w")
+        condorFILE = open(condorJobFile,"w")
         condorFILE.writelines(clist)
         condorFILE.close()
 
-        return
+        return condorJobFile
 
     def getWorkflowName(self):
-        return self.workflow
+        return self.shortName
 
     
     def stageLocally(self, localName, remoteName):
-        self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:stageLocally")
+        self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator:stageLocally")
 
         print "local name  = "+localName
         print "remote name  = "+remoteName
@@ -160,178 +248,314 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         shutil.copyfile(localName, localStageName)
 
     def copyToRemote(self, localName, remoteName):
-        self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:copyToRemote")
+        self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator:copyToRemote")
         
         localNameURL = "%s%s" % ("file://",localName)
         remoteNameURL = "%s%s" % (self.transferProtocolPrefix, remoteName)
 
         cmd = "globus-url-copy -r -vb -cd %s %s " % (localNameURL, remoteNameURL)
+        print cmd
         
-        print "cmd = ",cmd
         # perform this copy from the local machine to the remote machine
         pid = os.fork()
         if not pid:
+            # when forking stuff, gotta close *BOTH* the python and C level 
+            # file descriptors. not strictly needed here, since we're just
+            # shutting off stdout and stderr, but a good habit to be in.
+
+            # TODO: Change this to add a check to not close file descriptors
+            # if verbosity is set high enough, so you can see the output of the 
+            # globus-url-copy
+            sys.stdin.close()
+            sys.stdout.close()
+            sys.stderr.close()
+            os.close(0)
+            os.close(1)
+            os.close(2)
             os.execvp("globus-url-copy",cmd.split())
         os.wait()[0]
 
+    def remoteMakeDirs(self, remoteName):
+        self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator:remoteMakeDirs")
+        cmd = "gsissh %s mkdir -p %s" % (self.remoteLoginName, remoteName)
+        print cmd
+        pid = os.fork()
+        if not pid:
+            os.execvp("gsissh",cmd.split())
+        os.wait()[0]
+        
     def remoteChmodX(self, remoteName):
-        self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:remoteChmodX")
+        self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator:remoteChmodX")
         cmd = "gsissh %s chmod +x %s" % (self.remoteLoginName, remoteName)
         pid = os.fork()
         if not pid:
             os.execvp("gsissh",cmd.split())
         os.wait()[0]
 
+    def copyFileWaiterUtility(self):
+        script = EnvString.resolve("$CTRL_ORCA_DIR/bin/filewaiter.py")
+        remoteName = os.path.join(self.dirs.get("work"), os.path.basename(script))
+        self.copyToRemote(script, remoteName)
+        self.remoteChmodX(remoteName)
+        return remoteName
 
     def remoteMkdir(self, remoteDir):
-        self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:remoteMkdir")
+        self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator:remoteMkdir")
         cmd = "gsissh %s mkdir -p %s" % (self.remoteLoginName, remoteDir)
         print "running: "+cmd
         pid = os.fork()
         if not pid:
             os.execvp("gsissh",cmd.split())
         os.wait()[0]
-
     ##
     # @brief 
     #
-    def deploySetup(self, pipelinePolicy):
-        self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:deploySetup")
+    def deploySetup(self, provSetup, wfPolicy, platformPolicy, pipelinePolicyGroup):
+        self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator:deploySetup")
+
+        pipelinePolicy = pipelinePolicyGroup.getPolicyName()
+        shortName = pipelinePolicy.get("shortName")
+
+        pipelinePolicyNumber = pipelinePolicyGroup.getPolicyNumber()
+        pipelineName = "%s_%d" % (shortName, pipelinePolicyNumber)
+
+        globalPipelineOffset = pipelinePolicyGroup.getGlobalOffset()
+
+        logDir = os.path.join(self.localWorkDir, pipelineName)
+        # create the log directories under the local scratch work
+        if not os.path.exists(logDir):
+            os.makedirs(logDir)
+
+        # create the list of launch.log file's we'll watch for later.
+        logFile = os.path.join(pipelineName, "launch.log")
+        logFile = os.path.join(self.dirs.get("work"), logFile)
+        self.logFileNames.append(logFile)
+
+        
+        # only write out the policyfile once
+        filename = pipelinePolicy.getFile("definition").getPath()
+        fullpath = None
+        if os.path.isabs(filename):
+            fullpath = filename
+        else:
+            fullpath = os.path.join(self.repository, filename)
+        definitionPolicy = pol.Policy.createPolicy(fullpath, False)
+        if pipelinePolicyNumber == 1:
+            if platformPolicy.exists("dir"):
+                definitionPolicy.set("execute.dir", platformPolicy.get("dir"))
+            if self.prodPolicy.exists("eventBrokerHost"):
+                definitionPolicy.set("execute.eventBrokerHost", self.prodPolicy.get("eventBrokerHost"))
+    
+            if self.wfPolicy.exists("shutdownTopic"):
+                definitionPolicy.set("execute.shutdownTopic", self.wfPolicy.get("shutdownTopic"))
+            if self.prodPolicy.exists("logThreshold"):
+                definitionPolicy.set("execute.logThreshold", self.prodPolicy.get("logThreshold"))
+            newPolicyFile = os.path.join(self.localWorkDir, filename)
+            pw = pol.PAFWriter(newPolicyFile)
+            pw.write(definitionPolicy)
+            pw.close()
 
         # copy /bin/sh script responsible for environment setting
 
-        if pipelinePolicy.getValueType("definition") == pol.Policy.FILE:
-            filename = pipelinePolicy.getFile("definition").getPath()
-            definitionPolicy = pol.Policy.createPolicy(filename, False)
-        else:
-            definitionPolicy = pipelinePolicy.getPolicy("definition")
-
         setupPath = definitionPolicy.get("framework.environment")
-        if setupPath == None:
-             raise RuntimeError("couldn't find framework.environment")
-        script = EnvString.resolve(setupPath)
+        if setupPath:
+            setupPath = EnvString.resolve(setupPath)        
+        self.script = setupPath
 
-        if orca.envscript == None:
-            print "using default setup.sh"
+        if orca.envscript is None:
+            self.logger.log(self.logger.INFO-1, "Using configured setup.sh")
         else:
-            script = orca.envscript
+            self.script = orca.envscript
+        if not self.script:
+             raise RuntimeError("couldn't find framework.environment")
 
-        setupLineList = script.split("/")
-        lengthLineList = len(setupLineList)
-        setupShortName = setupLineList[lengthLineList-1]
-        setupShortName = os.path.join("work",setupShortName)
+        # only copy the setup script once
+        if pipelinePolicyNumber == 1:
+            shutil.copy(self.script, self.localWorkDir)
 
-        # stage the setup script into place on the remote resource
-        self.stageLocally(script, setupShortName)
+        # now point at the new location for the setup script
+        self.script = os.path.join(self.dirs.get("work"), os.path.basename(self.script))
 
-        # This policy has the override values, but must be written out and
-        # recorded.
-        #  write file to self.dirs["work"]
-        #  call provenance.recordPolicy()
-        # 
-        # copy the policies to the working directory
+        #
+        # Write all policy files out to the work directory, 
+        # but only do it once.
         
-        self.rewritePipelinePolicy(pipelinePolicy)
-
-
-        pipelinePolicySet = sets.Set()
-        repos = self.prodPolicy.get("repositoryDirectory")
-        PolicyUtils.getAllFilenames(repos, definitionPolicy, pipelinePolicySet)
-
-        for filename in pipelinePolicySet:
-            print "working on filename = "+filename
-            print "working on repository = "+repos
-
-            localStageNames = filename.split(repos)
-            localStageName = "work"+localStageNames[1]
-            localStageName = os.path.join(self.localStagingDir, localStageName)
-            print "localStageName = "+localStageName
-            self.stageLocally(filename, localStageName)
-
-        shortName = pipelinePolicy.get("shortName")
-        remoteDir = os.path.join(self.directories.getDefaultRootDir(), self.runid)
-        remoteDir = os.path.join(remoteDir, shortName)
-
-        # the extra "/" is required below to copy the entire directory
-        self.copyToRemote(self.localStagingDir+"/", remoteDir+"/")
-
-        # make the remote script executable;  this is required because the copy doesn't
-        # retain the execution bit setting.
-        filename = os.path.join(self.dirs.get("work"), self.remoteScript)
-        self.remoteChmodX(filename)
-
-    def rewritePipelinePolicy(self, pipelinePolicy):
-        localWorkDir = os.path.join(self.localStagingDir, "work")
+        if pipelinePolicyNumber == 1:
         
-        filename = pipelinePolicy.getFile("definition").getPath()
-        oldPolicy = pol.Policy.createPolicy(filename, False)
+            # first, grab all the file names, and throw them into a Set() to 
+            # avoid duplication
+            pipelinePolicySet = sets.Set()
 
-        if self.prodPolicy.exists("eventBrokerHost"):
-            oldPolicy.set("execute.eventBrokerHost", self.prodPolicy.get("eventBrokerHost"))
+            PolicyUtils.getAllFilenames(self.repository, definitionPolicy, pipelinePolicySet)
 
-        if self.prodPolicy.exists("shutdownTopic"):
-            oldPolicy.set("execute.shutdownTopic", self.prodPolicy.get("shutdownTopic"))
+            # Cycle through the file names, creating subdirectories as required,
+            # and copy them to the destination directory
+            for policyFile in pipelinePolicySet:
+                destName = policyFile.replace(self.repository+"/","")
+                tokens = destName.split('/')
+                tokensLength = len(tokens)
+                destinationFile = tokens[len(tokens)-1]
+                destintationDir = self.localWorkDir
+                for newDestinationDir in tokens[:len(tokens)-1]:
+                    newDir = os.path.join(self.localWorkDir, newDestinationDir)
+                    if os.path.exists(newDir) == False:
+                        os.mkdir(newDir)
+                    destinationDir = newDir
+                shutil.copyfile(policyFile, os.path.join(destinationDir, destinationFile))
 
-        if self.prodPolicy.exists("logThreshold"):
-            oldPolicy.set("execute.logThreshold", self.prodPolicy.get("logThreshold"))
+        # create the launch command
+        execPath = definitionPolicy.get("framework.exec")
+        execCmd = execPath
 
-        newPolicyFile = os.path.join(localWorkDir, filename)
-        pw = pol.PAFWriter(newPolicyFile)
-        pw.write(oldPolicy)
-        pw.close()
+        # write out the script we use to kick things off
+        launchName = "launch_%s.sh" % pipelineName
+
+        name = os.path.join(logDir, launchName)
 
 
-    ##
-    # @brief write a shell script to launch a workflow
-    #
-    def createLaunchScript(self):
+        remoteLogDir = os.path.join(self.dirs.get("work"), pipelineName)
 
-        localWorkDir = os.path.join(self.localStagingDir, "work")
-        print "localWorkDir =", localWorkDir
-        
-        if not os.path.exists(localWorkDir):
-            os.makedirs(localWorkDir)
-
-        tempName = os.path.join(localWorkDir, self.remoteScript)
-        launcher = open(tempName, 'w')
+        launcher = open(name, 'w')
         launcher.write("#!/bin/sh\n")
-        launcher.write("echo \"Running SimpleLaunch\"\n")
-        launcher.write("echo \"running:\"\n")
-        launcher.write("echo $@\n")
-        launcher.write("$@\n")
+        launcher.write("export SHELL=/bin/sh\n")
+        launcher.write("cd %s\n" % self.dirs.get("work"))
+        launcher.write("/bin/rm -f %s/launch.log\n" % remoteLogDir)
+        launcher.write("source %s\n" % self.script)
+        launcher.write("eups list 2>/dev/null | grep Setup >%s/eups-env.txt\n" % remoteLogDir)
+
+        cmds = provSetup.getCmds()
+        workflowPolicies = self.prodPolicy.getArray("workflow")
+
+        # append the other information we previously didn't have access to, but need for recording.
+        for cmd in cmds:
+            wfShortName = wfPolicy.get("shortName")
+            cmd.append("--activityname=%s_%s" % (wfShortName, pipelineName))
+            cmd.append("--platform=%s" % wfPolicy.get("platform").getPath())
+            cmd.append("--localrepos=%s" % self.dirs.get("work"))
+            workflowIndex = 1
+            for wfPolicy in workflowPolicies:
+                if wfPolicy.get("shortName") == wfShortName:
+                    #cmd.append("--activoffset=%s" % workflowIndex)
+                    cmd.append("--activoffset=%s" % globalPipelineOffset)
+                    break
+                workflowIndex = workflowIndex + 1
+            launchCmd = ' '.join(cmd)
+
+            # extract the pipeline policy and all the files it includes, and add it to the command
+            filelist = provSetup.extractSinglePipelineFileNames(pipelinePolicy, self.repository, self.logger)
+            fileargs = ' '.join(filelist)
+            launcher.write("%s %s\n" % (launchCmd, fileargs))
+
+        
+        # On condor, you have to launch the script, then wait until that
+        # script exits.
+        launcher.write("%s %s %s -L %s --logdir %s >%s/launch.log 2>&1 &\n" % (execCmd, filename, self.runid, self.wfVerbosity, remoteLogDir, remoteLogDir))
+        launcher.write("wait\n")
+        launcher.write('echo "from launcher"\n')
+        launcher.write("ps -ef\n")
+
         launcher.close()
 
+        return
 
-        # make it executable
-        os.chmod(tempName, stat.S_IRWXU)
+    def collectDirNames(self, dirSet, platformPolicy, pipelinePolicy, num):
+        self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator:collectDirNames")
+        
+        dirPolicy = platformPolicy.getPolicy("dir")
+        dirName = pipelinePolicy.get("shortName")
 
-        self.launcherScript = tempName
+        directories = Directories(dirPolicy, dirName, self.runid)
+        dirs = directories.getDirs()
+        for name in dirs.names():
+            remoteName = dirs.get(name)
+            dirSet.add(remoteName)
+        indexedDirName = "%s_%d" % (dirName, num)
+        self.directoryList[indexedDirName] = directories
         return
 
     ##
     # @brief create the platform.dir directories
     #
-    def createDirs(self, platformPolicy, pipelinePolicy):
-        self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:createDirs")
+    def createDirs(self, dirSet):
+        self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator:createDirs")
+        for remoteName in dirSet:
+            self.remoteMakeDirs(remoteName)
 
-        dirPolicy = platformPolicy.getPolicy("dir")
-        dirName = pipelinePolicy.get("shortName")
-        self.directories = Directories(dirPolicy, dirName, self.runid)
-        self.dirs = self.directories.getDirs()
 
-        remoteRootDir = self.directories.getDefaultRootDir()
-        remoteRunDir = self.directories.getDefaultRunDir()
-        suffix = remoteRunDir.split(remoteRootDir)
-        self.localStagingDir = os.path.join(self.localScratch, suffix[1][1:])
-
-        for name in self.dirs.names():
-            localDirName = os.path.join(self.localStagingDir, name)
-            if not os.path.exists(localDirName):
-                os.makedirs(localDirName)
+    def createCondorDir(self, workDir):
+        # create Condor_glidein/local directory under "work"
+        condorDir = os.path.join(workDir,"Condor_glidein")
+        condorLocalDir = os.path.join(condorDir, "local")
+        if not os.path.exists(condorLocalDir):
+            os.makedirs(condorLocalDir)
 
     ##
     # @brief set up this workflow's database
     #
     def setupDatabase(self):
-        self.logger.log(Log.DEBUG, "VanillaWorkflowConfigurator:setupDatabase")
+        self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator:setupDatabase")
 
+
+    def copyLinkScript(self, wfPolicy):
+        self.logger.log(Log.DEBUG, "VanillaPipelineWorkflowConfigurator:copyLinkScript")
+
+        if wfPolicy.exists("configuration") == False:
+            return None
+        configuration = wfPolicy.get("configuration")
+        if configuration.exists("deployData") == False:
+            return None
+        deployPolicy = configuration.get("deployData")
+        dataRepository = deployPolicy.get("dataRepository")
+        deployScript = deployPolicy.get("script")
+        deployScript = EnvString.resolve(deployScript)
+        collection = deployPolicy.get("collection")
+
+        if os.path.isfile(deployScript) == True:
+            # copy the script to the remote side
+            remoteName = os.path.join(self.dirs.get("work"), os.path.basename(deployScript))
+            self.copyToRemote(deployScript, remoteName)
+            self.remoteChmodX(remoteName)
+            return remoteName
+        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:deployData: warning: script '%s' doesn't exist" % deployScript)
+        return None
+
+    def runLinkScript(self, wfPolicy, remoteName):
+        self.logger.log(Log.DEBUG, "VanillaPipelineWorkflowConfigurator:runLinkScript")
+        if wfPolicy.exists("configuration") == False:
+            return
+        configuration = wfPolicy.get("configuration")
+        if configuration.exists("deployData") == False:
+            return
+
+        deployPolicy = configuration.get("deployData")
+        dataRepository = deployPolicy.get("dataRepository")
+        collection = deployPolicy.get("collection")
+
+        runDir = self.directories.getDefaultRunDir()
+        # run the linking script
+        deployCmd = ["gsissh", self.remoteLoginName, remoteName, runDir, dataRepository, collection]
+        pid = os.fork()
+        if not pid:
+            os.execvp(deployCmd[0], deployCmd)
+        os.wait()[0]
+        return
+
+    def writeGlideinRequest(self, configPolicy):
+        self.logger.log(Log.DEBUG, "VanillaPipelineWorkflowConfigurator:writeGlideinRequest")
+        glideinRequest = configPolicy.get("glideinRequest")
+        templateFileName = glideinRequest.get("templateFileName")
+        templateFileName = EnvString.resolve(templateFileName)
+        outputFileName = glideinRequest.get("outputFileName")
+        keyValuePairs = glideinRequest.get("keyValuePairs")
+
+        realFileName = os.path.join(self.localWorkDir, outputFileName)
+
+        # for glidein request, we add this additional keyword.
+        keyValuePairs.set("ORCA_REMOTE_WORKDIR", self.dirs.get("work"))
+        if keyValuePairs.exists("START_OWNER") == False:
+            keyValuePairs.set("START_OWNER", getpass.getuser())
+
+        writer = TemplateWriter()
+        writer.rewrite(templateFileName, realFileName, keyValuePairs)
+
+        return realFileName
