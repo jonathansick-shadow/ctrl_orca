@@ -210,15 +210,16 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         # copy /bin/sh script responsible for environment setting
 
         setupPath = definitionPolicy.get("framework.environment")
-        if setupPath == None:
-             raise RuntimeError("couldn't find framework.environment")
-        #self.script = EnvString.resolve(setupPath)
+        if setupPath:
+            setupPath = EnvString.resolve(setupPath)        
         self.script = setupPath
 
-        if orca.envscript == None:
-            print "using default setup.sh"
+        if orca.envscript is None:
+            self.logger.log(self.logger.INFO-1, "Using configured setup.sh")
         else:
             self.script = orca.envscript
+        if not self.script:
+             raise RuntimeError("couldn't find framework.environment")
 
         # only copy the setup script once
         if pipelinePolicyNumber == 1:
