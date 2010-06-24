@@ -3,7 +3,7 @@ import os, os.path, getopt, sets, sys
 import lsst.pex.policy as pol
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 
-class ProvenanceRecorder:
+class ProvenanceRecorder(object):
     def __init__(self, provenance, repository):
         self.policySet = sets.Set()
         self.provenance = provenance

@@ -11,7 +11,7 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
     ##
     # @brief
     #
-    def __init__(self, jobs, localScratch, condorGlideinFile, prodPolicy, wfPolicy, runid, logger = None):
+    def __init__(self, jobs, localScratch, condorGlideinFile, prodPolicy, wfPolicy, runid, filewaiter, logger = None):
         if logger != None:
             logger.log(Log.DEBUG, "VanillaCondorWorkflowLauncher:__init__")
         self.logger = logger
@@ -21,6 +21,7 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
         self.prodPolicy = prodPolicy
         self.wfPolicy = wfPolicy
         self.runid = runid
+        self.filewaiter = filewaiter
 
     ##
     # @brief perform cleanup after workflow has ended.
@@ -50,9 +51,20 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
         # if we've set the "skipglidein", just don't do that.
         if orca.skipglidein == False:
             curDir = os.getcwd()
+
+            # switch to this directory to make condor happy
             os.chdir(self.localScratch)
             glideinJobNumber = condor.submitJob(self.condorGlideinFile)
             os.chdir(curDir)
+
+            # write the glidein job file to the workflow's directory
+            tempWorkDir = os.path.dirname(self.condorGlideinFile)
+            tempPipelineDir = os.path.dirname(tempWorkDir)
+            workflowDir = os.path.dirname(tempPipelineDir)
+            glideinJobFile = os.path.join(workflowDir, "glidein.job")
+            self.writeJobFile(glideinJobNumber, glideinJobFile)
+
+            # now wait for it to show up.
             condor.waitForJobToRun(glideinJobNumber, "this might take a few minutes.")
         else:
             print "Command line request to skip condor glidein.  Skipping."
@@ -63,12 +75,24 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
         for job in self.jobs:
             if firstJob == True:
                 jobNumber = condor.submitJob(job)
+                jobDir = os.path.dirname(job)
+                jobFileName = os.path.join(jobDir, "%s.job" % os.path.basename(jobDir))
+                self.writeJobFile(jobNumber, jobFileName)
                 condor.waitForJobToRun(jobNumber)
+                # Wait for that first log file to show up from joboffice
+                self.filewaiter.waitForFirstFile()
                 firstJob = False
             else:
                 jobNumber = condor.submitJob(job)
+                jobDir = os.path.dirname(job)
+                jobFileName = os.path.join(jobDir, "%s.job" % os.path.basename(jobDir))
+                self.writeJobFile(jobNumber, jobFileName)
                 jobNumbers.append(jobNumber)
+
         condor.waitForAllJobsToRun(jobNumbers)
+
+        # wait for all jobs to launch
+        self.filewaiter.waitForAllFiles()
 
         eventBrokerHost = self.prodPolicy.get("eventBrokerHost")
         shutdownTopic = self.wfPolicy.get("shutdownTopic")
@@ -78,3 +102,13 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
             self.workflowMonitor.addStatusListener(statusListener)
         self.workflowMonitor.startMonitorThread(self.runid)
         return self.workflowMonitor
+
+    ##
+    #
+    #
+    def writeJobFile(self, jobNumber, jobFile):
+        if self.logger != None:
+            self.logger.log(Log.DEBUG, "VanillaCondorWorkflowLauncher:writeJobFile: writing %s" % jobFile)
+        jobfile = open(jobFile, 'w')
+        jobfile.write("%s.0\n" % jobNumber)
+        jobfile.close()

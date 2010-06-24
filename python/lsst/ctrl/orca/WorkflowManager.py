@@ -8,7 +8,7 @@ class WorkflowManager:
     ##
     # @brief 
     #
-    def __init__(self, name, runid, wfPolicy, prodPolicy, logger=None):
+    def __init__(self, name, runid, repository, prodPolicy, wfPolicy, logger=None):
 
         # _locked: a container for data to be shared across threads that 
         # have access to this object.
@@ -18,6 +18,7 @@ class WorkflowManager:
             name = wfPolicy.get("shortName")
         self.name = name
         self.runid = runid
+        self.repository = repository
         self.wfPolicy = wfPolicy
         self.prodPolicy = prodPolicy
         self._workflowConfigurator = None
@@ -102,8 +103,7 @@ class WorkflowManager:
         try:
             self._locked.acquire()
 
-            self._workflowConfigurator = self.createConfigurator(self.runid, self.wfPolicy,
-                                                                self.prodPolicy)
+            self._workflowConfigurator = self.createConfigurator(self.runid, self.repository, self.wfPolicy, self.prodPolicy)
             self._workflowLauncher = self._workflowConfigurator.configure(provSetup, workflowVerbosity)
         finally:
             self._locked.release()
@@ -120,7 +120,7 @@ class WorkflowManager:
     # @param prodPolicy  the policy describing the overall production.  This
     #                       provides common data (e.g. event broker host)
     #                       that needs to be shared with all pipelines. 
-    def createConfigurator(self, runid, wfPolicy, prodPolicy):
+    def createConfigurator(self, runid, repository, wfPolicy, prodPolicy):
         self.logger.log(Log.DEBUG, "WorkflowManager:createConfigurator")
 
         # TODO: copy prodPolicy info into wfPolicy
@@ -129,7 +129,7 @@ class WorkflowManager:
         classFactory = NamedClassFactory()
         
         configuratorClass = classFactory.createClass(className)
-        configurator = configuratorClass(self.runid, prodPolicy, wfPolicy, self.logger) 
+        configurator = configuratorClass(self.runid, repository, prodPolicy, wfPolicy, self.logger) 
         return configurator
 
     ##
