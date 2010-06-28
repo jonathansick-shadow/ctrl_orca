@@ -184,7 +184,15 @@ class ProductionRunManager:
         if self.policy.exists("productionShutdownTopic"):
             self._startShutdownThread()
 
-        print "Production running. Waiting for events."
+        # announce data, if it's available
+        print "waiting for startup"
+        time.sleep(5)
+        for workflow in self._workflowManagers["__order"]:
+            mgr = self._workflowManagers[workflow.getName()]
+            mgr.announceData()
+        print "Production running."
+        print "Waiting for shutdown request."
+        
 
     ##
     # @brief determine whether production is currently running
