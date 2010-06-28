@@ -3,6 +3,7 @@ from lsst.ctrl.orca.StatusListener import StatusListener
 from lsst.pex.logging import Log
 import lsst.pex.policy as pol
 from lsst.ctrl.orca.multithreading import SharedData
+from lsst.ctrl.orca.DataAnnouncer import DataAnnouncer
 
 class WorkflowManager:
     ##
@@ -16,7 +17,9 @@ class WorkflowManager:
 
         if not name:
             name = wfPolicy.get("shortName")
-        self.name = name
+            self.name = name
+        else:
+            self.name = "unnamed"
         self.runid = runid
         self.repository = repository
         self.wfPolicy = wfPolicy
@@ -191,3 +194,9 @@ class WorkflowManager:
     def getNodeCount(self):
         return self._workflowConfigurator.getNodeCount()
 
+    def announceData(self):
+        announcer = DataAnnouncer(self.runid, self.prodPolicy, self.wfPolicy, self.logger)
+        if announcer.announce():
+            print "Data announced via policy for %s" % self.name
+        else:
+            print "No data announced for %s.  Waiting for events from external source" % self.name
