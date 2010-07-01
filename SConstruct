@@ -40,6 +40,7 @@ env['IgnoreFiles'] = r"(~$|\.pyc$|^\.svn$|\.o$)"
 
 Alias("install", [env.Install(env['prefix'], "python"),
                   env.Install(env['prefix'], "bin"),
+                  env.Install(env['prefix'], "etc"),
                   env.Install(env['prefix'], "examples"),
                   env.InstallEups(env['prefix'] + "/ups")])
 
