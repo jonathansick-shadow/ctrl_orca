@@ -442,8 +442,11 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         launcher.write("export SHELL=/bin/sh\n")
         launcher.write("cd %s\n" % self.dirs.get("work"))
         launcher.write("/bin/rm -f %s/launch.log\n" % remoteLogDir)
+        #launcher.write("cd %s\n" % remoteLogDir)
         launcher.write("source %s\n" % self.script)
+        #launcher.write("cd ..\n")
         launcher.write("eups list 2>/dev/null | grep Setup >%s/eups-env.txt\n" % remoteLogDir)
+
 
         cmds = provSetup.getCmds()
         workflowPolicies = self.prodPolicy.getArray("workflow")
@@ -471,7 +474,10 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         
         # On condor, you have to launch the script, then wait until that
         # script exits.
-        launcher.write("%s %s %s -L %s --logdir %s >%s/launch.log 2>&1 &\n" % (execCmd, filename, self.runid, self.wfVerbosity, remoteLogDir, remoteLogDir))
+        # TODO: remove the line below, and delete it when ticket 1398 is
+        # verified to be working.
+        #launcher.write("%s %s %s -L %s --logdir %s >%s/launch.log 2>&1 &\n" % (execCmd, filename, self.runid, self.wfVerbosity, remoteLogDir, remoteLogDir))
+        launcher.write("%s %s %s -L %s --logdir %s --workerid %s >%s/launch.log 2>&1 &\n" % (execCmd, filename, self.runid, self.wfVerbosity, remoteLogDir, pipelineName, remoteLogDir))
         launcher.write("wait\n")
         launcher.write('echo "from launcher"\n')
         launcher.write("ps -ef\n")
