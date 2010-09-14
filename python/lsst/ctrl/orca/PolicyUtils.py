@@ -31,17 +31,17 @@ class PolicyUtils:
     # @brief given a policy, recursively add all child policies to a policy set
     # 
 
-    def getAllFilenames(repos, policy, prefix, policySet):
+    def getAllFilenames(repos, policy, policySet):
         names = policy.names(True)
         for name in names:
             if policy.isArray(name):
                 if policy.isPolicy(name):
-                    #print prefix+name," is a policy array"
+                    # name is a policy array
                     policyArray = policy.getPolicyArray(name)
                     for p in policyArray:
-                        PolicyUtils.getAllFilenames(repos, p, name+".", policySet)
+                        PolicyUtils.getAllFilenames(repos, p, policySet)
                 else:
-                    #print prefix+name," is an array, but not a policy array"
+                    # name is an array, but not a policy array
                     array = policy.getArray(name)
                     for val in array:
                         if type(val) is pol.PolicyFile:
@@ -50,23 +50,23 @@ class PolicyUtils:
                             if (filename in policySet) == False:
                                 policySet.add(filename)
                             newPolicy = pol.Policy.createPolicy(filename, False)
-                            PolicyUtils.getAllFilenames(repos, newPolicy, prefix+name+".", policySet)
+                            PolicyUtils.getAllFilenames(repos, newPolicy, policySet)
             else:
                 if policy.isPolicy(name):
-                    #print prefix+name," is not an array, but is a Policy"
+                    # name is not an array, but is a Policy
                     p = policy.getPolicy(name)
-                    PolicyUtils.getAllFilenames(repos, p,prefix+name+".", policySet)
+                    PolicyUtils.getAllFilenames(repos, p, policySet)
                 else:
                     if policy.isFile(name):
-                        #print prefix+name," is a File value"
+                        # name is a File value
                         filename = policy.getFile(name).getPath()
                         filename = os.path.join(repos, filename)
                         if (filename in policySet) == False:
                             policySet.add(filename)
                         newPolicy = pol.Policy.createPolicy(filename, False)
-                        PolicyUtils.getAllFilenames(repos, newPolicy, prefix+name+".", policySet)
+                        PolicyUtils.getAllFilenames(repos, newPolicy, policySet)
                     #else:
-                    #    print prefix+name," is a regular value"
+                    #  name is a regular value
 
     getAllFilenames = staticmethod(getAllFilenames)
 
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     pset = sets.Set()
 
     myPolicy = pol.Policy.createPolicy("main.paf", False)
-    PolicyUtils.getAllFilenames("/home/srp/temp_merge/datarel/trunk/pipeline", myPolicy,"", pset)
+    PolicyUtils.getAllFilenames("/home/srp/temp_merge/datarel/trunk/pipeline", myPolicy, pset)
 
     for i in pset:
         print i
