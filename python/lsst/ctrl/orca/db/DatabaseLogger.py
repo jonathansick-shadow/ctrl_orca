@@ -34,7 +34,7 @@ class DatabaseLogger(MySQLBase):
     def __init__(self, dbHostName, portNumber):
         MySQLBase.__init__(self, dbHostName, portNumber)
 
-        self.keywords = ['HOSTID', 'RUNID', 'SLICEID', 'LEVEL', 'LOG', 'DATE', 'NODE', 'TIMESTAMP', 'COMMENT', 'STATUS', 'PIPELINE', 'EVENTTIME', 'PUBTIME', 'TYPE', 'STAGEID', 'LOOPNUM', 'WORKERID', 'USERTIME', 'SYSTEMTIME']
+        self.keywords = ['HOSTID', 'RUNID', 'SLICEID', 'LEVEL', 'LOG', 'DATE', 'NODE', 'TIMESTAMP', 'COMMENT', 'STATUS', 'PIPELINE', 'EVENTTIME', 'PUBTIME', 'TYPE', 'STAGEID', 'LOOPNUM', 'WORKERID', 'usertime', 'systemtime']
         self.keywordSet = set(self.keywords)
         self.highwater = 10
 
@@ -134,13 +134,13 @@ class DatabaseLogger(MySQLBase):
             workerid = "NULL"
 
 
-        if ps.exists("USERTIME"):
-            usertime = ps.get("USERTIME")
+        if ps.exists("usertime"):
+            usertime = ps.get("usertime")
         else:
             usertime = 0
 
-        if ps.exists("SYSTEMTIME"):
-            systemtime = ps.get("SYSTEMTIME")
+        if ps.exists("systemtime"):
+            systemtime = ps.get("systemtime")
         else:
             systemtime = 0
 
@@ -160,6 +160,6 @@ class DatabaseLogger(MySQLBase):
         custom = MySQLdb.escape_string(custom[0:4096])
         comment = MySQLdb.escape_string(comment[0:2048])
 
-        cmd = """INSERT INTO %s(hostId, runId, sliceid, status, level, log, date, node, timestamp, custom, comment, pipeline, eventtime, pubtime, type, stageid, loopnum, workerid, usertime, systemtime) values("%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s"); """ % (dbTable, hostId, runId, sliceId, status, level, log, date, node, timestamp, custom, comment, pipeline, eventtime, pubtime, eventtype, stageid, loopnum, workerid, usertime, systemtime)
+        cmd = """INSERT INTO %s(HOSTID, RUNID, SLICEID, STATUS, LEVEL, LOG, DATE, NODE, TIMESTAMP, CUSTOM, COMMENt, PIPELINE, EVENTTIME, PUBTIME, TYPE, STAGEID, LOOPNUM, WORKERID, usertime, systemtime) values("%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s"); """ % (dbTable, hostId, runId, sliceId, status, level, log, date, node, timestamp, custom, comment, pipeline, eventtime, pubtime, eventtype, stageid, loopnum, workerid, usertime, systemtime)
 
         return cmd
