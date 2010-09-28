@@ -21,6 +21,7 @@
 #
 
 import os
+from lsst.ctrl.orca.LoggerManager import LoggerManager
 from lsst.ctrl.orca.DatabaseConfigurator import DatabaseConfigurator
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.ctrl.orca.WorkflowManager import WorkflowManager
@@ -58,12 +59,17 @@ class ProductionRunConfigurator:
         # cache the database configurators for checking the configuraiton.  
         self._databaseConfigurators = []
 
+        # logger managers
+        self._loggerManagers = []
+
+        self.eventBrokerHost = None
+
         # these are policy settings which can be overriden from what they
         # are in the workflow policies.
         self.policyOverrides = Policy() 
         if self.prodPolicy.exists("eventBrokerHost"):
-            self.policyOverrides.set("execute.eventBrokerHost",
-                              self.prodPolicy.get("eventBrokerHost"))
+            self.eventBrokerHost = self.prodPolicy.get("eventBrokerHost")
+            self.policyOverrides.set("execute.eventBrokerHost", self.eventBrokerHost)
         if self.prodPolicy.exists("logThreshold"):
             self.policyOverrides.set("execute.logThreshold",
                               self.prodPolicy.get("logThreshold"))
@@ -108,10 +114,21 @@ class ProductionRunConfigurator:
             databasePolicies = self.prodPolicy.getArray("database")
         except pexExLsstCppException, e:
             pass
+
         for databasePolicy in databasePolicies:
             cfg = self.createDatabaseConfigurator(databasePolicy)
             cfg.setup(self._provSetup)
+            dbInfo = cfg.getDBInfo()
+            # check to see if we're supposed to launch a logging daemon
+            if databasePolicy.exists("logger"):
+                loggerPolicy = databasePolicy.get("logger")
+                if loggerPolicy.exists("launch"):
+                    launch = loggerPolicy.get("launch")
+                    if launch == True:
+                        loggerManager = LoggerManager(self.logger, self.eventBrokerHost, dbInfo["host"], dbInfo["port"], self.runid, dbInfo["dbrun"])
+                    self._loggerManagers.append(loggerManager)
             self._databaseConfigurators.append(cfg)
+
 
         #
         # do specialized production level configuration, if it exists
@@ -131,6 +148,9 @@ class ProductionRunConfigurator:
             workflowManagers.append(workflowManager)
 
         return workflowManagers
+
+    def getLoggerManagers(self):
+        return self._loggerManagers
 
     ##
     # @brief carry out production-wide configuration checks.
