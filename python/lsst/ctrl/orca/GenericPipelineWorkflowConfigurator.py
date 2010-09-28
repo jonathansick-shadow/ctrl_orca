@@ -269,7 +269,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
                 tokens = destName.split('/')
                 tokensLength = len(tokens)
                 destinationFile = tokens[len(tokens)-1]
-                
+                destinationDir = workDir
                 for newDestinationDir in tokens[:len(tokens)-1]:
                     newDir = os.path.join(workDir, newDestinationDir)
                     if os.path.exists(newDir) == False:
