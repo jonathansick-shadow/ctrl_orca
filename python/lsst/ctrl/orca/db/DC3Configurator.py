@@ -44,6 +44,7 @@ class DC3Configurator:
         self.runid = runid
         self.dbPolicy = dbPolicy
         self.delegate = None
+        self.perProductionRunDatabase = None
 
         self.platformName = ""
         self.prodPolicy = prodPolicy
@@ -55,15 +56,15 @@ class DC3Configurator:
         # extract the databaseConfig.database policy to get required
         # parameters from it.
 
-        dbHostName = dbPolicy.get("system.authInfo.host");
-        portNo = dbPolicy.get("system.authInfo.port");
+        self.dbHostName = dbPolicy.get("system.authInfo.host")
+        self.dbPort = dbPolicy.get("system.authInfo.port")
         globalDbName = dbPolicy.get("configuration.globalDbName")
         dcVersion = dbPolicy.get("configuration.dcVersion")
         dcDbName = dbPolicy.get("configuration.dcDbName")
         minPercDiskSpaceReq = dbPolicy.get("configuration.minPercDiskSpaceReq")
         userRunLife = dbPolicy.get("configuration.userRunLife")
 
-        self.delegate = MySQLConfigurator(dbHostName, portNo, globalDbName, dcVersion, dcDbName, minPercDiskSpaceReq, userRunLife)
+        self.delegate = MySQLConfigurator(self.dbHostName, self.dbPort, globalDbName, dcVersion, dcDbName, minPercDiskSpaceReq, userRunLife)
 
     def setup(self, provSetup):
         self.logger.log(Log.DEBUG, "DC3Configurator:setup")
@@ -75,8 +76,9 @@ class DC3Configurator:
         # construct dbRun and dbGlobal URLs here
 
         dbBaseURL = self.getHostURL()
-        dbRun = dbBaseURL+"/"+dbNames[0];
-        dbGlobal = dbBaseURL+"/"+dbNames[1];
+        self.perProductionRunDatabase = dbNames[0]
+        dbRun = dbBaseURL+"/"+dbNames[0]
+        dbGlobal = dbBaseURL+"/"+dbNames[1]
 
         recorder = dc3.Recorder(self.runid, self.prodPolicy.get("shortName"), self.platformName, dbRun, dbGlobal, 0, None, self.logger)
         provSetup.addProductionRecorder(recorder)
@@ -87,6 +89,14 @@ class DC3Configurator:
         arglist.append("--dbglobal=%s" % dbGlobal)
         arglist.append("--runoffset=%s" % recorder.getRunOffset())
         provSetup.addWorkflowRecordCmd("PipelineProvenanceRecorder.py", arglist)
+
+    def getDBInfo(self):
+        dbInfo = {} 
+        dbInfo["host"] = self.dbHostName
+        dbInfo["port"] = self.dbPort
+        dbInfo["runid"] = self.runid
+        dbInfo["dbrun"] = self.perProductionRunDatabase
+        return dbInfo
 
     def setupInternal(self):
         self.logger.log(Log.DEBUG, "DC3Configurator:setupInternal")

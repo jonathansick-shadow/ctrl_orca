@@ -72,6 +72,9 @@ class ProductionRunManager:
         # a list of workflow Monitors
         self._workflowMonitors = []
 
+        # a list of logger managers
+        self._loggerManagers = []
+
         # the cached ProductionRunConfigurator instance
         self._productionRunConfigurator = None
 
@@ -137,6 +140,11 @@ class ProductionRunManager:
                 self._workflowManagers["__order"].append(wfm)
                 self._workflowManagers[wfm.getName()] = wfm
 
+            
+            loggerManagers = self._productionRunConfigurator.getLoggerManagers()
+            for lm in loggerManagers:
+                self._loggerManagers.append(lm)
+
         finally:
             self._locked.release()
             
@@ -187,8 +195,12 @@ class ProductionRunManager:
             if skipConfigCheck:
                 self.checkConfiguration(checkCare)
 
+            # launch the logger daemon
+            for lm in self._loggerManagers:
+                lm.start()
+
             provSetup = self._productionRunConfigurator.getProvenanceSetup()
-            # SRP - temp comment out the next line
+            # 
             provSetup.recordProduction()
 
             for workflow in self._workflowManagers["__order"]:
@@ -329,6 +341,7 @@ class ProductionRunManager:
             workflowMgr = self._workflowManagers[workflow.getName()]
             workflowMgr.stopWorkflow(urgency)
 
+
         pollintv = 0.2
         running = self.isRunning()
         lasttime = time.time()
@@ -345,6 +358,12 @@ class ProductionRunManager:
         else:
             self.logger.log(Log.DEBUG, "Failed to shutdown pipelines within timeout: %ss" % timeout)
             return False
+
+
+
+        # stop loggers after everything else has died
+        for lm in self._loggerManagers:
+            lm.stop()
 
         return True
                 
