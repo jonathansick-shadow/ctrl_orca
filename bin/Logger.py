@@ -72,7 +72,7 @@ msgs = []
 highwatermark = 10000
 
 # create an event receiver
-receiver = events.EventReceiver(broker, events.EventLog.LOGGING_TOPIC, "runid = %s" % runid)
+receiver = events.EventReceiver(broker, events.EventLog.LOGGING_TOPIC, "RUNID='%s'" % runid)
 
 # initialize the message counter
 cnt = 0
