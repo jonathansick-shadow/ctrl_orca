@@ -88,11 +88,11 @@ while True:
        msgs.append(event)
        cnt += 1
        if cnt >= highwatermark:
-           dbLogger.insertRecords("%s.logs" % dbname, msgs)
+           dbLogger.insertRecords("%s.Logs" % dbname, msgs)
            cnt = 0
     elif event == None:
         if len(msgs) > 0:
-            dbLogger.insertRecords("%s.logs" % dbname, msgs)
+            dbLogger.insertRecords("%s.Logs" % dbname, msgs)
             cnt = 0
             
 dbLogger.disconnect()
