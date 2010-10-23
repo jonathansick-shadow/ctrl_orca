@@ -1,4 +1,4 @@
-setupRequired(cat >= 4.1.1.0)
+setupRequired(cat >= 4.1.1.1)
 setupRequired(utils >= 3.4.1)
 setupRequired(pex_policy >= 3.4.2)
 setupRequired(pex_harness >= 3.6.7)
