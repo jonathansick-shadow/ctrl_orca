@@ -119,10 +119,13 @@ class MySQLConfigurator(MySQLBase):
 
         # prepare list of sql scripts to load
         fN = "lsstSchema4mysql%s.sql" % self.dcVersion
-        dbScripts = [os.path.join(self.sqlDir, fN),
-                     os.path.join(self.sqlDir, "setup_storedFunctions.sql"),
-                     os.path.join(self.sqlDir, "setup_sdqa.sql"),
-                     os.path.join(self.sqlDir, "setup_perRunTables.sql")]
+        dbScripts = [os.path.join(self.sqlDir, fN)]
+        # For PT1_1, only load the initial sql info; the lines below will
+        # return after PT1_1, so don't remove them.
+        #dbScripts = [os.path.join(self.sqlDir, fN),
+        #             os.path.join(self.sqlDir, "setup_storedFunctions.sql"),
+        #             os.path.join(self.sqlDir, "setup_sdqa.sql"),
+        #             os.path.join(self.sqlDir, "setup_perRunTables.sql")]
 
         # Verify these scripts exist
         for f in dbScripts:
