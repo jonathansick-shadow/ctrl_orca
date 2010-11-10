@@ -34,7 +34,7 @@ class DatabaseLogger(MySQLBase):
     def __init__(self, dbHostName, portNumber):
         MySQLBase.__init__(self, dbHostName, portNumber)
 
-        self.keywords = ['HOSTID', 'RUNID', 'SLICEID', 'LEVEL', 'LOG', 'DATE', 'node', 'TIMESTAMP', 'COMMENT', 'STATUS', 'PIPELINE', 'EVENTTIME', 'PUBTIME', 'TYPE', 'STAGEID', 'LOOPNUM', 'workerid', 'usertime', 'systemtime']
+        self.keywords = ['HOSTID', 'RUNID', 'SLICEID', 'LEVEL', 'LOG', 'DATE', 'node', 'TIMESTAMP', 'COMMENT', 'STATUS', 'PIPELINE', 'EVENTTIME', 'PUBTIME', 'TYPE', 'STAGEID', 'LOOPNUM', 'workerid', 'usertime', 'systemtime', 'stagename']
         self.keywordSet = set(self.keywords)
         self.highwater = 10
 
@@ -160,6 +160,6 @@ class DatabaseLogger(MySQLBase):
         custom = MySQLdb.escape_string(custom[0:4096])
         comment = MySQLdb.escape_string(comment[0:2048])
 
-        cmd = """INSERT INTO %s(HOSTID, RUNID, SLICEID, STATUS, LEVEL, LOG, DATE, node, TIMESTAMP, custom, COMMENT, PIPELINE, EVENTTIME, PUBTIME, TYPE, STAGEID, LOOPNUM, workerid, usertime, systemtime) values("%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s"); """ % (dbTable, hostId, runId, sliceId, status, level, log, date, node, timestamp, custom, comment, pipeline, eventtime, pubtime, eventtype, stageid, loopnum, workerid, usertime, systemtime)
+        cmd = """INSERT INTO %s(HOSTID, RUNID, SLICEID, STATUS, LEVEL, LOG, DATE, node, TIMESTAMP, custom, COMMENT, PIPELINE, EVENTTIME, PUBTIME, TYPE, STAGEID, LOOPNUM, workerid, usertime, systemtime, stagename) values("%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s"); """ % (dbTable, hostId, runId, sliceId, status, level, log, date, node, timestamp, custom, comment, pipeline, eventtime, pubtime, eventtype, stageid, loopnum, workerid, usertime, systemtime, stagename)
 
         return cmd
