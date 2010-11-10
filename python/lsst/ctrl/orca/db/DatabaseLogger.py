@@ -144,6 +144,11 @@ class DatabaseLogger(MySQLBase):
         else:
             systemtime = 0
 
+        if ps.exists("stagename"):
+            stagename = ps.get("stagename")
+        else:
+            stagename = "unknown"
+
         names = ps.names()
         namesSet = set(names)
 
