@@ -1,0 +1,13 @@
+setupRequired(cat >= 4.1.1.1)
+setupRequired(utils >= 3.4.1)
+setupRequired(pex_policy >= 3.4.2)
+setupRequired(pex_harness >= 3.6.7)
+setupRequired(daf_persistence >= 3.3.1)
+setupRequired(ctrl_events >= 3.11.4)
+setupRequired(ctrl_provenance >= 3.1)
+#
+setupOptional(condor)
+setupOptional(condor_glidein)
+
+envAppend(PYTHONPATH, ${PRODUCT_DIR}/python)
+envPrepend(PATH, ${PRODUCT_DIR}/bin)
