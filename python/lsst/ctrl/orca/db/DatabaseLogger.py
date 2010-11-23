@@ -34,53 +34,38 @@ class DatabaseLogger(MySQLBase):
     def __init__(self, dbHostName, portNumber):
         MySQLBase.__init__(self, dbHostName, portNumber)
 
-        self.keywords = ['HOSTID', 'RUNID', 'SLICEID', 'LEVEL', 'LOG', 'DATE', 'node', 'TIMESTAMP', 'COMMENT', 'STATUS', 'PIPELINE', 'EVENTTIME', 'PUBTIME', 'TYPE', 'STAGEID', 'LOOPNUM', 'workerid', 'usertime', 'systemtime', 'stagename']
+        self.keywords = ['HOSTID', 'RUNID', 'LOG', 'workerid', 'stagename', 'SLICEID', 'STAGEID', 'LOOPNUM', 'STATUS', 'LEVEL', 'DATE', 'TIMESTAMP', 'node', 'custom', 'timereceived', 'visitid', 'COMMENT', 'PIPELINE', 'TYPE', 'EVENTTIME', 'PUBTIME', 'usertime', 'systemtime']
+
         self.keywordSet = set(self.keywords)
         self.highwater = 10
 
-    def insertRecords(self, dbTable, msgs):
+    def insertRecords(self, dbTable, msgs, filename):
         cnt = len(msgs)
-        while cnt > 0:
-            if cnt > self.highwater:
-                ins = ""
-                for i in range(0,self.highwater+1):
-                    event = msgs.pop(0)
-                    ins = ins + self.createInsertString(dbTable, event.getPropertySet())
-                self.execCommand0(ins)
-            elif cnt > 0:
-                ins = ""
-                for i in range(0,cnt):
-                    event = msgs.pop(0)
-                    ins = ins + self.createInsertString(dbTable, event.getPropertySet())
-                self.execCommand0(ins)
-            cnt = len(msgs)
+        
+        file = open(filename,"w")
+        for i in range(0,cnt):
+            event = msgs.pop(0)
+            ins = self.createInsertString(dbTable, event.getPropertySet())
+            file.write(ins)
+        file.close()
+        cmd = "LOAD DATA LOCAL INFILE '%s' INTO TABLE %s FIELDS OPTIONALLY ENCLOSED BY '\"' ESCAPED BY '\\\\' LINES TERMINATED BY '\\n' SET timereceived=NOW();" % (filename, dbTable)
+        self.execCommand0(cmd)
 
     def insertRecord(self, dbTable, ps):
         ins = self.createInsertString(dbTable,ps)
         self.execCommand0(ins)
 
-
     def createInsertString(self, dbTable, ps):
         hostId = ps.get("HOSTID")
-        hostId = MySQLdb.escape_string(hostId)
-
         runId = ps.get("RUNID")
-        runId = MySQLdb.escape_string(runId)
-
         sliceId = ps.get("SLICEID")
         level = ps.get("LEVEL")
-
         log = ps.get("LOG")
-        log = MySQLdb.escape_string(log)
-
         date = ps.get("DATE")
-        date = MySQLdb.escape_string(date)
-        
         ts = ps.get("TIMESTAMP")
         eventtime = ps.get("EVENTTIME")
         pubtime = ps.get("PUBTIME")
         eventtype = ps.get("TYPE")
-        eventtype = MySQLdb.escape_string(eventtype)
 
         if ps.exists("node"):
             node = ps.get("node")
@@ -107,13 +92,11 @@ class DatabaseLogger(MySQLBase):
 
         if ps.exists("STATUS"):
             status = ps.get("STATUS")
-            status = MySQLdb.escape_string(status)
         else:
             status = "NULL"
 
         if ps.exists("PIPELINE"):
             pipeline = ps.get("PIPELINE")
-            pipeline = MySQLdb.escape_string(pipeline)
         else:
             pipeline = "NULL"
 
@@ -129,7 +112,6 @@ class DatabaseLogger(MySQLBase):
 
         if ps.exists("workerid"):
             workerid = ps.get("workerid")
-            workerid = MySQLdb.escape_string(workerid)
         else:
             workerid = "NULL"
 
@@ -149,6 +131,8 @@ class DatabaseLogger(MySQLBase):
         else:
             stagename = "unknown"
 
+        visitid="-1"
+
         names = ps.names()
         namesSet = set(names)
 
@@ -162,9 +146,47 @@ class DatabaseLogger(MySQLBase):
                 custom = custom+ "%s : %s;" % (name,ps.get(name))
         if custom == "":
             custom = "NULL"
-        custom = MySQLdb.escape_string(custom[0:4096])
-        comment = MySQLdb.escape_string(comment[0:2048])
 
-        cmd = """INSERT INTO %s(HOSTID, RUNID, SLICEID, STATUS, LEVEL, LOG, DATE, node, TIMESTAMP, custom, COMMENT, PIPELINE, EVENTTIME, PUBTIME, TYPE, STAGEID, LOOPNUM, workerid, usertime, systemtime, stagename) values("%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s"); """ % (dbTable, hostId, runId, sliceId, status, level, log, date, node, timestamp, custom, comment, pipeline, eventtime, pubtime, eventtype, stageid, loopnum, workerid, usertime, systemtime, stagename)
+        custom = MySQLdb.escape_string(custom[0:256])
+        comment = MySQLdb.escape_string(comment[0:256])
+
+        #custom = custom[0:256]
+        #comment = comment[0:256]
+
+        timereceived = "0000-00-00 00:00:00"
+
+        datalist = []
+        datalist.append(0)
+        datalist.append(hostId)
+        datalist.append(runId)
+        datalist.append(log)
+        datalist.append(workerid)
+        datalist.append(stagename)
+        datalist.append(sliceId)
+        datalist.append(stageid)
+        datalist.append(loopnum)
+        datalist.append(status)
+        datalist.append(level)
+        datalist.append(date)
+        datalist.append(timestamp)
+        datalist.append(node)
+        datalist.append(custom)
+        datalist.append(timereceived)
+        datalist.append(visitid)
+        datalist.append(comment)
+        datalist.append(pipeline)
+        datalist.append(eventtype)
+        datalist.append(eventtime)
+        datalist.append(pubtime)
+        datalist.append(usertime)
+        datalist.append(systemtime)
+
+        cmd = ""
+        for i in datalist:
+            if cmd == "":
+                cmd = str(i)
+            else:
+                cmd = cmd + "\t" + str(i)
+        cmd = cmd + "\n"
 
         return cmd
