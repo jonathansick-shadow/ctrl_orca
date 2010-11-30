@@ -87,7 +87,7 @@ cnt = 0
 # in the incoming message list into the database
 #
 while True:
-    event = receiver.receiveEvent(10)
+    event = receiver.receiveEvent(50)
     if event != None:
        msgs.append(event)
        cnt += 1
