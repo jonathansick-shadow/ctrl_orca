@@ -70,7 +70,7 @@ dbLogger.connect(user, password, dbname)
 msgs = []
 
 # set the highwater mark for the number of messages retrieved before attempting to drain them.
-highwatermark = 40000
+highwatermark = 10000
 
 # set to the name of the file to write to
 tmpFilename = "/dev/shm/logdb_"+getpass.getuser()+".txt"
