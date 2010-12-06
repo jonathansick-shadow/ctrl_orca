@@ -56,25 +56,25 @@ class DatabaseLogger(MySQLBase):
         self.execCommand0(ins)
 
     def createInsertString(self, dbTable, ps):
-        hostId = ps.get("HOSTID")
-        runId = ps.get("RUNID")
-        sliceId = ps.get("SLICEID")
-        level = ps.get("LEVEL")
-        log = ps.get("LOG")
-        date = ps.get("DATE")
+        hostId = ps.getString("HOSTID")
+        runId = ps.getString("RUNID")
+        sliceId = ps.getInt("SLICEID")
+        level = ps.getInt("LEVEL")
+        log = ps.getString("LOG")
+        date = ps.getString("DATE")
         ts = ps.get("TIMESTAMP")
         eventtime = ps.get("EVENTTIME")
         pubtime = ps.get("PUBTIME")
-        eventtype = ps.get("TYPE")
+        eventtype = ps.getString("TYPE")
 
         if ps.exists("node"):
-            node = ps.get("node")
+            node = ps.getInt("node")
         else:
             node = -1
 
         timestamp = ts.nsecs()
 
-        commentList = ps.get("COMMENT")
+        commentList = ps.getString("COMMENT")
         comment = ""
         
         if ps.valueCount("COMMENT") == 1:
@@ -91,43 +91,43 @@ class DatabaseLogger(MySQLBase):
             ps.remove("TOPIC")
 
         if ps.exists("STATUS"):
-            status = ps.get("STATUS")
+            status = ps.getString("STATUS")
         else:
             status = "NULL"
 
         if ps.exists("PIPELINE"):
-            pipeline = ps.get("PIPELINE")
+            pipeline = ps.getString("PIPELINE")
         else:
             pipeline = "NULL"
 
         if ps.exists("STAGEID"):
-            stageid = ps.get("STAGEID")
+            stageid = ps.getInt("STAGEID")
         else:
             stageid = "-1"
 
         if ps.exists("LOOPNUM"):
-            loopnum = ps.get("LOOPNUM")
+            loopnum = ps.getInt("LOOPNUM")
         else:
             loopnum = "-1"
 
         if ps.exists("workerid"):
-            workerid = ps.get("workerid")
+            workerid = ps.getString("workerid")
         else:
             workerid = "NULL"
 
 
         if ps.exists("usertime"):
-            usertime = ps.get("usertime")
+            usertime = ps.getFloat("usertime")
         else:
             usertime = 0
 
         if ps.exists("systemtime"):
-            systemtime = ps.get("systemtime")
+            systemtime = ps.getFloat("systemtime")
         else:
             systemtime = 0
 
         if ps.exists("stagename"):
-            stagename = ps.get("stagename")
+            stagename = ps.getString("stagename")
         else:
             stagename = "unknown"
 
@@ -147,8 +147,10 @@ class DatabaseLogger(MySQLBase):
         if custom == "":
             custom = "NULL"
 
-        custom = MySQLdb.escape_string(custom[0:256])
-        comment = MySQLdb.escape_string(comment[0:256])
+        #custom = MySQLdb.escape_string(custom[0:256])
+        #comment = MySQLdb.escape_string(comment[0:256])
+        custom = MySQLdb.escape_string(custom[0:4096])
+        comment = MySQLdb.escape_string(comment)
 
         #custom = custom[0:256]
         #comment = comment[0:256]
