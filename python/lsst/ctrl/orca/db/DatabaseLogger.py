@@ -117,12 +117,12 @@ class DatabaseLogger(MySQLBase):
 
 
         if ps.exists("usertime"):
-            usertime = ps.getFloat("usertime")
+            usertime = ps.getDouble("usertime")
         else:
             usertime = 0
 
         if ps.exists("systemtime"):
-            systemtime = ps.getFloat("systemtime")
+            systemtime = ps.getDouble("systemtime")
         else:
             systemtime = 0
 
