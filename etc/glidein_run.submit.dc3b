@@ -33,7 +33,7 @@ Transfer_Executable = False
 
 # globusrsl=(host_xcount = 2)(xcount = 1)(jobtype=multiple)(maxwalltime=15)
 # globusrsl=(count = 2)(jobtype=multiple)(maxwalltime=15)
-globusrsl=(jobtype=multiple)(count=$MACHINE_COUNT)(hostcount=$MACHINE_COUNT)(maxwalltime=$MAX_WALLTIME)(queue=$QUEUE)
+globusrsl=(jobtype=multiple)(count=$MACHINE_COUNT)(hostcount=$MACHINE_COUNT)(maxwalltime=$MAX_WALLTIME)(queue=$QUEUE)(project=eiw)(host_types=himem)
 
 output = run.output
 error = run.error
