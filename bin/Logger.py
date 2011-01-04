@@ -23,6 +23,7 @@
 #
 
 
+import getpass
 import os
 import sys
 import subprocess
@@ -71,6 +72,9 @@ msgs = []
 # set the highwater mark for the number of messages retrieved before attempting to drain them.
 highwatermark = 10000
 
+# set to the name of the file to write to
+tmpFilename = "/dev/shm/logdb_"+getpass.getuser()+".txt"
+
 # create an event receiver
 receiver = events.EventReceiver(broker, events.EventLog.LOGGING_TOPIC, "RUNID='%s'" % runid)
 
@@ -83,16 +87,16 @@ cnt = 0
 # in the incoming message list into the database
 #
 while True:
-    event = receiver.receiveEvent(10)
+    event = receiver.receiveEvent(50)
     if event != None:
        msgs.append(event)
        cnt += 1
        if cnt >= highwatermark:
-           dbLogger.insertRecords("%s.Logs" % dbname, msgs)
+           dbLogger.insertRecords("%s.Logs" % dbname, msgs, tmpFilename)
            cnt = 0
     elif event == None:
         if len(msgs) > 0:
-            dbLogger.insertRecords("%s.Logs" % dbname, msgs)
+            dbLogger.insertRecords("%s.Logs" % dbname, msgs, tmpFilename)
             cnt = 0
             
 dbLogger.disconnect()
