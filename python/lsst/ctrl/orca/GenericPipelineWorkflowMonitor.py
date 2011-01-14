@@ -78,6 +78,7 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
                 event = self._receiver.receiveEvent(1)
                 if event is not None:
                     self._parent.handleEvent(event)
+                    return
 
     def startMonitorThread(self, runid):
         with self._locked:
