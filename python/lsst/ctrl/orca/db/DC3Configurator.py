@@ -125,14 +125,9 @@ class DC3Configurator:
         self.checkUserOnlyPermissions(dbPolicyCredentialsFile)
 
         #
-        # now, look up, and initialize the authorization information for host and port
+        # now, look up and initialize the authorization information for host and port
         #
         self.initAuthInfo(self.dbPolicy)
-
-        # 
-        # Now that everything looks sane, execute the delegate's checkStatus method 
-        #
-        self.delegate.checkStatus(self.dbUser, self.dbPassword, os.uname()[1])
 
     def getHostURL(self):
         schema = self.type.lower()
