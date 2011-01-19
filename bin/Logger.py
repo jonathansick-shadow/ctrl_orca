@@ -89,11 +89,19 @@ cnt = 0
 while True:
     event = receiver.receiveEvent(50)
     if event != None:
-       msgs.append(event)
-       cnt += 1
-       if cnt >= highwatermark:
-           dbLogger.insertRecords("%s.Logs" % dbname, msgs, tmpFilename)
-           cnt = 0
+        propSet = event.getPropertySet()
+        log = propSet.get("LOG")
+        if log == None:
+            continue
+        if log == "orca.control":
+            status = prop.get("STATUS")
+            if status == "end":
+                sys.exit(0)
+        msgs.append(propSet)
+        cnt += 1
+        if cnt >= highwatermark:
+            dbLogger.insertRecords("%s.Logs" % dbname, msgs, tmpFilename)
+            cnt = 0
     elif event == None:
         if len(msgs) > 0:
             dbLogger.insertRecords("%s.Logs" % dbname, msgs, tmpFilename)
