@@ -35,7 +35,7 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
     # @brief in charge of monitoring and/or controlling the progress of a
     #        running workflow.
     #
-    def __init__(self, eventBrokerHost, shutdownTopic, runid, logger):
+    def __init__(self, eventBrokerHost, shutdownTopic, runid, pipelineNames, logger):
 
         #self.__init__(logger)
 
@@ -49,6 +49,7 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
         self.logger = Log(logger, "monitor")
         self.logger.log(Log.DEBUG, "GenericPipelineWorkflowMonitor:__init__")
         self._statusListeners = []
+        self.pipelineNames = pipelineNames[:] # make a copy of this list, since we'll be removing things
 
         self._eventBrokerHost = eventBrokerHost
         self._shutdownTopic = shutdownTopic
@@ -60,12 +61,15 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
 
 
     class _WorkflowMonitorThread(threading.Thread):
-        def __init__(self, parent, eventBrokerHost, eventTopic, runid):
+        def __init__(self, parent, eventBrokerHost, eventTopic, runid, pipelineNames):
             threading.Thread.__init__(self)
             self.setDaemon(True)
             self._parent = parent
             self._eventBrokerHost = eventBrokerHost
             self._eventTopic = eventTopic
+            self.runid = runid
+            self.pipelineNames = pipelineNames
+
             selector = "RUNID = '%s'" % runid
             self._receiver = events.EventReceiver(self._eventBrokerHost, self._eventTopic, selector)
 
@@ -77,12 +81,14 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
                 time.sleep(1)
                 event = self._receiver.receiveEvent(1)
                 if event is not None:
-                    self._parent.handleEvent(event)
-                    return
+                    val = self._parent.handleEvent(event)
+                    if self._parent._locked.running == False:
+                        print "and...done!"
+                        return
 
     def startMonitorThread(self, runid):
         with self._locked:
-            self._wfMonitorThread = GenericPipelineWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, runid)
+            self._wfMonitorThread = GenericPipelineWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, runid, self.pipelineNames)
             self._wfMonitorThread.start()
             self._locked.running = True
 
@@ -91,9 +97,29 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
 
         # make sure this is really for us.
 
-        # TODO: Temporarily set to false no matter what event we get.  This needs to differentiate which events it receives.
-        with self._locked:
-            self._locked.running = False
+        ps = event.getPropertySet()
+        #print ps.toString()
+        #print "==="
+
+        if event.getType() == events.EventTypes.STATUS:
+            ps = event.getPropertySet()
+            print ps.toString()
+    
+            if ps.exists("pipeline"):
+                pipeline = ps.get("pipeline")
+                if pipeline in self.pipelineNames:
+                    self.pipelineNames.remove(pipeline)
+
+            if len(self.pipelineNames) == 0:
+               # TODO: Temporarily set to false no matter what event we get.  This needs to differentiate which events it receives.
+               with self._locked:
+                   self._locked.running = False
+        elif event.getType() == events.EventTypes.COMMAND:
+            with self._locked:
+                self._locked.running = False
+        else:
+            print "didn't handle anything"
+            
 
     ##
     # @brief stop the workflow

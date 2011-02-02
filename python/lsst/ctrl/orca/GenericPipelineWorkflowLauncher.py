@@ -31,7 +31,7 @@ class GenericPipelineWorkflowLauncher(WorkflowLauncher):
     ##
     # @brief
     #
-    def __init__(self, cmds, prodPolicy, wfPolicy, runid, logger = None):
+    def __init__(self, cmds, prodPolicy, wfPolicy, runid, fileWaiter, pipelineNames, logger = None):
         if logger != None:
             logger.log(Log.DEBUG, "GenericPipelineWorkflowLauncher:__init__")
         self.logger = logger
@@ -39,6 +39,8 @@ class GenericPipelineWorkflowLauncher(WorkflowLauncher):
         self.wfPolicy = wfPolicy
         self.prodPolicy = prodPolicy
         self.runid = runid
+        self.fileWaiter = fileWaiter
+        self.pipelineNames = pipelineNames
 
     ##
     # @brief perform cleanup after workflow has ended.
@@ -54,17 +56,25 @@ class GenericPipelineWorkflowLauncher(WorkflowLauncher):
         if self.logger != None:
             self.logger.log(Log.DEBUG, "GenericPipelineWorkflowLauncher:launch")
 
+        firstJob = True
         for key in self.cmds:
             cmd = key
             pid = os.fork()
             if not pid:
                 os.execvp(cmd[0], cmd)
-            os.wait()[0]
+            if firstJob == True:
+                self.fileWaiter.waitForFirstFile()
+                firstJob = False
+
+            # commented out - don't wait for it to end
+            #os.wait()[0]
+
+        self.fileWaiter.waitForAllFiles()
 
         eventBrokerHost = self.prodPolicy.get("eventBrokerHost")
         shutdownTopic = self.wfPolicy.get("shutdownTopic")
 
-        self.workflowMonitor = GenericPipelineWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, self.logger)
+        self.workflowMonitor = GenericPipelineWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, self.pipelineNames, self.logger)
         if statusListener != None:
             self.workflowMonitor.addStatusListener(statusListener)
         self.workflowMonitor.startMonitorThread(self.runid)

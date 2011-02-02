@@ -23,23 +23,23 @@
 #
 
 import lsst.ctrl.events as events
-import lsst.pex.logging as logging
 from lsst.daf.base import PropertySet
 import sys
 
-# usage:  python bin/shutlog.py runid
+# usage:  python bin/shutprod.py urgency_level runid
 if __name__ == "__main__":
-    host = "lsst8.ncsa.uiuc.edu"
-    
-    topic = events.EventLog.LOGGING_TOPIC
+    topic = "workflowShutdown"
 
-    runid = sys.argv[1]
+    host = sys.argv[1]
+    runid = sys.argv[2]
+    pipelineName = sys.argv[3]
 
+    trans = events.EventTransmitter(host, topic)
     eventSystem = events.EventSystem.getDefaultEventSystem()
-    eventSystem.createTransmitter(host, topic)
-
-    logger = events.EventLog(runid, -1)
-
-    tlog = logging.Log(logger, "orca.control")
     
-    logging.LogRec(tlog, 1) << logging.Prop("STATUS", "eol") << logging.LogRec.endr;
+    root = PropertySet()
+    root.setString("pipeline", pipelineName)
+    
+    id = eventSystem.createOriginatorId()
+    event = events.StatusEvent(runid, id, root)
+    trans.publishEvent(event)

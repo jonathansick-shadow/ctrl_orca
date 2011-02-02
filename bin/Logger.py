@@ -94,8 +94,8 @@ while True:
         if log == None:
             continue
         if log == "orca.control":
-            status = prop.get("STATUS")
-            if status == "end":
+            status = propSet.get("STATUS")
+            if status == "eol":
                 sys.exit(0)
         msgs.append(propSet)
         cnt += 1

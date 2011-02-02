@@ -31,6 +31,7 @@ from lsst.ctrl.orca.PolicyUtils import PolicyUtils
 from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowConfigurator import WorkflowConfigurator
 from lsst.ctrl.orca.GenericPipelineWorkflowLauncher import GenericPipelineWorkflowLauncher
+from lsst.ctrl.orca.GenericFileWaiter import GenericFileWaiter
 
 ##
 #
@@ -51,6 +52,9 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         self.directories = None
         self.dirs = None
         self.defaultRunDir = None
+        self.logFileNames = []
+        self.pipelineNames = []
+        self.eventBrokerHost = None
 
     ##
     # @brief Setup as much as possible in preparation to execute the workflow
@@ -105,7 +109,9 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
             launchCmd.append(val)
             self.logger.log(Log.DEBUG, "launchCmd = %s" % launchCmd)
         self.deployData(wfPolicy)
-        workflowLauncher = GenericPipelineWorkflowLauncher(launchCmd, self.prodPolicy, wfPolicy, self.runid, self.logger)
+
+        fileWaiter = GenericFileWaiter(self.logFileNames, self.logger)
+        workflowLauncher = GenericPipelineWorkflowLauncher(launchCmd, self.prodPolicy, wfPolicy, self.runid, fileWaiter, self.pipelineNames, self.logger)
         return workflowLauncher
 
     ##
@@ -202,6 +208,13 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         if not os.path.exists(logDir):
             os.makedirs(logDir)
 
+
+        self.pipelineNames.append(pipelineName)
+
+        # create the list of launch.log files we'll watch for later.
+        logFile = os.path.join(pipelineName, "launch.log")
+        logFile = os.path.join(workDir, logFile)
+        self.logFileNames.append(logFile)
         
         # only write out the policyfile once
         filename = pipelinePolicy.getFile("definition").getPath()
@@ -215,7 +228,8 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
             if platformPolicy.exists("dir"):
                 definitionPolicy.set("execute.dir", platformPolicy.get("dir"))
             if self.prodPolicy.exists("eventBrokerHost"):
-                definitionPolicy.set("execute.eventBrokerHost", self.prodPolicy.get("eventBrokerHost"))
+                self.eventBrokerHost = self.prodPolicy.get("eventBrokerHost")
+                definitionPolicy.set("execute.eventBrokerHost", self.eventBrokerHost)
     
             if self.wfPolicy.exists("shutdownTopic"):
                 definitionPolicy.set("execute.shutdownTopic", self.wfPolicy.get("shutdownTopic"))
@@ -225,6 +239,12 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
             pw = pol.PAFWriter(newPolicyFile)
             pw.write(definitionPolicy)
             pw.close()
+
+            # copy the shutwork.py utility over to the work directory
+            script = EnvString.resolve("$CTRL_ORCA_DIR/bin/shutwork.py")
+            remoteName = os.path.join(workDir, os.path.basename(script))
+            shutil.copyfile(script,remoteName)
+            shutil.copystat(script,remoteName)
 
         # write the nodelist to "work"
         self.writeNodeList(logDir)
@@ -323,11 +343,14 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
             launcher.write("%s %s\n" % (launchCmd, fileargs))
 
         
-        launcher.write("nohup %s %s %s -L %s --logdir %s >%s/launch.log 2>&1 &\n" % (execCmd, filename, self.runid, self.wfVerbosity, logDir, logDir))
+        #launcher.write("nohup %s %s %s -L %s --logdir %s >%s/launch.log 2>&1 &\n" % (execCmd, filename, self.runid, self.wfVerbosity, logDir, logDir))
+        launcher.write("%s %s %s -L %s --logdir %s >%s/launch.log 2>&1\n" % (execCmd, filename, self.runid, self.wfVerbosity, logDir, logDir))
+        launcher.write("./shutwork.py %s %s %s" % (self.eventBrokerHost, self.runid, pipelineName))
         launcher.close()
         # make it executable
         os.chmod(name, stat.S_IRWXU)
 
+        #launchCmd = ["ssh", "-n", self.masterNode, name, "&"]
         launchCmd = ["ssh", self.masterNode, name]
 
         # print "cmd to execute is: ",launchCmd
