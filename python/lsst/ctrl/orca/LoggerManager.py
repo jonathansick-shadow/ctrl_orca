@@ -49,6 +49,9 @@ class LoggerManager:
         return
 
 
+    def getPID(self):
+        return self.process.pid
+
     def start(self):
         self.logger.log(Log.DEBUG, "LoggerManager:start")
         if self.process != None:

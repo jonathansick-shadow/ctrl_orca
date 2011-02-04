@@ -208,7 +208,7 @@ class ProductionRunManager:
 
                 statusListener = StatusListener(self.logger)
                 # this will block until the monitor is created.
-                monitor = mgr.runWorkflow(statusListener)
+                monitor = mgr.runWorkflow(statusListener, self._loggerManagers)
                 self._workflowMonitors.append(monitor)
 
         finally:

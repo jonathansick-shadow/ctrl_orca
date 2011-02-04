@@ -52,7 +52,7 @@ class GenericPipelineWorkflowLauncher(WorkflowLauncher):
     ##
     # @brief launch this workflow
     #
-    def launch(self, statusListener):
+    def launch(self, statusListener, loggerManagers):
         if self.logger != None:
             self.logger.log(Log.DEBUG, "GenericPipelineWorkflowLauncher:launch")
 
@@ -74,7 +74,7 @@ class GenericPipelineWorkflowLauncher(WorkflowLauncher):
         eventBrokerHost = self.prodPolicy.get("eventBrokerHost")
         shutdownTopic = self.wfPolicy.get("shutdownTopic")
 
-        self.workflowMonitor = GenericPipelineWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, self.pipelineNames, self.logger)
+        self.workflowMonitor = GenericPipelineWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, self.pipelineNames, loggerManagers, self.logger)
         if statusListener != None:
             self.workflowMonitor.addStatusListener(statusListener)
         self.workflowMonitor.startMonitorThread(self.runid)

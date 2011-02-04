@@ -35,7 +35,7 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
     # @brief in charge of monitoring and/or controlling the progress of a
     #        running workflow.
     #
-    def __init__(self, eventBrokerHost, shutdownTopic, runid, pipelineNames, logger):
+    def __init__(self, eventBrokerHost, shutdownTopic, runid, pipelineNames, loggerManagers, logger):
 
         #self.__init__(logger)
 
@@ -51,6 +51,11 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
         self._statusListeners = []
         self.pipelineNames = pipelineNames[:] # make a copy of this list, since we'll be removing things
 
+        self.loggerPIDs = []
+        for lm in loggerManagers:
+            self.loggerPIDs.append(lm.getPID())
+        self.loggerManagers = loggerManagers
+
         self._eventBrokerHost = eventBrokerHost
         self._shutdownTopic = shutdownTopic
         self.runid = runid
@@ -59,19 +64,26 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
         eventSystem = events.EventSystem.getDefaultEventSystem()
         self.originatorId = eventSystem.createOriginatorId()
 
+        print "monitoring: "
+        for pipe in self.pipelineNames:
+            print "pipeline: ",pipe
+        for loggerPID in self.loggerPIDs:
+            print "logger at pid: ",loggerPID
+        print "waiting."
+
 
     class _WorkflowMonitorThread(threading.Thread):
-        def __init__(self, parent, eventBrokerHost, eventTopic, runid, pipelineNames):
+        def __init__(self, parent, eventBrokerHost, eventTopic, runid):
             threading.Thread.__init__(self)
             self.setDaemon(True)
             self._parent = parent
             self._eventBrokerHost = eventBrokerHost
             self._eventTopic = eventTopic
             self.runid = runid
-            self.pipelineNames = pipelineNames
 
             selector = "RUNID = '%s'" % runid
             self._receiver = events.EventReceiver(self._eventBrokerHost, self._eventTopic, selector)
+            self._Logreceiver = events.EventReceiver(self._eventBrokerHost, "LoggerStatus", selector)
 
         def run(self):
             self._parent.logger.log(Log.DEBUG, "GenericPipelineWorkflowMonitor Thread started")
@@ -80,15 +92,21 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
                 # TODO:  this timeout value should go away when the GIL lock relinquish is implemented in events.
                 time.sleep(1)
                 event = self._receiver.receiveEvent(1)
+                logEvent = self._Logreceiver.receiveEvent(1)
                 if event is not None:
                     val = self._parent.handleEvent(event)
                     if self._parent._locked.running == False:
                         print "and...done!"
                         return
+                elif logEvent is not None:
+                    val = self._parent.handleEvent(logEvent)
+                    if self._parent._locked.running == False:
+                        print "logger handled...and...done!"
+                        return
 
     def startMonitorThread(self, runid):
         with self._locked:
-            self._wfMonitorThread = GenericPipelineWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, runid, self.pipelineNames)
+            self._wfMonitorThread = GenericPipelineWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, runid)
             self._wfMonitorThread.start()
             self._locked.running = True
 
@@ -103,15 +121,21 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
 
         if event.getType() == events.EventTypes.STATUS:
             ps = event.getPropertySet()
-            print ps.toString()
+            #print ps.toString()
     
             if ps.exists("pipeline"):
                 pipeline = ps.get("pipeline")
+                print "pipeline-->",pipeline
                 if pipeline in self.pipelineNames:
                     self.pipelineNames.remove(pipeline)
+            elif ps.exists("logger.status"):
+                loggerStatus = ps.get("logger.status")
+                pid = ps.getInt("logger.pid")
+                if pid in self.loggerPIDs:
+                    self.loggerPIDs.remove(pid)
 
-            if len(self.pipelineNames) == 0:
-               # TODO: Temporarily set to false no matter what event we get.  This needs to differentiate which events it receives.
+            # if both lists are empty we're finished.
+            if (len(self.pipelineNames) == 0) and (len(self.loggerPIDs) == 0):
                with self._locked:
                    self._locked.running = False
         elif event.getType() == events.EventTypes.COMMAND:
