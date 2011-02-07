@@ -56,6 +56,18 @@ class GenericPipelineWorkflowLauncher(WorkflowLauncher):
         if self.logger != None:
             self.logger.log(Log.DEBUG, "GenericPipelineWorkflowLauncher:launch")
 
+        eventBrokerHost = self.prodPolicy.get("eventBrokerHost")
+        shutdownTopic = self.wfPolicy.get("shutdownTopic")
+
+        # start the monitor first, because we want to catch any pipeline
+        # events that might expire.
+
+        self.workflowMonitor = GenericPipelineWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, self.pipelineNames, loggerManagers, self.logger)
+        if statusListener != None:
+            self.workflowMonitor.addStatusListener(statusListener)
+        # start the thread
+        self.workflowMonitor.startMonitorThread(self.runid)
+
         firstJob = True
         for key in self.cmds:
             cmd = key
@@ -71,11 +83,4 @@ class GenericPipelineWorkflowLauncher(WorkflowLauncher):
 
         self.fileWaiter.waitForAllFiles()
 
-        eventBrokerHost = self.prodPolicy.get("eventBrokerHost")
-        shutdownTopic = self.wfPolicy.get("shutdownTopic")
-
-        self.workflowMonitor = GenericPipelineWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, self.pipelineNames, loggerManagers, self.logger)
-        if statusListener != None:
-            self.workflowMonitor.addStatusListener(statusListener)
-        self.workflowMonitor.startMonitorThread(self.runid)
         return self.workflowMonitor

@@ -64,7 +64,9 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
         eventSystem = events.EventSystem.getDefaultEventSystem()
         self.originatorId = eventSystem.createOriginatorId()
 
-        print "monitoring: "
+        with self._locked:
+            self._wfMonitorThread = GenericPipelineWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, runid)
+        print "about to start monitoring: "
         for pipe in self.pipelineNames:
             print "pipeline: ",pipe
         for loggerPID in self.loggerPIDs:
@@ -106,7 +108,7 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
 
     def startMonitorThread(self, runid):
         with self._locked:
-            self._wfMonitorThread = GenericPipelineWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, runid)
+            #self._wfMonitorThread = GenericPipelineWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, runid)
             self._wfMonitorThread.start()
             self._locked.running = True
 
