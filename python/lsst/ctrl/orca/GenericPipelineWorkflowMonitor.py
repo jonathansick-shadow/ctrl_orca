@@ -147,7 +147,7 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
 
                 
             # if both lists are empty we're finished.
-            if (len(self.pipelineNames) == 0) and (len(self.loggerPIDs) == 0) and (self.bSentLastLoggerEvent == True):
+            if (len(self.pipelineNames) == 0) and (len(self.loggerPIDs) == 0):
                with self._locked:
                    self._locked.running = False
         elif event.getType() == events.EventTypes.COMMAND:
