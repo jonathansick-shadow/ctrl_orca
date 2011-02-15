@@ -23,6 +23,7 @@
 from __future__ import with_statement
 import os, sys, subprocess, threading, time
 import lsst.ctrl.events as events
+import lsst.pex.logging as logging
 
 from lsst.daf.base import PropertySet
 from lsst.pex.logging import Log
@@ -61,17 +62,18 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
         self.runid = runid
 
         self._wfMonitorThread = None
-        eventSystem = events.EventSystem.getDefaultEventSystem()
-        self.originatorId = eventSystem.createOriginatorId()
+        self.eventSystem = events.EventSystem.getDefaultEventSystem()
+        self.originatorId = self.eventSystem.createOriginatorId()
+        self.bSentLastLoggerEvent = False
 
         with self._locked:
             self._wfMonitorThread = GenericPipelineWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, runid)
-        print "about to start monitoring: "
-        for pipe in self.pipelineNames:
-            print "pipeline: ",pipe
-        for loggerPID in self.loggerPIDs:
-            print "logger at pid: ",loggerPID
-        print "waiting."
+        #print "about to start monitoring: "
+        #for pipe in self.pipelineNames:
+        #    print "pipeline: ",pipe
+        #for loggerPID in self.loggerPIDs:
+        #    print "logger at pid: ",loggerPID
+        #print "waiting."
 
 
     class _WorkflowMonitorThread(threading.Thread):
@@ -127,7 +129,7 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
     
             if ps.exists("pipeline"):
                 pipeline = ps.get("pipeline")
-                print "pipeline-->",pipeline
+                print "this pipeline exited -->",pipeline
                 if pipeline in self.pipelineNames:
                     self.pipelineNames.remove(pipeline)
             elif ps.exists("logger.status"):
@@ -136,8 +138,16 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
                 if pid in self.loggerPIDs:
                     self.loggerPIDs.remove(pid)
 
+            if (len(self.pipelineNames) == 0) and (self.bSentLastLoggerEvent == False):
+                self.eventSystem.createTransmitter(self._eventBrokerHost, events.EventLog.LOGGING_TOPIC)
+                evtlog = events.EventLog(self.runid, -1)
+                tlog = logging.Log(evtlog, "orca.control")
+                logging.LogRec(tlog, 1) << logging.Prop("STATUS", "eol") << logging.LogRec.endr
+                self.bSentLastLoggerEvent = True
+
+                
             # if both lists are empty we're finished.
-            if (len(self.pipelineNames) == 0) and (len(self.loggerPIDs) == 0):
+            if (len(self.pipelineNames) == 0) and (len(self.loggerPIDs) == 0) and (self.bSentLastLoggerEvent == True):
                with self._locked:
                    self._locked.running = False
         elif event.getType() == events.EventTypes.COMMAND:
