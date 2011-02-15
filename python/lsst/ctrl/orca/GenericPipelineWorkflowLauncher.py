@@ -60,7 +60,7 @@ class GenericPipelineWorkflowLauncher(WorkflowLauncher):
         shutdownTopic = self.wfPolicy.get("shutdownTopic")
 
         # start the monitor first, because we want to catch any pipeline
-        # events that might expire.
+        # events that might be sent from expiring pipelines.
 
         self.workflowMonitor = GenericPipelineWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, self.pipelineNames, loggerManagers, self.logger)
         if statusListener != None:
