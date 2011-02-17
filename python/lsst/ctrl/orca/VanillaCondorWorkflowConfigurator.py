@@ -57,6 +57,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         self.nodes = None
         self.numNodes = None
         self.logFileNames = []
+        self.pipelineNames = []
 
         self.directoryList = {}
         self.initialWorkDir = None
@@ -174,7 +175,16 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
                 glideinFileName = self.writeGlideinRequest(wfPolicy.get("configuration"))
 
                 # copy the file creation watching utility
-                remoteFileWaiterName = self.copyFileWaiterUtility()
+                script = EnvString.resolve("$CTRL_ORCA_DIR/bin/filewaiter.py")
+                remoteFileWaiterName = os.path.join(self.dirs.get("work"), os.path.basename(script))
+                self.copyToRemote(script, remoteFileWaiterName)
+                self.remoteChmodX(remoteFileWaiterName)
+
+                # copy workerdone utility over
+                script = EnvString.resolve("$CTRL_ORCA_DIR/bin/workerdone.py")
+                remoteShutWorkName = os.path.join(self.dirs.get("work"), os.path.basename(script))
+                self.copyToRemote(script, remoteShutWorkName)
+                self.remoteChmodX(remoteShutWorkName)
 
                 # copy the link script once, to the first working directory
                 linkScriptName = self.copyLinkScript(wfPolicy)
@@ -219,7 +229,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
 
         # create the Launcher
 
-        workflowLauncher = VanillaCondorWorkflowLauncher(jobs, self.initialWorkDir, glideinFileName,  self.prodPolicy, self.wfPolicy, self.runid, fileWaiter, self.logger)
+        workflowLauncher = VanillaCondorWorkflowLauncher(jobs, self.initialWorkDir, glideinFileName,  self.prodPolicy, self.wfPolicy, self.runid, fileWaiter, self.pipelineNames, self.logger)
         return workflowLauncher
 
     ##
@@ -314,13 +324,6 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             os.execvp("gsissh",cmd.split())
         os.wait()[0]
 
-    def copyFileWaiterUtility(self):
-        script = EnvString.resolve("$CTRL_ORCA_DIR/bin/filewaiter.py")
-        remoteName = os.path.join(self.dirs.get("work"), os.path.basename(script))
-        self.copyToRemote(script, remoteName)
-        self.remoteChmodX(remoteName)
-        return remoteName
-
     def remoteMkdir(self, remoteDir):
         self.logger.log(Log.DEBUG, "VanillaCondorWorkflowConfigurator:remoteMkdir")
         cmd = "gsissh %s mkdir -p %s" % (self.remoteLoginName, remoteDir)
@@ -348,11 +351,16 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         if not os.path.exists(logDir):
             os.makedirs(logDir)
 
+        self.pipelineNames.append(pipelineName)
+
         # create the list of launch.log file's we'll watch for later.
         logFile = os.path.join(pipelineName, "launch.log")
         logFile = os.path.join(self.dirs.get("work"), logFile)
         self.logFileNames.append(logFile)
 
+        eventBrokerHost = None
+        if self.prodPolicy.exists("eventBrokerHost"):
+                eventBrokerHost = self.prodPolicy.get("eventBrokerHost")
         
         # only write out the policyfile once
         filename = pipelinePolicy.getFile("definition").getPath()
@@ -365,8 +373,8 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         if pipelinePolicyNumber == 1:
             if platformPolicy.exists("dir"):
                 definitionPolicy.set("execute.dir", platformPolicy.get("dir"))
-            if self.prodPolicy.exists("eventBrokerHost"):
-                definitionPolicy.set("execute.eventBrokerHost", self.prodPolicy.get("eventBrokerHost"))
+            if eventBrokerHost is not None:
+                definitionPolicy.set("execute.eventBrokerHost", eventBrokerHost)
     
             if self.wfPolicy.exists("shutdownTopic"):
                 definitionPolicy.set("execute.shutdownTopic", self.wfPolicy.get("shutdownTopic"))
@@ -479,8 +487,9 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         #launcher.write("%s %s %s -L %s --logdir %s >%s/launch.log 2>&1 &\n" % (execCmd, filename, self.runid, self.wfVerbosity, remoteLogDir, remoteLogDir))
         launcher.write("%s %s %s -L %s --logdir %s --workerid %s >%s/launch.log 2>&1 &\n" % (execCmd, filename, self.runid, self.wfVerbosity, remoteLogDir, pipelineName, remoteLogDir))
         launcher.write("wait\n")
-        launcher.write('echo "from launcher"\n')
-        launcher.write("ps -ef\n")
+        launcher.write("./workerdone.py %s %s %s\n" % (eventBrokerHost, self.runid, pipelineName))
+        #launcher.write('echo "from launcher"\n')
+        #launcher.write("ps -ef\n")
 
         launcher.close()
 

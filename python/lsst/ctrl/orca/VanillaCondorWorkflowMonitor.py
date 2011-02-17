@@ -35,7 +35,7 @@ class VanillaCondorWorkflowMonitor(WorkflowMonitor):
     # @brief in charge of monitoring and/or controlling the progress of a
     #        running workflow.
     #
-    def __init__(self, eventBrokerHost, shutdownTopic, runid, logger):
+    def __init__(self, eventBrokerHost, shutdownTopic, runid, pipelineNames, loggerManagers, logger):
 
         #self.__init__(logger)
 
@@ -49,6 +49,13 @@ class VanillaCondorWorkflowMonitor(WorkflowMonitor):
         self.logger = Log(logger, "monitor")
         self.logger.log(Log.DEBUG, "VanillaCondorWorkflowMonitor:__init__")
         self._statusListeners = []
+        # make a copy of this liste, since we'll be removing things.
+        self.pipelineNames = pipelineNames[:] 
+
+        self.loggerPIDs = []
+        for lm in loggerManagers:
+            self.loggerPIDs.append(lm.getPID())
+        self.loggerManagers = loggerManagers
 
         self._eventBrokerHost = eventBrokerHost
         self._shutdownTopic = shutdownTopic
@@ -93,10 +100,34 @@ class VanillaCondorWorkflowMonitor(WorkflowMonitor):
 
         # make sure this is really for us.
 
-        # TODO: Temporarily set to false no matter what event we get.  This needs to differentiate which events it receives.
-        with self._locked:
-            self._locked.running = False
+        ps = event.getPropertySet()
+        #print ps.toString()
+        #print "==="
 
+        if event.getType() == events.EventTypes.STATUS:
+            ps = event.getPropertySet()
+            #print ps.toString()
+    
+            if ps.exists("pipeline"):
+                pipeline = ps.get("pipeline")
+                print "pipeline-->",pipeline
+                if pipeline in self.pipelineNames:
+                    self.pipelineNames.remove(pipeline)
+            elif ps.exists("logger.status"):
+                loggerStatus = ps.get("logger.status")
+                pid = ps.getInt("logger.pid")
+                if pid in self.loggerPIDs:
+                    self.loggerPIDs.remove(pid)
+
+            # if both lists are empty we're finished.
+            if (len(self.pipelineNames) == 0) and (len(self.loggerPIDs) == 0):
+               with self._locked:
+                   self._locked.running = False
+        elif event.getType() == events.EventTypes.COMMAND:
+            with self._locked:
+                self._locked.running = False
+        else:
+            print "didn't handle anything"
     ##
     # @brief stop the workflow
     #
