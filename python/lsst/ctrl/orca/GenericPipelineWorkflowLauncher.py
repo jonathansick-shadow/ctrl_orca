@@ -59,6 +59,8 @@ class GenericPipelineWorkflowLauncher(WorkflowLauncher):
         eventBrokerHost = self.prodPolicy.get("eventBrokerHost")
         shutdownTopic = self.wfPolicy.get("shutdownTopic")
 
+        # listen on this topic for "workers" sending messages
+
         # start the monitor first, because we want to catch any pipeline
         # events that might be sent from expiring pipelines.
 

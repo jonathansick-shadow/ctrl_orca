@@ -240,8 +240,8 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
             pw.write(definitionPolicy)
             pw.close()
 
-            # copy the shutwork.py utility over to the work directory
-            script = EnvString.resolve("$CTRL_ORCA_DIR/bin/shutwork.py")
+            # copy the workerdone.py utility over to the work directory
+            script = EnvString.resolve("$CTRL_ORCA_DIR/bin/workerdone.py")
             remoteName = os.path.join(workDir, os.path.basename(script))
             shutil.copyfile(script,remoteName)
             shutil.copystat(script,remoteName)
@@ -345,7 +345,8 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         
         #launcher.write("nohup %s %s %s -L %s --logdir %s >%s/launch.log 2>&1 &\n" % (execCmd, filename, self.runid, self.wfVerbosity, logDir, logDir))
         launcher.write("%s %s %s -L %s --logdir %s >%s/launch.log 2>&1\n" % (execCmd, filename, self.runid, self.wfVerbosity, logDir, logDir))
-        launcher.write("./shutwork.py %s %s %s" % (self.eventBrokerHost, self.runid, pipelineName))
+        #launcher.write("%s %s %s -L %s --logdir %s\n"% (execCmd, filename, self.runid, self.wfVerbosity, logDir))
+        launcher.write("./workerdone.py %s %s %s\n" % (self.eventBrokerHost, self.runid, pipelineName))
         launcher.close()
         # make it executable
         os.chmod(name, stat.S_IRWXU)

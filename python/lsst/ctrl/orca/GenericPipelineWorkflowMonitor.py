@@ -59,15 +59,17 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
 
         self._eventBrokerHost = eventBrokerHost
         self._shutdownTopic = shutdownTopic
+        self.orcaTopic = "orca.monitor"
         self.runid = runid
 
         self._wfMonitorThread = None
         self.eventSystem = events.EventSystem.getDefaultEventSystem()
         self.originatorId = self.eventSystem.createOriginatorId()
         self.bSentLastLoggerEvent = False
+        self.bSentJobOfficeEvent = False
 
         with self._locked:
-            self._wfMonitorThread = GenericPipelineWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, runid)
+            self._wfMonitorThread = GenericPipelineWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, self.orcaTopic, runid)
         #print "about to start monitoring: "
         #for pipe in self.pipelineNames:
         #    print "pipeline: ",pipe
@@ -77,11 +79,12 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
 
 
     class _WorkflowMonitorThread(threading.Thread):
-        def __init__(self, parent, eventBrokerHost, eventTopic, runid):
+        def __init__(self, parent, eventBrokerHost, shutdownTopic, eventTopic, runid):
             threading.Thread.__init__(self)
             self.setDaemon(True)
             self._parent = parent
             self._eventBrokerHost = eventBrokerHost
+            self._shutdownTopic = shutdownTopic
             self._eventTopic = eventTopic
             self.runid = runid
 
@@ -138,7 +141,13 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
                 if pid in self.loggerPIDs:
                     self.loggerPIDs.remove(pid)
 
-            if (len(self.pipelineNames) == 0) and (self.bSentLastLoggerEvent == False):
+            cnt = len(self.pipelineNames)
+            # TODO:  clean up to not specifically name "joboffices_1" 
+            if cnt == 1 and self.pipelineNames[0] == "joboffices_1" and self.bSentJobOfficeEvent == False:
+                self.stopWorkflow(1)
+                self.bSentJobOfficeEvent = True
+
+            if (cnt == 0) and (self.bSentLastLoggerEvent == False):
                 self.eventSystem.createTransmitter(self._eventBrokerHost, events.EventLog.LOGGING_TOPIC)
                 evtlog = events.EventLog(self.runid, -1)
                 tlog = logging.Log(evtlog, "orca.control")
@@ -161,7 +170,7 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
     # @brief stop the workflow
     #
     def stopWorkflow(self, urgency):
-        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowMonitor:stopWorkflow")
+        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowMonitor:stopWorkflow: %s %s " % (self._eventBrokerHost, self._shutdownTopic))
         transmit = events.EventTransmitter(self._eventBrokerHost, self._shutdownTopic)
         
         root = PropertySet()
