@@ -29,6 +29,7 @@ import sys
 import subprocess
 import lsst.ctrl.events as events
 
+from lsst.daf.base import PropertySet
 from lsst.ctrl.orca.db.DatabaseLogger import DatabaseLogger
 from lsst.daf.persistence import DbAuth
 from lsst.pex.policy import Policy
@@ -78,6 +79,11 @@ tmpFilename = "/dev/shm/logdb_"+getpass.getuser()+".txt"
 # create an event receiver
 receiver = events.EventReceiver(broker, events.EventLog.LOGGING_TOPIC, "RUNID='%s'" % runid)
 
+# create an event transmitter
+transmitter = events.EventTransmitter(broker, "LoggerStatus")
+
+eventSystem = events.EventSystem.getDefaultEventSystem()
+
 # initialize the message counter
 cnt = 0
 
@@ -89,11 +95,25 @@ cnt = 0
 while True:
     event = receiver.receiveEvent(50)
     if event != None:
-       msgs.append(event)
-       cnt += 1
-       if cnt >= highwatermark:
-           dbLogger.insertRecords("%s.Logs" % dbname, msgs, tmpFilename)
-           cnt = 0
+        propSet = event.getPropertySet()
+        log = propSet.get("LOG")
+        if log == None:
+            continue
+        if log == "orca.control":
+            status = propSet.get("STATUS")
+            if status == "eol":
+                id = eventSystem.createOriginatorId()
+                root = PropertySet()
+                root.setString("logger.status", "done")
+                root.setInt("logger.pid", os.getpid())
+                event = events.StatusEvent(runid, id, root)
+                transmitter.publishEvent(event)
+                sys.exit(0)
+        msgs.append(propSet)
+        cnt += 1
+        if cnt >= highwatermark:
+            dbLogger.insertRecords("%s.Logs" % dbname, msgs, tmpFilename)
+            cnt = 0
     elif event == None:
         if len(msgs) > 0:
             dbLogger.insertRecords("%s.Logs" % dbname, msgs, tmpFilename)

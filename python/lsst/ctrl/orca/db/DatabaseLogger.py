@@ -44,8 +44,10 @@ class DatabaseLogger(MySQLBase):
         
         file = open(filename,"w")
         for i in range(0,cnt):
-            event = msgs.pop(0)
-            ins = self.createInsertString(dbTable, event.getPropertySet())
+            #event = msgs.pop(0)
+            #ins = self.createInsertString(dbTable, event.getPropertySet())
+            propSet = msgs.pop(0)
+            ins = self.createInsertString(dbTable, propSet)
             file.write(ins)
         file.close()
         cmd = "LOAD DATA LOCAL INFILE '%s' INTO TABLE %s FIELDS OPTIONALLY ENCLOSED BY '\"' ESCAPED BY '\\\\' LINES TERMINATED BY '\\n' SET timereceived=NOW();" % (filename, dbTable)

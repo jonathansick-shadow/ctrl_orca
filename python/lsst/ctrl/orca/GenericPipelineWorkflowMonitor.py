@@ -23,6 +23,7 @@
 from __future__ import with_statement
 import os, sys, subprocess, threading, time
 import lsst.ctrl.events as events
+import lsst.pex.logging as logging
 
 from lsst.daf.base import PropertySet
 from lsst.pex.logging import Log
@@ -35,7 +36,7 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
     # @brief in charge of monitoring and/or controlling the progress of a
     #        running workflow.
     #
-    def __init__(self, eventBrokerHost, shutdownTopic, runid, logger):
+    def __init__(self, eventBrokerHost, shutdownTopic, runid, pipelineNames, loggerManagers, logger):
 
         #self.__init__(logger)
 
@@ -49,25 +50,47 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
         self.logger = Log(logger, "monitor")
         self.logger.log(Log.DEBUG, "GenericPipelineWorkflowMonitor:__init__")
         self._statusListeners = []
+        self.pipelineNames = pipelineNames[:] # make a copy of this list, since we'll be removing things
+
+        self.loggerPIDs = []
+        for lm in loggerManagers:
+            self.loggerPIDs.append(lm.getPID())
+        self.loggerManagers = loggerManagers
 
         self._eventBrokerHost = eventBrokerHost
         self._shutdownTopic = shutdownTopic
+        self.orcaTopic = "orca.monitor"
         self.runid = runid
 
         self._wfMonitorThread = None
-        eventSystem = events.EventSystem.getDefaultEventSystem()
-        self.originatorId = eventSystem.createOriginatorId()
+        self.eventSystem = events.EventSystem.getDefaultEventSystem()
+        self.originatorId = self.eventSystem.createOriginatorId()
+        self.bSentLastLoggerEvent = False
+        self.bSentJobOfficeEvent = False
+
+        with self._locked:
+            self._wfMonitorThread = GenericPipelineWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, self.orcaTopic, runid)
+        #print "about to start monitoring: "
+        #for pipe in self.pipelineNames:
+        #    print "pipeline: ",pipe
+        #for loggerPID in self.loggerPIDs:
+        #    print "logger at pid: ",loggerPID
+        #print "waiting."
 
 
     class _WorkflowMonitorThread(threading.Thread):
-        def __init__(self, parent, eventBrokerHost, eventTopic, runid):
+        def __init__(self, parent, eventBrokerHost, shutdownTopic, eventTopic, runid):
             threading.Thread.__init__(self)
             self.setDaemon(True)
             self._parent = parent
             self._eventBrokerHost = eventBrokerHost
+            self._shutdownTopic = shutdownTopic
             self._eventTopic = eventTopic
+            self.runid = runid
+
             selector = "RUNID = '%s'" % runid
             self._receiver = events.EventReceiver(self._eventBrokerHost, self._eventTopic, selector)
+            self._Logreceiver = events.EventReceiver(self._eventBrokerHost, "LoggerStatus", selector)
 
         def run(self):
             self._parent.logger.log(Log.DEBUG, "GenericPipelineWorkflowMonitor Thread started")
@@ -76,13 +99,21 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
                 # TODO:  this timeout value should go away when the GIL lock relinquish is implemented in events.
                 time.sleep(1)
                 event = self._receiver.receiveEvent(1)
+                logEvent = self._Logreceiver.receiveEvent(1)
                 if event is not None:
-                    self._parent.handleEvent(event)
-                    return
+                    val = self._parent.handleEvent(event)
+                    if self._parent._locked.running == False:
+                        print "and...done!"
+                        return
+                elif logEvent is not None:
+                    val = self._parent.handleEvent(logEvent)
+                    if self._parent._locked.running == False:
+                        print "logger handled...and...done!"
+                        return
 
     def startMonitorThread(self, runid):
         with self._locked:
-            self._wfMonitorThread = GenericPipelineWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, runid)
+            #self._wfMonitorThread = GenericPipelineWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, runid)
             self._wfMonitorThread.start()
             self._locked.running = True
 
@@ -91,15 +122,57 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
 
         # make sure this is really for us.
 
-        # TODO: Temporarily set to false no matter what event we get.  This needs to differentiate which events it receives.
-        with self._locked:
-            self._locked.running = False
+        ps = event.getPropertySet()
+        #print ps.toString()
+        #print "==="
+
+        if event.getType() == events.EventTypes.STATUS:
+            ps = event.getPropertySet()
+            #print ps.toString()
+    
+            if ps.exists("pipeline"):
+                pipeline = ps.get("pipeline")
+                print "this pipeline exited -->",pipeline
+                if pipeline in self.pipelineNames:
+                    self.pipelineNames.remove(pipeline)
+            elif ps.exists("logger.status"):
+                loggerStatus = ps.get("logger.status")
+                pid = ps.getInt("logger.pid")
+                if pid in self.loggerPIDs:
+                    self.loggerPIDs.remove(pid)
+
+            cnt = len(self.pipelineNames)
+            print "pipelineNames: "
+            print self.pipelineNames
+            # TODO:  clean up to not specifically name "joboffices_1" 
+            if cnt == 1 and self.pipelineNames[0] == "joboffices_1" and self.bSentJobOfficeEvent == False:
+                self.stopWorkflow(1)
+                self.bSentJobOfficeEvent = True
+
+            if (cnt == 0) and (self.bSentLastLoggerEvent == False):
+                self.eventSystem.createTransmitter(self._eventBrokerHost, events.EventLog.LOGGING_TOPIC)
+                evtlog = events.EventLog(self.runid, -1)
+                tlog = logging.Log(evtlog, "orca.control")
+                logging.LogRec(tlog, 1) << logging.Prop("STATUS", "eol") << logging.LogRec.endr
+                self.bSentLastLoggerEvent = True
+
+                
+            # if both lists are empty we're finished.
+            if (len(self.pipelineNames) == 0) and (len(self.loggerPIDs) == 0):
+               with self._locked:
+                   self._locked.running = False
+        elif event.getType() == events.EventTypes.COMMAND:
+            with self._locked:
+                self._locked.running = False
+        else:
+            print "didn't handle anything"
+            
 
     ##
     # @brief stop the workflow
     #
     def stopWorkflow(self, urgency):
-        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowMonitor:stopWorkflow")
+        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowMonitor:stopWorkflow: %s %s " % (self._eventBrokerHost, self._shutdownTopic))
         transmit = events.EventTransmitter(self._eventBrokerHost, self._shutdownTopic)
         
         root = PropertySet()

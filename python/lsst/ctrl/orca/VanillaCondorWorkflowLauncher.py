@@ -33,7 +33,7 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
     ##
     # @brief
     #
-    def __init__(self, jobs, localScratch, condorGlideinFile, prodPolicy, wfPolicy, runid, filewaiter, logger = None):
+    def __init__(self, jobs, localScratch, condorGlideinFile, prodPolicy, wfPolicy, runid, filewaiter, pipelineNames, logger = None):
         if logger != None:
             logger.log(Log.DEBUG, "VanillaCondorWorkflowLauncher:__init__")
         self.logger = logger
@@ -44,6 +44,7 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
         self.wfPolicy = wfPolicy
         self.runid = runid
         self.filewaiter = filewaiter
+        self.pipelineNames = pipelineNames
 
     ##
     # @brief perform cleanup after workflow has ended.
@@ -55,9 +56,19 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
     ##
     # @brief launch this workflow
     #
-    def launch(self, statusListener):
+    def launch(self, statusListener, loggerManagers):
         if self.logger != None:
             self.logger.log(Log.DEBUG, "VanillaCondorWorkflowLauncher:launch")
+
+        # start the monitor first, because we want to catch any pipeline
+        # events that might be sent from expiring pipelines.
+        eventBrokerHost = self.prodPolicy.get("eventBrokerHost")
+        shutdownTopic = self.wfPolicy.get("shutdownTopic")
+
+        self.workflowMonitor = VanillaCondorWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, self.pipelineNames, loggerManagers, self.logger)
+        if statusListener != None:
+            self.workflowMonitor.addStatusListener(statusListener)
+        self.workflowMonitor.startMonitorThread(self.runid)
 
         # Three step launch process
         # 1 - Glidein request
@@ -116,13 +127,6 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
         # wait for all jobs to launch
         self.filewaiter.waitForAllFiles()
 
-        eventBrokerHost = self.prodPolicy.get("eventBrokerHost")
-        shutdownTopic = self.wfPolicy.get("shutdownTopic")
-
-        self.workflowMonitor = VanillaCondorWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, self.logger)
-        if statusListener != None:
-            self.workflowMonitor.addStatusListener(statusListener)
-        self.workflowMonitor.startMonitorThread(self.runid)
         return self.workflowMonitor
 
     ##
