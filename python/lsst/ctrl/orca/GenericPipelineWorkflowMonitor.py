@@ -142,6 +142,8 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
                     self.loggerPIDs.remove(pid)
 
             cnt = len(self.pipelineNames)
+            print "pipelineNames: "
+            print self.pipelineNames
             # TODO:  clean up to not specifically name "joboffices_1" 
             if cnt == 1 and self.pipelineNames[0] == "joboffices_1" and self.bSentJobOfficeEvent == False:
                 self.stopWorkflow(1)
