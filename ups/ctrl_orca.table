@@ -1,4 +1,3 @@
-setupRequired(datarel >= 4.3.0.0)
 setupRequired(cat >= 4.1.1.3)
 setupRequired(utils >= 3.4.1)
 setupRequired(pex_policy >= 3.4.2)
