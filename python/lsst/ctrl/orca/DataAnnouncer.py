@@ -63,8 +63,10 @@ class DataAnnouncer:
             if config.exists("announceData.dataCompleted"):
                 dataComp = config.get("announceData.dataCompleted")
                 script = dataComp.get("script")
+                script = EnvString.resolve(script)
                 topic = dataComp.get("topic")
-                cmd = "%s %s %s %s" % (script, broker, topic, self.runid)
+                status = dataComp.get("status")
+                cmd = "%s %s %s %s %s" % (script, broker, topic, self.runid, status)
                 print cmd
                 cmdSplit = cmd.split()
                 pid = os.fork()
