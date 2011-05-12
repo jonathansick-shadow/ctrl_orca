@@ -123,11 +123,11 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
             self._locked.running = True
 
     def handleJobOfficeEvent(self, event):
-        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowMonitor:handleJobOfficeEvent called")
         if event.getType() == events.EventTypes.STATUS:
             ps = event.getPropertySet()
             status = ps.get("STATUS")
             if status == "joboffice:done":
+                self.logger.log(Log.DEBUG, "GenericPipelineWorkflowMonitor:handleJobOfficeEvent joboffice:done received")
                 self.stopWorkflow(1)
         return
 
