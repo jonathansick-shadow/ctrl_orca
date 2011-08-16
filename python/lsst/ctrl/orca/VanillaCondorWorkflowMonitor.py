@@ -23,6 +23,7 @@
 from __future__ import with_statement
 import os, sys, subprocess, threading, time
 import lsst.ctrl.events as events
+import lsst.pex.logging as logging
 
 from lsst.daf.base import PropertySet
 from lsst.pex.logging import Log
@@ -59,22 +60,28 @@ class VanillaCondorWorkflowMonitor(WorkflowMonitor):
 
         self._eventBrokerHost = eventBrokerHost
         self._shutdownTopic = shutdownTopic
+        self.orcaTopic = "orca.monitor"
         self.runid = runid
 
         self._wfMonitorThread = None
-        eventSystem = events.EventSystem.getDefaultEventSystem()
-        self.originatorId = eventSystem.createOriginatorId()
+        self.eventSystem = events.EventSystem.getDefaultEventSystem()
+        self.originatorId = self.eventSystem.createOriginatorId()
+        self.bSentLastLoggerEvent = False
+        self.bSentJobOfficeEvent = False
 
 
     class _WorkflowMonitorThread(threading.Thread):
-        def __init__(self, parent, eventBrokerHost, eventTopic, runid):
+        def __init__(self, parent, eventBrokerHost, shutdownTopic, eventTopic, runid):
             threading.Thread.__init__(self)
             self.setDaemon(True)
             self._parent = parent
             self._eventBrokerHost = eventBrokerHost
+            self._shutdownTopic = shutdownTopic
             self._eventTopic = eventTopic
             selector = "RUNID = '%s'" % runid
             self._receiver = events.EventReceiver(self._eventBrokerHost, self._eventTopic, selector)
+            self._Logreceiver = events.EventReceiver(self._eventBrokerHost, "LoggerStatus", selector)
+            self._jobOfficeReceiver = events.EventReceiver(self._eventBrokerHost, "JobOfficeStatus", selector)
 
         def run(self):
             self._parent.logger.log(Log.DEBUG, "VanillaCondorWorkflowMonitor Thread started")
@@ -83,20 +90,40 @@ class VanillaCondorWorkflowMonitor(WorkflowMonitor):
                 # TODO:  this timeout value should go away when the GIL lock relinquish is implemented in events.
                 time.sleep(1)
                 event = self._receiver.receiveEvent(1)
+                logEvent = self._Logreceiver.receiveEvent(1)
+                jobOfficeEvent = self._jobOfficeReceiver.receiveEvent(1)
+                if jobOfficeEvent is not None:
+                    val = self._parent.handleJobOfficeEvent(jobOfficeEvent)
                 if event is not None:
-                    self._parent.handleEvent(event)
-                    # temporarily return no matter what event is sent
-                    return
+                    val = self._parent.handleEvent(event)
+                    if self._parent._locked.running == False:
+                        print "and...done!"
+                        return
+                elif logEvent is not None:
+                    val = self._parent.handleEvent(logEvent)
+                    if self._parent._locked.running == False:
+                        print "logger handled... and... done!"
+                        return
 
 
     def startMonitorThread(self, runid):
         with self._locked:
-            self._wfMonitorThread = VanillaCondorWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, runid)
+            self._wfMonitorThread = VanillaCondorWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, self.orcaTopic, runid)
             self._wfMonitorThread.start()
             self._locked.running = True
 
+    def handleJobOfficeEvent(self, event):
+        if event.getType() == events.EventTypes.STATUS:
+            ps = event.getPropertySet()
+            status = ps.get("STATUS")
+            if status == "joboffice:done": 
+                self.logger.log(Log.DEBUG, "GenericPipelineWorkflowMonitor:handleJobOfficeEvent joboffice:done received")
+                self.stopWorkflow(1)
+        return
+
+
     def handleEvent(self, event):
-        self.logger.log(Log.DEBUG, "VanillaCondorWorkflowMonitor:handleEventCalled")
+        self.logger.log(Log.DEBUG, "VanillaCondorWorkflowMonitor:handleEvent called")
 
         # make sure this is really for us.
 
@@ -118,6 +145,21 @@ class VanillaCondorWorkflowMonitor(WorkflowMonitor):
                 pid = ps.getInt("logger.pid")
                 if pid in self.loggerPIDs:
                     self.loggerPIDs.remove(pid)
+
+            cnt = len(self.pipelineNames)
+            print "pipelineNames: "
+            print self.pipelineNames
+            # TODO: clean up to not specifically name "joboffices_1"
+            if cnt == 1 and self.pipelineNames[0] == "joboffices_1" and self.bSentJobOfficeEvent == False:
+                self.stopWorkflow(1)
+                self.bSentJobOfficeEvent = True
+            
+            if (cnt == 0) and (self.bSentLastLoggerEvent == False):
+                self.eventSystem.createTransmitter(self._eventBrokerHost, events.EventLog.LOGGING_TOPIC)
+                evtlog = events.EventLog(self.runid, -1)
+                tlog = logging.Log(evtlog, "orca.control")
+                logging.LogRec(tlog, 1) << logging.Prop("STATUS", "eol") << logging.LogRec.endr
+                self.bSentLastLoggerEvent = True
 
             # if both lists are empty we're finished.
             if (len(self.pipelineNames) == 0) and (len(self.loggerPIDs) == 0):
