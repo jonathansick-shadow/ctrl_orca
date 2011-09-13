@@ -99,7 +99,7 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
             # we don't decide when we finish, someone else does.
             while True:
                 # TODO:  this timeout value should go away when the GIL lock relinquish is implemented in events.
-                time.sleep(1)
+                # time.sleep(1)
                 event = self._receiver.receiveEvent(1)
                 logEvent = self._Logreceiver.receiveEvent(1)
                 jobOfficeEvent = self._jobOfficeReceiver.receiveEvent(1)
