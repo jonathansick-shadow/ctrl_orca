@@ -344,7 +344,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
 
         
         #launcher.write("nohup %s %s %s -L %s --logdir %s >%s/launch.log 2>&1 &\n" % (execCmd, filename, self.runid, self.wfVerbosity, logDir, logDir))
-        launcher.write("%s %s %s -L %s --logdir %s >%s/launch.log 2>&1\n" % (execCmd, filename, self.runid, self.wfVerbosity, logDir, logDir))
+        launcher.write("%s %s %s -L %s --logdir %s --workerid %s >%s/launch.log 2>&1\n" % (execCmd, filename, self.runid, self.wfVerbosity, logDir, pipelineName, logDir))
         #launcher.write("%s %s %s -L %s --logdir %s\n"% (execCmd, filename, self.runid, self.wfVerbosity, logDir))
         launcher.write("./workerdone.py %s %s %s\n" % (self.eventBrokerHost, self.runid, pipelineName))
         launcher.close()
