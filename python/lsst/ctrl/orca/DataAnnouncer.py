@@ -59,6 +59,23 @@ class DataAnnouncer:
             if not pid:
                 os.execvp(cmdSplit[0], cmdSplit)
             os.wait()[0]
+
+            if config.exists("announceData.dataCompleted"):
+                dataComp = config.get("announceData.dataCompleted")
+                script = dataComp.get("script")
+                script = EnvString.resolve(script)
+                topic = dataComp.get("topic")
+                status = dataComp.get("status")
+                cmd = "%s %s %s %s %s" % (script, broker, topic, self.runid, status)
+                print cmd
+                cmdSplit = cmd.split()
+                pid = os.fork()
+                if not pid:
+                    os.execvp(cmdSplit[0], cmdSplit)
+                os.wait()[0]
+            else:
+                print "not announcing that data has been completing sent; automatic shutdown will not occur"
+                 
             return True
         else:
             return False

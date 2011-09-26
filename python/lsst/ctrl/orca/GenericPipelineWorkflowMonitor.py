@@ -91,15 +91,20 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
             selector = "RUNID = '%s'" % runid
             self._receiver = events.EventReceiver(self._eventBrokerHost, self._eventTopic, selector)
             self._Logreceiver = events.EventReceiver(self._eventBrokerHost, "LoggerStatus", selector)
+            self._jobOfficeReceiver = events.EventReceiver(self._eventBrokerHost, "JobOfficeStatus", selector)
+
 
         def run(self):
             self._parent.logger.log(Log.DEBUG, "GenericPipelineWorkflowMonitor Thread started")
             # we don't decide when we finish, someone else does.
             while True:
                 # TODO:  this timeout value should go away when the GIL lock relinquish is implemented in events.
-                time.sleep(1)
+                # time.sleep(1)
                 event = self._receiver.receiveEvent(1)
                 logEvent = self._Logreceiver.receiveEvent(1)
+                jobOfficeEvent = self._jobOfficeReceiver.receiveEvent(1)
+                if jobOfficeEvent is not None:
+                    val = self._parent.handleJobOfficeEvent(jobOfficeEvent)
                 if event is not None:
                     val = self._parent.handleEvent(event)
                     if self._parent._locked.running == False:
@@ -117,8 +122,17 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
             self._wfMonitorThread.start()
             self._locked.running = True
 
+    def handleJobOfficeEvent(self, event):
+        if event.getType() == events.EventTypes.STATUS:
+            ps = event.getPropertySet()
+            status = ps.get("STATUS")
+            if status == "joboffice:done":
+                self.logger.log(Log.DEBUG, "GenericPipelineWorkflowMonitor:handleJobOfficeEvent joboffice:done received")
+                self.stopWorkflow(1)
+        return
+
     def handleEvent(self, event):
-        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowMonitor:handleEventCalled")
+        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowMonitor:handleEvent called")
 
         # make sure this is really for us.
 
