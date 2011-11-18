@@ -76,8 +76,6 @@ class SharedData(object):
         self.notify    = cond.notify
         self.notifyAll = cond.notifyAll
         self.wait      = cond.wait
-        self.__enter__ = cond.__enter__
-        self.__exit__  = cond.__exit__
         self._is_owned = cond._is_owned
 
         self._lockOnRead = needLockOnRead
@@ -86,7 +84,12 @@ class SharedData(object):
             self.initData(data)
         if data is None:
             self._d["__"] = True
+        
+    def __enter__(self, *args, **kwds):
+        return self._cond.__enter__(*args, **kwds)
 
+    def __exit__(self, *args, **kwds):
+        return self._cond.__exit__(*args, **kwds)
     
     def __getattribute__(self, name):
         if name == "_d" or len(self._d) == 0 or not self._d.has_key(name):
