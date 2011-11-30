@@ -316,7 +316,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         launcher.write("export SHELL=/bin/sh\n")
         launcher.write("cd %s\n" % self.dirs.get("work"))
         launcher.write("source %s\n" % self.script)
-        launcher.write("eups list 2>/dev/null | grep Setup >%s/eups-env.txt\n" % logDir)
+        launcher.write("eups list --setup 2>/dev/null >%s/eups-env.txt\n" % logDir)
 
         cmds = provSetup.getCmds()
         workflowPolicies = self.prodPolicy.getArray("workflow")

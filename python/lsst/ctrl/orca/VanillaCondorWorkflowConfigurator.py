@@ -453,7 +453,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         #launcher.write("cd %s\n" % remoteLogDir)
         launcher.write("source %s\n" % self.script)
         #launcher.write("cd ..\n")
-        launcher.write("eups list 2>/dev/null | grep Setup >%s/eups-env.txt\n" % remoteLogDir)
+        launcher.write("eups list --setup 2>/dev/null >%s/eups-env.txt\n" % remoteLogDir)
 
 
         cmds = provSetup.getCmds()
