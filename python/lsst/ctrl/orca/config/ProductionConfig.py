@@ -1,9 +1,7 @@
 import sys
 import lsst.pex.config as pexConf
-import VanillaCondorWorkflowConfig as van
-import GenericWorkflowConfig as gen
-
-typemap = {"generic":gen.GenericWorkflowConfig,"vanilla":van.VanillaCondorWorkflowConfig}
+import FakeTypeMap as fake
+import WorkflowConfig as work
 
 class Production(pexConf.Config):
     shortName = pexConf.Field("name of production", str)
@@ -38,28 +36,12 @@ class Database(pexConf.Config):
 class ProductionConfig(pexConf.Config):
     production = pexConf.ConfigField("production configuration",Production)
     database = pexConf.ConfigField("database information", Database)
-    workflow = pexConf.ConfigChoiceField("workflow",typemap)
+    workflowNames = pexConf.ListField("workflow names",str)
+    workflow = pexConf.ConfigChoiceField("workflow",fake.FakeTypeMap(work.WorkflowConfig))
     configCheckCare = pexConf.Field("config check care",int)
     configurationClass = pexConf.Field("configuration class",str)
 
 config = ProductionConfig()
 config.load(sys.argv[1])
 
-print config.production
-print config.database.name
-print config.database.system.authInfo
-print config.database.system.runCleanup
-print config.database.configurationClass
-print config.database.configurationDictionary
-print config.database.logger
-print config.workflow.type
-print config.workflow[config.workflow.type]
-print config.workflow[config.workflow.type].configuration.deployData
-print config.workflow[config.workflow.type].configuration.condorData
-print config.workflow[config.workflow.type].configuration.glideinRequest
-print config.workflow[config.workflow.type].configuration.announceData
-
-print config.workflow[config.workflow.type].pipelineNames
-for i in config.workflow[config.workflow.type].pipelineNames:
-    obj = config.workflow[config.workflow.type].pipeline
-    print obj[i]
+print config

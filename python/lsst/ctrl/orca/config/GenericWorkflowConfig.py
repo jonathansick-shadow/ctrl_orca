@@ -13,15 +13,6 @@ class AnnounceDataConfig(pexConfig.Config):
     topic = pexConfig.Field("event topic to broadcast on",str)
     inputdata = pexConfig.Field("input data file",str)
 
-class ConfigurationConfig(pexConfig.Config):
+class GenericWorkflowConfig(pexConfig.Config):
     deployData = pexConfig.ConfigField("deploy data",DeployDataConfig)
     announceData = pexConfig.ConfigField("data announcement",AnnounceDataConfig)
-
-class GenericWorkflowConfig(pexConfig.Config):
-    shortName = pexConfig.Field("name of this workflow",str)
-    platform = pexConfig.Field("platform configuration file",str)
-    shutdownTopic = pexConfig.Field("topic used for shutdown events",str)
-    configurationClass = pexConfig.Field("orca plugin class",str)
-    configuration = pexConfig.ConfigField("configuration",ConfigurationConfig)
-    pipelineNames = pexConfig.ListField("pipeline names",str)
-    pipeline = pexConfig.ConfigChoiceField("pipeline",fake.FakeTypeMap(pipe.PipelineConfig))
