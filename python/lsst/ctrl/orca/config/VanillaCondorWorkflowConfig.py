@@ -4,6 +4,7 @@ import PipelineConfig as pipe
 import FakeTypeMap as fake
 
 class DeployDataConfig(pexConfig.Config):
+    dataRepository = pexConfig.Field("data repository",str)
     collection = pexConfig.Field("collection name",str)
     script = pexConfig.Field("script name",str)
 
@@ -19,10 +20,16 @@ class GlideinRequestConfig(pexConfig.Config):
     templateFileName = pexConfig.Field("name of template to fill in",str)
     outputFileName = pexConfig.Field("name of file to write",str)
 
+class DataCompletedConfig(pexConfig.Config):
+    script = pexConfig.Field("shell script",str)
+    topic = pexConfig.Field("event topic to announce on",str)
+    status = pexConfig.Field("status to announce",str)
+
 class AnnounceDataConfig(pexConfig.Config):
     script = pexConfig.Field("announce script",str)
     topic = pexConfig.Field("event topic to broadcast on",str)
     inputdata = pexConfig.Field("input data file",str)
+    dataCompleted = pexConfig.ConfigField("data completed script",DataCompletedConfig)
 
 class VanillaCondorWorkflowConfig(pexConfig.Config):
     deployData = pexConfig.ConfigField("deploy data",DeployDataConfig)
