@@ -24,7 +24,6 @@ import os
 import sys
 import re
 import socket
-import lsst.pex.policy as pol
 
 #
 # This class takes template files and substitutes the values for the given
@@ -32,15 +31,15 @@ import lsst.pex.policy as pol
 #
 class TemplateWriter:
     def __init__(self):
-        self.orcaValues = pol.Policy()
-        self.orcaValues.set("ORCA_LOCAL_HOSTNAME", socket.gethostname())
+        self.orcaValues = dict()
+        self.orcaValues["ORCA_LOCAL_HOSTNAME"] = socket.gethostname()
         return
 
     #
-    # given a input template, take the keys from the key/values in the policy
+    # given a input template, take the keys from the key/values in the config
     # object and substitute the values, and write those to the output file.
     #
-    def rewrite(self, input, output, pairs):
+    def rewrite(self, input, output, keys, pairs):
         fpInput = open(input, 'r')
         fpOutput = open(output, 'w')
 
@@ -50,15 +49,15 @@ class TemplateWriter:
                 break
 
             # replace the "standard" orca names first
-            for name in self.orcaValues.names():
+            for name in self.orcaValues:
                 key = "$"+name
-                val = str(self.orcaValues.get(name))
+                val = str(self.orcaValues[name])
                 line = line.replace(key,val)
 
             # replace the user defined names
-            for name in pairs.names():
+            for name in keys:
                 key = "$"+name
-                val = str(pairs.get(name))
+                val = str(pairs[name])
                 line = line.replace(key, val)
             fpOutput.write(line)
         fpInput.close()

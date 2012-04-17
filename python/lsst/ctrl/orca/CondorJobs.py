@@ -56,7 +56,7 @@ class CondorJobs:
         pop = os.popen(submitRequest, "r")
     
         line = pop.readline()
-        line = pop.readline()
+        #line = pop.readline()
         line = pop.readline()
         num = clusterexp.findall(line)
         if len(num) == 0:
