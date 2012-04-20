@@ -58,11 +58,11 @@ class DC3Configurator:
 
         self.dbHostName = dbConfig.system.authInfo.host
         self.dbPort = dbConfig.system.authInfo.port
-        globalDbName = dbConfig.configuration.globalDbName
-        dcVersion = dbConfig.configuration.dcVersion
-        dcDbName = dbConfig.configuration.dcDbName
-        minPercDiskSpaceReq = dbConfig.configuration.minPercDiskSpaceReq
-        userRunLife = dbConfig.configuration.userRunLife
+        globalDbName = dbConfig.configuration["production"].globalDbName
+        dcVersion = dbConfig.configuration["production"].dcVersion
+        dcDbName = dbConfig.configuration["production"].dcDbName
+        minPercDiskSpaceReq = dbConfig.configuration["production"].minPercDiskSpaceReq
+        userRunLife = dbConfig.configuration["production"].userRunLife
 
         self.delegate = MySQLConfigurator(self.dbHostName, self.dbPort, globalDbName, dcVersion, dcDbName, minPercDiskSpaceReq, userRunLife)
 

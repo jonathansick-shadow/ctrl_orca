@@ -37,9 +37,10 @@ from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 class WorkflowConfigurator:
 
 
-    class ConfigGroup:
-        def __init__(self, name, number, offset):
+    class ConfigGroup(object):
+        def __init__(self, name, config, number, offset):
             self.configName = name
+            self.config = config
             self.configNumber = number
             self.globalOffset = offset
 
@@ -51,6 +52,10 @@ class WorkflowConfigurator:
 
         def getGlobalOffset(self):
             return self.globalOffset
+
+        def __str__(self):
+            print "self.configName = ",self.configName
+            return "configName ="+self.configName
             
     ##
     # @brief create the configurator
@@ -109,6 +114,10 @@ class WorkflowConfigurator:
         #
         # setup the database for each database listed in workflow config
         #
+        print "self.wfConfig = "
+        print self.wfConfig
+        print "++++++++++++++++"
+        
         if self.wfConfig.database != None:
             databaseConfigs = self.wfConfig.database
 
@@ -156,7 +165,7 @@ class WorkflowConfigurator:
     # interested in based on the order they are in, in the productionConfig
     # We use this number Provenance to uniquely identify this set of pipelines
     #
-    def expandPolicies(self, wfShortName):
+    def expandConfigs(self, wfShortName):
         # Pipeline provenance requires that "activoffset" be unique and 
         # sequential for each pipeline in the production.  Each workflow
         # in the production can have multiple pipelines, and even a call for
@@ -173,10 +182,12 @@ class WorkflowConfigurator:
         # in this particular workflow correctly. This needs to be reworked.
 
         wfNames = self.prodConfig.workflowNames
+        print "expandConfigs wfShortName = ",wfShortName
+        print "expandConfigs wfNames = ",wfNames
         totalCount = 1
         for wfName in wfNames:
             wfConfig = self.prodConfig.workflow[wfName]
-            if wfConfig.shortName== wfShortName:
+            if wfName == wfShortName:
                # we're in the config which needs to be numbered
                expanded = []
                pipelineNames = wfConfig.pipelineNames
@@ -187,7 +198,7 @@ class WorkflowConfigurator:
                    if config.runCount != None:
                        runCount = config.runCount
                    for i in range(0,runCount):
-                       expanded.append(self.ConfigGroup(config,i+1, totalCount))
+                       expanded.append(self.ConfigGroup(pipelineName, config,i+1, totalCount))
                        totalCount = totalCount + 1
        
                return expanded

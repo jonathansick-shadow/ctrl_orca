@@ -62,7 +62,7 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
 
         # start the monitor first, because we want to catch any pipeline
         # events that might be sent from expiring pipelines.
-        eventBrokerHost = self.prodConfig.eventBrokerHost
+        eventBrokerHost = self.prodConfig.production.eventBrokerHost
         shutdownTopic = self.wfConfig.shutdownTopic
 
         self.workflowMonitor = VanillaCondorWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, self.pipelineNames, loggerManagers, self.logger)

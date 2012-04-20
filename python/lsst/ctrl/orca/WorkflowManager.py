@@ -37,8 +37,7 @@ class WorkflowManager:
         # have access to this object.
         self._locked = SharedData(False)
 
-        if not name:
-            name = wfConfig.shortName
+        if name != None:
             self.name = name
         else:
             self.name = "unnamed"
@@ -128,7 +127,7 @@ class WorkflowManager:
         try:
             self._locked.acquire()
 
-            self._workflowConfigurator = self.createConfigurator(self.runid, self.repository, self.wfConfig, self.prodConfig)
+            self._workflowConfigurator = self.createConfigurator(self.runid, self.repository, self.name, self.wfConfig, self.prodConfig)
             self._workflowLauncher = self._workflowConfigurator.configure(provSetup, workflowVerbosity)
         finally:
             self._locked.release()
@@ -145,14 +144,14 @@ class WorkflowManager:
     # @param prodConfig  the config describing the overall production.  This
     #                       provides common data (e.g. event broker host)
     #                       that needs to be shared with all pipelines. 
-    def createConfigurator(self, runid, repository, wfConfig, prodConfig):
+    def createConfigurator(self, runid, repository, wfName, wfConfig, prodConfig):
         self.logger.log(Log.DEBUG, "WorkflowManager:createConfigurator")
 
         className = wfConfig.configurationClass
         classFactory = NamedClassFactory()
         
         configuratorClass = classFactory.createClass(className)
-        configurator = configuratorClass(self.runid, repository, prodConfig, wfConfig, self.logger) 
+        configurator = configuratorClass(self.runid, repository, prodConfig, wfConfig, wfName, self.logger) 
         return configurator
 
     ##

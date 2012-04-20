@@ -85,10 +85,10 @@ class ProductionRunConfigurator:
     ##
     # @brief create the WorkflowManager for the pipelien with the given shortName
     #
-    def createWorkflowManager(self, prodConfig, wfConfig):
+    def createWorkflowManager(self, prodConfig, wfName, wfConfig):
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:createWorkflowManager")
 
-        wfManager = WorkflowManager(None, self.runid, self.repository, prodConfig, wfConfig, self.logger)
+        wfManager = WorkflowManager(wfName, self.runid, self.repository, prodConfig, wfConfig, self.logger)
         return wfManager
 
     ##
@@ -149,7 +149,7 @@ class ProductionRunConfigurator:
             wfConfig = workflowConfigs[wfName]
             # copy in appropriate production level info into workflow Node  -- ?
 
-            workflowManager = self.createWorkflowManager(self.prodConfig, wfConfig)
+            workflowManager = self.createWorkflowManager(self.prodConfig, wfName, wfConfig)
             workflowLauncher = workflowManager.configure(self._provSetup, workflowVerbosity)
             workflowManagers.append(workflowManager)
 
@@ -174,6 +174,7 @@ class ProductionRunConfigurator:
             myProblems = MultiIssueConfigurationError("problems encountered while checking configuration")
 
         for dbconfig in self._databaseConfigurators:
+            print "-> dbconfig = ",dbconfig
             dbconfig.checkConfiguration(care, issueExc)
         
         if not issueExc and myProblems.hasProblems():

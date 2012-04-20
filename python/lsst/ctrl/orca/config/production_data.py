@@ -11,16 +11,32 @@ root.database["db1"].system.runCleanup.daysFirstNotice = 7
 root.database["db1"].system.runCleanup.daysFinalNotice = 1
 
 root.database["db1"].configurationClass = "lsst.ctrl.orca.db.DC3Configurator"
-root.database["db1"].configuration.globalDbName = "GlobalDB"
-root.database["db1"].configuration.dcVersion = "PT1_2"
-root.database["db1"].configuration.dcDbName = "DC3b_DB"
-root.database["db1"].configuration.minPercDiskSpaceReq = 10
-root.database["db1"].configuration.userRunLife = 2
+root.database["db1"].configuration["production"].globalDbName = "GlobalDB"
+root.database["db1"].configuration["production"].dcVersion = "PT1_2"
+root.database["db1"].configuration["production"].dcDbName = "DC3b_DB"
+root.database["db1"].configuration["production"].minPercDiskSpaceReq = 10
+root.database["db1"].configuration["production"].userRunLife = 2
 root.database["db1"].logger.launch = True
 
 root.workflowNames = ["PT1Workflow"]
 
-root.workflow["PT1Workflow"].platform = "@platform/lonestar.paf"
+root.workflow["PT1Workflow"].platform.dir.defaultRoot = "/scratch/00482/srp/datarel-runs"
+root.workflow["PT1Workflow"].platform.dir.runDirPattern = "%(runid)s"
+root.workflow["PT1Workflow"].platform.dir.workDir = "work"
+root.workflow["PT1Workflow"].platform.dir.inputDir = "input"
+root.workflow["PT1Workflow"].platform.dir.outputDir = "output"
+root.workflow["PT1Workflow"].platform.dir.updateDir = "update"
+root.workflow["PT1Workflow"].platform.dir.scratchDir = "scratch"
+
+root.workflow["PT1Workflow"].platform.hw.nodeCount = 1000
+root.workflow["PT1Workflow"].platform.hw.minCoresPerNode = 12
+root.workflow["PT1Workflow"].platform.hw.maxCoresPerNode = 12
+root.workflow["PT1Workflow"].platform.hw.minRamPerNode = 32.0
+root.workflow["PT1Workflow"].platform.hw.maxRamPerNode = 32.0
+
+root.workflow["PT1Workflow"].platform.deploy.defaultDomain: "tacc.utexas.edu"
+root.workflow["PT1Workflow"].platform.deploy.nodes = ["remoteabe1:8", "remoteabe2:8", "remoteabe3:8", "remoteabe4:8", "remoteabe5:8", "remoteabe6:8", "remoteabe7:8", "remoteabe8:8"];
+
 root.workflow["PT1Workflow"].shutdownTopic = "workflowShutdown"
 
 root.workflow["PT1Workflow"].configurationClass = "lsst.ctrl.orca.VanillaCondorWorkflowConfigurator"
@@ -53,10 +69,14 @@ root.workflow["PT1Workflow"].configuration["vanilla"].announceData.dataCompleted
 
 root.workflow["PT1Workflow"].pipelineNames = ["joboffices","PT1Pipe"]
 
-root.workflow["PT1Workflow"].pipeline["joboffices"].definition = "@joboffice.paf"
+root.workflow["PT1Workflow"].pipeline["joboffices"].definition.execute.shutdownTopic = "workflowShutdown"
+root.workflow["PT1Workflow"].pipeline["joboffices"].definition.execute.eventBrokerHost = "lsst8.ncsa.uiuc.edu"
+root.workflow["PT1Workflow"].pipeline["joboffices"].definition.framework.script = "$DATAREL_DIR/pipeline/PT1Pipe/joboffice-ImSim-abe.sh"
+root.workflow["PT1Workflow"].pipeline["joboffices"].definition.framework.type = "standard"
+root.workflow["PT1Workflow"].pipeline["joboffices"].definition.framework.environment = "$DATAREL_DIR/bin/runOrca/imsim-setupForOrcaUse-abe.sh"
 root.workflow["PT1Workflow"].pipeline["joboffices"].runCount = 1
 root.workflow["PT1Workflow"].pipeline["joboffices"].launch = True
 
-root.workflow["PT1Workflow"].pipeline["PT1Pipe"].definition = "@main-ImSim.paf"
-root.workflow["PT1Workflow"].pipeline["PT1Pipe"].runCount = 1
-root.workflow["PT1Workflow"].pipeline["PT1Pipe"].launch = True
+#root.workflow["PT1Workflow"].pipeline["PT1Pipe"].definition = "@main-ImSim.paf"
+#root.workflow["PT1Workflow"].pipeline["PT1Pipe"].runCount = 1
+#root.workflow["PT1Workflow"].pipeline["PT1Pipe"].launch = True

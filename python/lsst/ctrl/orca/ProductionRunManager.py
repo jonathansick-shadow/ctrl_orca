@@ -33,6 +33,7 @@ from lsst.pex.logging import Log
 
 from EnvString import EnvString
 from exceptions import ConfigurationError
+from exceptions import MultiIssueConfigurationError
 from multithreading import SharedData
 from ProductionRunConfigurator import ProductionRunConfigurator
 #from threading import SharedData
@@ -178,6 +179,7 @@ class ProductionRunManager:
         # Note: this is not a sanctioned pattern; should be replaced with use
         # of default config.
         checkCare = 1
+        print "self.config.production.configCheckCare = ", self.config.production.configCheckCare
         if self.config.production.configCheckCare != 0:
             checkCare = self.config.production.configCheckCare
         if checkCare < 0:
@@ -196,16 +198,19 @@ class ProductionRunManager:
             # make sure the configuration was successful.
             if not self._workflowManagers:
                 raise ConfigurationError("Failed to obtain workflowManagers from configurator")
-            if skipConfigCheck:
+            print "skipConfigCheck = ",skipConfigCheck
+            print "checkCare = ",checkCare
+            if skipConfigCheck == False:
                 self.checkConfiguration(checkCare)
 
             # launch the logger daemon
             for lm in self._loggerManagers:
                 lm.start()
 
-            provSetup = self._productionRunConfigurator.getProvenanceSetup()
-            # 
-            provSetup.recordProduction()
+            # TODO - Re-add when Provenance is complete
+            #provSetup = self._productionRunConfigurator.getProvenanceSetup()
+            ## 
+            #provSetup.recordProduction()
 
             for workflow in self._workflowManagers["__order"]:
                 mgr = self._workflowManagers[workflow.getName()]

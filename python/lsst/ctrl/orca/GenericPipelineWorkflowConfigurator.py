@@ -37,12 +37,13 @@ from lsst.ctrl.orca.GenericFileWaiter import GenericFileWaiter
 # GenericPipelineWorkflowConfigurator 
 #
 class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
-    def __init__(self, runid, repository, prodConfig, wfConfig, logger):
+    def __init__(self, runid, repository, prodConfig, wfConfig, wfName, logger):
         self.logger = logger
         self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:__init__")
         self.runid = runid
         self.prodConfig = prodConfig
         self.wfConfig = wfConfig
+        self.wfName = wfName
         self.repository = repository
 
         self.wfVerbosity = None
