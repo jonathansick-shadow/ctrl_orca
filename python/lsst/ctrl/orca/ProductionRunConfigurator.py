@@ -114,10 +114,11 @@ class ProductionRunConfigurator:
         # cache the configurators in case we want to check the configuration
         # later. 
         #
-        databaseConfigNames = self.prodConfig.databaseConfigNames
+        #databaseConfigNames = self.prodConfig.databaseConfigNames
         databaseConfigs = self.prodConfig.database
 
-        for databaseName in databaseConfigNames:
+        #for databaseName in databaseConfigNames:
+        for databaseName in databaseConfigs:
             databaseConfig = databaseConfigs[databaseName]
             cfg = self.createDatabaseConfigurator(databaseConfig)
             cfg.setup(self._provSetup)
@@ -142,10 +143,10 @@ class ProductionRunConfigurator:
             self.specializedConfigure(specialConfigurationConfig)
         
 
-        workflowNames = self.prodConfig.workflowNames
+        #workflowNames = self.prodConfig.workflowNames
         workflowConfigs = self.prodConfig.workflow
         workflowManagers = []
-        for wfName in workflowNames:
+        for wfName in workflowConfigs:
             wfConfig = workflowConfigs[wfName]
             # copy in appropriate production level info into workflow Node  -- ?
 

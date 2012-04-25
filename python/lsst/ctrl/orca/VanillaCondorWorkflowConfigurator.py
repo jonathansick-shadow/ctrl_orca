@@ -163,10 +163,9 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
                 condorDir = os.path.join(self.localWorkDir,"Condor_glidein")
                 stagedGlideinConfigFile = os.path.join(condorDir, "glidein_condor_config")
 
-                keys = wfConfig.configuration["vanilla"].glideinRequest.keyNames
                 keypairs = wfConfig.configuration["vanilla"].glideinRequest.keyValuePairs
                 writer = TemplateWriter()
-                writer.rewrite(condorGlideinConfig, stagedGlideinConfigFile, keys, keypairs)
+                writer.rewrite(condorGlideinConfig, stagedGlideinConfigFile, keypairs)
 
                 # write the glidein request script
                 glideinFileName = self.writeGlideinRequest(wfConfig.configuration["vanilla"])
@@ -602,7 +601,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         templateFileName = glideinRequest.templateFileName
         templateFileName = EnvString.resolve(templateFileName)
         outputFileName = glideinRequest.outputFileName
-        keyNames = glideinRequest.keyNames
+
         keyValuePairs = glideinRequest.keyValuePairs
 
         realFileName = os.path.join(self.localWorkDir, outputFileName)
@@ -613,6 +612,6 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             keyValuePairs["START_OWNER"] = getpass.getuser()
 
         writer = TemplateWriter()
-        writer.rewrite(templateFileName, realFileName, keyNames, keyValuePairs)
+        writer.rewrite(templateFileName, realFileName, keyValuePairs)
 
         return realFileName

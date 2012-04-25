@@ -44,6 +44,9 @@ class WorkflowConfigurator:
             self.configNumber = number
             self.globalOffset = offset
 
+        def getConfig(self):
+            return self.config
+
         def getConfigName(self):
             return self.configName
 
@@ -54,7 +57,7 @@ class WorkflowConfigurator:
             return self.globalOffset
 
         def __str__(self):
-            print "self.configName = ",self.configName
+            print "self.configName = ",self.configName,"self.config = ",self.config
             return "configName ="+self.configName
             
     ##
@@ -181,17 +184,16 @@ class WorkflowConfigurator:
         # pipelines in the other workflows so we can enumerate the pipelines
         # in this particular workflow correctly. This needs to be reworked.
 
-        wfNames = self.prodConfig.workflowNames
+        #wfNames = self.prodConfig.workflowNames
         print "expandConfigs wfShortName = ",wfShortName
-        print "expandConfigs wfNames = ",wfNames
         totalCount = 1
-        for wfName in wfNames:
+        for wfName in self.prodConfig.workflow:
             wfConfig = self.prodConfig.workflow[wfName]
             if wfName == wfShortName:
                # we're in the config which needs to be numbered
                expanded = []
-               pipelineNames = wfConfig.pipelineNames
-               for pipelineName in pipelineNames:
+
+               for pipelineName in wfConfig.pipeline:
                    config = wfConfig.pipeline[pipelineName]
                    # default to 1, if runCount doesn't exist
                    runCount = 1
@@ -203,9 +205,8 @@ class WorkflowConfigurator:
        
                return expanded
             else:
-                pipelineNames = wfConfig.pipelineNames
                 
-                for pipelineName in pipelineNames:
+                for pipelineName in wfConfig.pipeline:
                     pipelineConfig = wfConfig.pipeline[pipelineName]
                     if pipelineConfig.runCount != None:
                         totalCount = totalCount + pipelineConfig.runCount

@@ -194,10 +194,14 @@ class DC3Configurator:
         authConfig = AuthConfig()
         authConfig.load(dbAuthFile)
 
-        authNames = authConfig.database.authNames
+        #authInfo = authConfig.database.authInfo
+        #print "authInfo = ",authInfo
+        #authNames = authConfig.database.authInfo.active
 
-        for authName in authNames:
+        for authName in authConfig.database.authInfo:
             auth = authConfig.database.authInfo[authName]
+            print "authName = ",authName
+            print "auth = ",auth
             if (auth.host == host) and (auth.port == port):
                 self.logger.log(Log.DEBUG, "using host %s at port %d" % (host, port))
                 self.dbHost = auth.host

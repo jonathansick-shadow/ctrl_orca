@@ -1,4 +1,3 @@
-import sys
 import lsst.pex.config as pexConfig
 import PipelineConfig as pipe
 import FakeTypeMap as fake
@@ -15,7 +14,7 @@ class CondorDataConfig(pexConfig.Config):
     transferProtocol = pexConfig.Field("method of file transfer",str)
 
 class GlideinRequestConfig(pexConfig.Config):
-    keyNames = pexConfig.ListField("keys",str)
+    #keyNames = pexConfig.ListField("keys",str)
     keyValuePairs = pexConfig.DictField("key value pairs",keytype=str, itemtype=str, default=dict())
     templateFileName = pexConfig.Field("name of template to fill in",str)
     outputFileName = pexConfig.Field("name of file to write",str)

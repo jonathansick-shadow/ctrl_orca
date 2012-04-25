@@ -37,8 +37,11 @@ class DataAnnouncer:
     def announce(self):
         if self.logger is not None:
             self.logger.log(Log.DEBUG, "DataAnnouncer: announce")
-        broker = self.prodConfig.eventBrokerHost
-        config = self.wfConfig.configuration
+        broker = self.prodConfig.production.eventBrokerHost
+        
+        configType = self.wfConfig.configurationType
+        print "configType",configType
+        config = self.wfConfig.configuration[configType]
         if config == None:
             print "configuration for workflow was not found"
             return False

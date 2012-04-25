@@ -18,9 +18,7 @@ class Production(pexConfig.Config):
 
 class ProductionConfig(pexConfig.Config):
     production = pexConfig.ConfigField("production configuration",Production)
-    databaseConfigNames = pexConfig.ListField("database configuration", str)
     database = pexConfig.ConfigChoiceField("database information", fake.FakeTypeMap(db.DatabaseConfig))
-    workflowNames = pexConfig.ListField("workflow names",str)
     workflow = pexConfig.ConfigChoiceField("workflow",fake.FakeTypeMap(work.WorkflowConfig))
     configCheckCare = pexConfig.Field("config check care",int, default=-1)
     configurationClass = pexConfig.Field("configuration class",str)

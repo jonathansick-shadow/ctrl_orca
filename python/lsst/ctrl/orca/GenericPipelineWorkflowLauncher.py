@@ -56,7 +56,7 @@ class GenericPipelineWorkflowLauncher(WorkflowLauncher):
         if self.logger != None:
             self.logger.log(Log.DEBUG, "GenericPipelineWorkflowLauncher:launch")
 
-        eventBrokerHost = self.prodConfig.eventBrokerHost
+        eventBrokerHost = self.prodConfig.production.eventBrokerHost
         shutdownTopic = self.wfConfig.shutdownTopic
 
         # listen on this topic for "workers" sending messages

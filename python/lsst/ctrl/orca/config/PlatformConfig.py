@@ -1,13 +1,5 @@
 import lsst.pex.config as pexConfig
-
-class DirConfig(pexConfig.Config):
-    defaultRoot = pexConfig.Field("root",str)
-    runDirPattern = pexConfig.Field("substitution pattern",str)
-    workDir = pexConfig.Field("work directory",str)
-    inputDir = pexConfig.Field("input directory",str)
-    outputDir = pexConfig.Field("output directory",str)
-    updateDir = pexConfig.Field("update directory",str)
-    scratchDir = pexConfig.Field("scratch directory",str)
+from lsst.ctrl.orca.config.DirectoryConfig import DirectoryConfig
 
 class HwConfig(pexConfig.Config):
     nodeCount = pexConfig.Field("number of nodes",int)
@@ -21,6 +13,6 @@ class DeployConfig(pexConfig.Config):
     nodes = pexConfig.ListField("node names",str)
 
 class PlatformConfig(pexConfig.Config):
-    dir = pexConfig.ConfigField("directory info",DirConfig)
+    dir = pexConfig.ConfigField("directory info",DirectoryConfig)
     hw = pexConfig.ConfigField("hardware info",HwConfig)
     deploy = pexConfig.ConfigField("deploy",DeployConfig)

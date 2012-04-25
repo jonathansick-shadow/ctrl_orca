@@ -8,7 +8,7 @@ class AuthInfoConfig(pexConfig.Config):
     port = pexConfig.Field("port",int)
 
 class AuthDatabaseConfig(pexConfig.Config):
-    authNames = pexConfig.ListField("names",str)
+    #authNames = pexConfig.ListField("names",str)
     authInfo = pexConfig.ConfigChoiceField("auth info",fake.FakeTypeMap(AuthInfoConfig))
 
 class AuthConfig(pexConfig.Config):

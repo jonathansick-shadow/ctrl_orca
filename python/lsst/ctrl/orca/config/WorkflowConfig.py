@@ -14,13 +14,12 @@ class WorkflowConfig(pexConfig.Config):
     platform = pexConfig.ConfigField("platform configuration file",plat.PlatformConfig)
     shutdownTopic = pexConfig.Field("topic used for shutdown events",str)
 
+    configurationType = pexConfig.Field("plugin type",str)
     configurationClass = pexConfig.Field("orca plugin class",str)
     configuration  = pexConfig.ConfigChoiceField("configuration",typemap)
 
-    #
-    # these usually aren't used
-    databaseNames = pexConfig.ListField("database names",str)
+    # this usually isn't used, but is here because the design calls for this
+    # possibility.
     database = pexConfig.ConfigChoiceField("database",fake.FakeTypeMap(data.DatabaseConfig))
 
-    pipelineNames = pexConfig.ListField("pipeline names",str)
     pipeline = pexConfig.ConfigChoiceField("pipeline",fake.FakeTypeMap(pipe.PipelineConfig))

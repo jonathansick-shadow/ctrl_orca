@@ -39,7 +39,7 @@ class TemplateWriter:
     # given a input template, take the keys from the key/values in the config
     # object and substitute the values, and write those to the output file.
     #
-    def rewrite(self, input, output, keys, pairs):
+    def rewrite(self, input, output, pairs):
         fpInput = open(input, 'r')
         fpOutput = open(output, 'w')
 
@@ -55,7 +55,7 @@ class TemplateWriter:
                 line = line.replace(key,val)
 
             # replace the user defined names
-            for name in keys:
+            for name in pairs:
                 key = "$"+name
                 val = str(pairs[name])
                 line = line.replace(key, val)
