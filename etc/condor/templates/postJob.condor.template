@@ -1,0 +1,26 @@
+universe=vanilla
+
+# executable=/bin/hostname
+# arguments=-f
+executable=$SCRIPT
+
+transfer_executable=true
+#
+ 
+ 
+output=logs/worker-post.out
+error=logs/worker-post.err
+log=logs/worker-post.log
+
+Requirements = (FileSystemDomain != "") && (Arch != "") && (OpSys != "") && (Disk != -1) && (Memory != -1) && (DiskUsage >= 0)
+# queue 20
+#
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+
+remote_initialdir=$DEFAULTROOT
+# remote_initialdir=/scratch/00342/ux453102/datarel-runs/pt12prod_im3001/work
+# Requirements = (FileSystemDomain != "dummy") && (Arch != "dummy") && (OpSys != "dummy") && (Disk != -1) && (Memory != -1)
+queue
+

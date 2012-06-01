@@ -117,9 +117,9 @@ class WorkflowConfigurator:
         #
         # setup the database for each database listed in workflow config
         #
-        print "self.wfConfig = "
-        print self.wfConfig
-        print "++++++++++++++++"
+        #print "self.wfConfig = "
+        #print self.wfConfig
+        #print "++++++++++++++++"
         
         if self.wfConfig.database != None:
             databaseConfigs = self.wfConfig.database
