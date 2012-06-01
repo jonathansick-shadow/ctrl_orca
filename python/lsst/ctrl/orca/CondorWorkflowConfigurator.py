@@ -88,7 +88,7 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
     def _configureSpecialized(self, provSetup, wfConfig):
         self.logger.log(Log.DEBUG, "CondorWorkflowConfigurator:configure")
 
-        localConfig = wfConfig.configuration["local"]
+        localConfig = wfConfig.configuration["condor"]
         self.remoteLoginName = localConfig.condorData.loginNode
         self.localScratch = localConfig.condorData.localScratch
 
@@ -100,6 +100,7 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
         # out what this might mean.
         for taskName in taskConfigs:
             task = taskConfigs[taskName]
+            self.scriptDir = task.scriptDir
             print "self.localScratch = ",self.localScratch
             print "self.runid = ",self.runid
             self.localStagingDir = os.path.join(self.localScratch, self.runid)
@@ -116,28 +117,43 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
             os.chdir(taskOutputDir)
 
             # generate pre job 
-            preJob = EnvString.resolve(task.preJob.script)
-            self.writeJobTemplate(task.preJob.outputFile, task.preJob.template, preJob)
+            #preJob = EnvString.resolve(task.preJob.script)
+            #self.writeJobTemplate(task.preJob.outputFile, task.preJob.template, preJob)
+            preJobScript = EnvString.resolve(task.preJob.script.outputFile)
+            self.writeJobTemplate(preJobScript, task.preJob.script.template, None)
+            self.writeJobTemplate(task.preJob.outputFile, task.preJob.template, preJobScript)
+            
         
             # generate post job
-            postJob = EnvString.resolve(task.postJob.script)
-            self.writeJobTemplate(task.postJob.outputFile, task.postJob.template, postJob)
+            #postJob = EnvString.resolve(task.postJob.script)
+            #self.writeJobTemplate(task.postJob.outputFile, task.postJob.template, postJob)
+            postJobScript = EnvString.resolve(task.postJob.script.outputFile)
+            self.writeJobTemplate(postJobScript, task.postJob.script.template, None)
+            self.writeJobTemplate(task.postJob.outputFile, task.postJob.template, postJobScript)
 
             # generate worker job
-            workerJob = EnvString.resolve(task.workerJob.script)
-            self.writeJobTemplate(task.workerJob.outputFile, task.workerJob.template, workerJob)
+            #workerJob = EnvString.resolve(task.workerJob.script)
+            #self.writeJobTemplate(task.workerJob.outputFile, task.workerJob.template, workerJob)
+            workerJobScript = EnvString.resolve(task.workerJob.script.outputFile)
+            self.writeJobTemplate(workerJobScript, task.workerJob.script.template, None)
+            self.writeJobTemplate(task.workerJob.outputFile, task.workerJob.template, workerJobScript)
 
             # switch to staging directory
             os.chdir(self.localStagingDir)
 
             # generate pre script
-            self.writePreScriptTemplate(task.preScript.outputFile, task.preScript.template)
-            os.chmod(task.preScript.outputFile, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+            print "task.preScript = ",task.preScript
+            if task.preScript.outputFile is not None:
+                self.writePreScriptTemplate(task.preScript.outputFile, task.preScript.template)
+                os.chmod(task.preScript.outputFile, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
             
             # generate dag
             dagGenerator = EnvString.resolve(task.dagGenerator.script)
             dagGeneratorInput = EnvString.resolve(task.dagGenerator.input)
-            dagCreatorCmd = [dagGenerator, "-s", dagGeneratorInput, "-w", task.scriptDir, "-t", task.workerJob.outputFile, "-p", task.preScript.outputFile]
+            dagCreatorCmd = [dagGenerator, "-s", dagGeneratorInput, "-w", task.scriptDir, "-t", task.workerJob.outputFile]
+            if task.preScript.outputFile is not None:
+                dagCreatorCmd.append("-p")
+                dagCreatorCmd.append(task.preScript.outputFile)
             print "dagCreatorCmd = ",dagCreatorCmd
             pid = os.fork()
             if not pid:
@@ -177,14 +193,17 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
 
     def writePreScriptTemplate(self, outputFileName, template):
         pairs = {}
-        pairs["runid"] = self.runid
-        pairs["defaultRoot"] = self.defaultRoot
+        pairs["RUNID"] = self.runid
+        pairs["DEFAULTROOT"] = self.defaultRoot
         writer = TemplateWriter()
         writer.rewrite(template, outputFileName, pairs)
 
     def writeJobTemplate(self, outputFileName, template, scriptName):
         pairs = {}
-        pairs["SCRIPT"] = scriptName
+        if scriptName is not None:
+            pairs["SCRIPT"] = self.scriptDir+"/"+scriptName
+        pairs["RUNID"] = self.runid
+        pairs["DEFAULTROOT"] = self.defaultRoot
         writer = TemplateWriter()
         writer.rewrite(template, outputFileName, pairs)
 
@@ -380,7 +399,7 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
     def createCondorDir(self, workDir):
         # create Condor_glidein/local directory under "workDir"
         condorDir = os.path.join(workDir,"Condor_glidein")
-        condorLocalDir = os.path.join(condorDir, "local")
+        condorLocalDir = os.path.join(condorDir, "condor")
         if not os.path.exists(condorLocalDir):
             os.makedirs(condorLocalDir)
 
@@ -394,9 +413,9 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
     def copyLinkScript(self, wfConfig):
         self.logger.log(Log.DEBUG, "CondorWorkflowConfigurator:copyLinkScript")
 
-        if wfConfig.configuration["local"] == None:
+        if wfConfig.configuration["condor"] == None:
             return None
-        configuration = wfConfig.configuration["local"]
+        configuration = wfConfig.configuration["condor"]
         if configuration.deployData == None:
             return None
         deployConfig = configuration.deployData
@@ -417,7 +436,7 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
 
     def runLinkScript(self, wfConfig, remoteName):
         self.logger.log(Log.DEBUG, "CondorWorkflowConfigurator:runLinkScript")
-        configuration = wfConfig.configuration["local"]
+        configuration = wfConfig.configuration["condor"]
         if configuration == None:
             return
 
