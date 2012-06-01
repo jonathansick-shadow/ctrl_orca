@@ -119,10 +119,10 @@ class MySQLConfigurator(MySQLBase):
 
         # prepare list of sql scripts to load
         fN = "lsstSchema4mysql%s.sql" % self.dcVersion
+        perRun = "setup_perRunTables%s.sql" % self.dcVersion
         dbScripts = [os.path.join(self.sqlDir, fN),
                      os.path.join(self.sqlDir, "setup_storedFunctions.sql"),
-                     os.path.join(self.sqlDir, "setup_sdqa.sql"),
-                     os.path.join(self.sqlDir, "setup_perRunTables.sql")]
+                     os.path.join(self.sqlDir, perRun)]
 
         # Verify these scripts exist
         for f in dbScripts:
