@@ -10,12 +10,14 @@ class AppStageConfig(pexConfig.Config):
     stageConfig = pexConfig.Field("config name",str)
 
 class ExecuteConfig(pexConfig.Config):
-    shutdownTopic = pexConfig.Field("shutdown topic",str)
-    eventBrokerHost = pexConfig.Field("event broker host",str)
+    #shutdownTopic = pexConfig.Field("shutdown topic",str)
+    #eventBrokerHost = pexConfig.Field("event broker host",str)
     dir = pexConfig.ConfigField("directories",DirectoryConfig)
-    appStageOrder = pexConfig.ListField("stage order",str)
-    appStage = pexConfig.ConfigChoiceField("appStage",fake.FakeTypeMap(AppStageConfig))
-    failureStage = pexConfig.ConfigChoiceField("appStage",AppStageConfig)
+    environment = pexConfig.Field("environment",str)
+    task = pexConfig.Field("task",str)
+    #appStageOrder = pexConfig.ListField("stage order",str)
+    #appStage = pexConfig.ConfigChoiceField("appStage",fake.FakeTypeMap(AppStageConfig))
+    #failureStage = pexConfig.ConfigChoiceField("appStage",AppStageConfig)
 
 class FrameworkConfig(pexConfig.Config):
     script = pexConfig.Field("program to execute",str)
@@ -34,5 +36,3 @@ class PipelineConfig(pexConfig.Config):
     definition = pexConfig.ConfigField("definition",PipelineDefinitionConfig)
     deploy = pexConfig.ConfigField("deployment info",DeployConfig)
     runCount = pexConfig.Field("job definition",int)
-    launch = pexConfig.Field("job definition",bool)
-

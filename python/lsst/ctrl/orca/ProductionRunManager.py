@@ -228,12 +228,13 @@ class ProductionRunManager:
             self._startShutdownThread()
 
         # announce data, if it's available
-        print "waiting for startup"
-        time.sleep(5)
-        for workflow in self._workflowManagers["__order"]:
-            mgr = self._workflowManagers[workflow.getName()]
-            mgr.announceData()
-        print "Production running."
+        #print "waiting for startup"
+        #time.sleep(5)
+        #for workflow in self._workflowManagers["__order"]:
+        #    mgr = self._workflowManagers[workflow.getName()]
+        #    print "mgr = ",mgr
+        #    mgr.announceData()
+        print "Production launched."
         print "Waiting for shutdown request."
         
 
