@@ -33,15 +33,15 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
     ##
     # @brief
     #
-    def __init__(self, jobs, localScratch, condorGlideinFile, prodConfig, wfConfig, runid, filewaiter, pipelineNames, logger = None):
+    def __init__(self, jobs, localScratch, condorGlideinFile, prodPolicy, wfPolicy, runid, filewaiter, pipelineNames, logger = None):
         if logger != None:
             logger.log(Log.DEBUG, "VanillaCondorWorkflowLauncher:__init__")
         self.logger = logger
         self.jobs = jobs
         self.localScratch = localScratch
         self.condorGlideinFile = condorGlideinFile
-        self.prodConfig = prodConfig
-        self.wfConfig = wfConfig
+        self.prodPolicy = prodPolicy
+        self.wfPolicy = wfPolicy
         self.runid = runid
         self.filewaiter = filewaiter
         self.pipelineNames = pipelineNames
@@ -62,8 +62,8 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
 
         # start the monitor first, because we want to catch any pipeline
         # events that might be sent from expiring pipelines.
-        eventBrokerHost = self.prodConfig.production.eventBrokerHost
-        shutdownTopic = self.wfConfig.shutdownTopic
+        eventBrokerHost = self.prodPolicy.get("eventBrokerHost")
+        shutdownTopic = self.wfPolicy.get("shutdownTopic")
 
         self.workflowMonitor = VanillaCondorWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, self.pipelineNames, loggerManagers, self.logger)
         if statusListener != None:

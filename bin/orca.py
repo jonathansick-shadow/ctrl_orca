@@ -29,10 +29,10 @@ import optparse, traceback, time
 import lsst.ctrl.orca as orca
 import lsst.pex.harness.run as run
 from lsst.pex.logging import Log
+from lsst.pex.policy import Policy
 from lsst.ctrl.orca.ProductionRunManager import ProductionRunManager 
 
-print "1"
-usage = """usage: %prog [-gndvqsc] [-r dir] [-e script] [-V int][-L lev] pipelineConfigFile runId"""
+usage = """usage: %prog [-gndvqsc] [-r dir] [-e script] [-V int][-L lev] pipelinePolicyFile runId"""
 
 parser = optparse.OptionParser(usage)
 # TODO: handle "--dryrun"
@@ -67,9 +67,9 @@ parser.args = []
 (parser.opts, parser.args) = parser.parse_args()
 if len(parser.args) < 2:
     print usage
-    raise RuntimeError("Missing args: pipelineConfigFile runId")
+    raise RuntimeError("Missing args: pipelinePolicyFile runId")
 
-pipelineConfigFile = parser.args[0]
+pipelinePolicyFile = parser.args[0]
 runId = parser.args[1]
 
 orca.skipglidein = parser.opts.skipglidein
@@ -89,12 +89,12 @@ orca.logger.setThreshold(-10 * parser.opts.verbosity)
 orca.dryrun = parser.opts.dryrun
 
 
-orca.logger.log(Log.DEBUG,"pipelineConfigFile = "+pipelineConfigFile)
+orca.logger.log(Log.DEBUG,"pipelinePolicyFile = "+pipelinePolicyFile)
 orca.logger.log(Log.DEBUG, "runId = "+runId)
 
 # create the ProductionRunManager, configure it, and launch it
-#productionRunManager = ProductionRunManager(runId, pipelineConfigFile, orca.logger, pipelineVerbosity=parser.opts.pipeverb)
-productionRunManager = ProductionRunManager(runId, pipelineConfigFile, orca.logger, orca.repository)
+#productionRunManager = ProductionRunManager(runId, pipelinePolicyFile, orca.logger, pipelineVerbosity=parser.opts.pipeverb)
+productionRunManager = ProductionRunManager(runId, pipelinePolicyFile, orca.logger, orca.repository)
 
 
 productionRunManager.runProduction(skipConfigCheck=parser.opts.skipconfigcheck, workflowVerbosity=parser.opts.pipeverb)

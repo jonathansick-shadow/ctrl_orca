@@ -23,7 +23,7 @@
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.ctrl.orca.StatusListener import StatusListener
 from lsst.pex.logging import Log
-import lsst.pex.config as pexConfig
+import lsst.pex.policy as pol
 from lsst.ctrl.orca.multithreading import SharedData
 from lsst.ctrl.orca.DataAnnouncer import DataAnnouncer
 
@@ -31,20 +31,21 @@ class WorkflowManager:
     ##
     # @brief 
     #
-    def __init__(self, name, runid, repository, prodConfig, wfConfig, logger=None):
+    def __init__(self, name, runid, repository, prodPolicy, wfPolicy, logger=None):
 
         # _locked: a container for data to be shared across threads that 
         # have access to this object.
         self._locked = SharedData(False)
 
-        if name != None:
+        if not name:
+            name = wfPolicy.get("shortName")
             self.name = name
         else:
             self.name = "unnamed"
         self.runid = runid
         self.repository = repository
-        self.wfConfig = wfConfig
-        self.prodConfig = prodConfig
+        self.wfPolicy = wfPolicy
+        self.prodPolicy = prodPolicy
         self._workflowConfigurator = None
 
         # the logger used by this instance
@@ -127,7 +128,7 @@ class WorkflowManager:
         try:
             self._locked.acquire()
 
-            self._workflowConfigurator = self.createConfigurator(self.runid, self.repository, self.name, self.wfConfig, self.prodConfig)
+            self._workflowConfigurator = self.createConfigurator(self.runid, self.repository, self.wfPolicy, self.prodPolicy)
             self._workflowLauncher = self._workflowConfigurator.configure(provSetup, workflowVerbosity)
         finally:
             self._locked.release()
@@ -140,18 +141,20 @@ class WorkflowManager:
     # @brief  create a Workflow configurator for this workflow.
     #
     # @param runid       the production run id 
-    # @param wfConfig    the config describing the workflow
-    # @param prodConfig  the config describing the overall production.  This
+    # @param wfPolicy    the policy describing the workflow
+    # @param prodPolicy  the policy describing the overall production.  This
     #                       provides common data (e.g. event broker host)
     #                       that needs to be shared with all pipelines. 
-    def createConfigurator(self, runid, repository, wfName, wfConfig, prodConfig):
+    def createConfigurator(self, runid, repository, wfPolicy, prodPolicy):
         self.logger.log(Log.DEBUG, "WorkflowManager:createConfigurator")
 
-        className = wfConfig.configurationClass
+        # TODO: copy prodPolicy info into wfPolicy
+        
+        className = wfPolicy.get("configurationClass")
         classFactory = NamedClassFactory()
         
         configuratorClass = classFactory.createClass(className)
-        configurator = configuratorClass(self.runid, repository, prodConfig, wfConfig, wfName, self.logger) 
+        configurator = configuratorClass(self.runid, repository, prodPolicy, wfPolicy, self.logger) 
         return configurator
 
     ##
@@ -214,8 +217,8 @@ class WorkflowManager:
         return self._workflowConfigurator.getNodeCount()
 
     def announceData(self):
-        announcer = DataAnnouncer(self.runid, self.prodConfig, self.wfConfig, self.logger)
+        announcer = DataAnnouncer(self.runid, self.prodPolicy, self.wfPolicy, self.logger)
         if announcer.announce():
-            print "Data announced via config for %s" % self.name
+            print "Data announced via policy for %s" % self.name
         else:
             print "No data announced for %s.  Waiting for events from external source" % self.name

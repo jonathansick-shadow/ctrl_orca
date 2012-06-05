@@ -20,7 +20,7 @@
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 
-#from .version import *
+from .version import *
 from lsst.pex.logging import Log
 
 dryrun = False

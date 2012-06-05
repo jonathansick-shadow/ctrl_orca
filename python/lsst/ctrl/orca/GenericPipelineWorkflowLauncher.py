@@ -31,13 +31,13 @@ class GenericPipelineWorkflowLauncher(WorkflowLauncher):
     ##
     # @brief
     #
-    def __init__(self, cmds, prodConfig, wfConfig, runid, fileWaiter, pipelineNames, logger = None):
+    def __init__(self, cmds, prodPolicy, wfPolicy, runid, fileWaiter, pipelineNames, logger = None):
         if logger != None:
             logger.log(Log.DEBUG, "GenericPipelineWorkflowLauncher:__init__")
         self.logger = logger
         self.cmds = cmds
-        self.wfConfig = wfConfig
-        self.prodConfig = prodConfig
+        self.wfPolicy = wfPolicy
+        self.prodPolicy = prodPolicy
         self.runid = runid
         self.fileWaiter = fileWaiter
         self.pipelineNames = pipelineNames
@@ -56,8 +56,8 @@ class GenericPipelineWorkflowLauncher(WorkflowLauncher):
         if self.logger != None:
             self.logger.log(Log.DEBUG, "GenericPipelineWorkflowLauncher:launch")
 
-        eventBrokerHost = self.prodConfig.production.eventBrokerHost
-        shutdownTopic = self.wfConfig.shutdownTopic
+        eventBrokerHost = self.prodPolicy.get("eventBrokerHost")
+        shutdownTopic = self.wfPolicy.get("shutdownTopic")
 
         # listen on this topic for "workers" sending messages
 
