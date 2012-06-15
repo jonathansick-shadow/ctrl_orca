@@ -100,11 +100,12 @@ class ProductionRunManager:
         else:
             self.repository = EnvString.resolve(self.repository)
             
+        # XXX - Check to see if we need to do this still.
         # do a little sanity checking on the repository before we continue.
-        if not os.path.exists(self.repository):
-            raise RuntimeError("specified repository " + self.repository + ": directory not found");        
-        if not os.path.isdir(self.repository):
-            raise RuntimeError("specified repository "+ self.repository + ": not a directory");
+        #if not os.path.exists(self.repository):
+        #    raise RuntimeError("specified repository " + self.repository + ": directory not found");        
+        #if not os.path.isdir(self.repository):
+        #    raise RuntimeError("specified repository "+ self.repository + ": not a directory");
 
         # shutdown thread
         self._sdthread = None

@@ -28,10 +28,7 @@ executable = $(DOLLAR)(HOME)/Condor_glidein/glidein_startup
 arguments = -dyn -f
 
 
-# Environment = CONDOR_CONFIG=$ORCA_REMOTE_WORKDIR/Condor_glidein/glidein_condor_config;_condor_CONDOR_HOST=$ORCA_LOCAL_HOSTNAME;_condor_GLIDEIN_HOST=$ORCA_LOCAL_HOSTNAME;_condor_LOCAL_DIR=$ORCA_REMOTE_WORKDIR/Condor_glidein/local;_condor_SBIN=$CONDOR_SBIN;_condor_NUM_CPUS=$CPU_COUNT;_condor_UID_DOMAIN=tacc.utexas.edu;_condor_FILESYSTEM_DOMAIN=tacc.utexas.edu;_condor_MAIL=/bin/mail;_condor_STARTD_NOCLAIM_SHUTDOWN=900;_condor_START_owner=$START_OWNER
-
-# Environment = CONDOR_CONFIG=$ORCA_REMOTE_WORKDIR/Condor_glidein/glidein_condor_config;_condor_CONDOR_HOST=$ORCA_LOCAL_HOSTNAME;_condor_GLIDEIN_HOST=$ORCA_LOCAL_HOSTNAME;_condor_LOCAL_DIR=$ORCA_REMOTE_WORKDIR/Condor_glidein/local;_condor_SBIN=$CONDOR_SBIN;_condor_NUM_CPUS=$CPU_COUNT;_condor_UID_DOMAIN=ncsa.uiuc.edu;_condor_FILESYSTEM_DOMAIN=ncsa.uiuc.edu;_condor_MAIL=/bin/mail;_condor_STARTD_NOCLAIM_SHUTDOWN=900;_condor_START_owner=$START_OWNER
-Environment = CONDOR_CONFIG=$(DOLLAR)(HOME)/Condor_glidein/glidein_condor_config;_condor_CONDOR_HOST=$ORCA_LOCAL_HOSTNAME;_condor_GLIDEIN_HOST=$ORCA_LOCAL_HOSTNAME;_condor_LOCAL_DIR=$ORCA_REMOTE_WORKDIR/Condor_glidein/local;_condor_SBIN=$CONDOR_SBIN;_condor_NUM_CPUS=$CPU_COUNT;_condor_UID_DOMAIN=ncsa.uiuc.edu;_condor_FILESYSTEM_DOMAIN=ncsa.uiuc.edu;_condor_MAIL=/bin/mail;_condor_STARTD_NOCLAIM_SHUTDOWN=900
+Environment = CONDOR_CONFIG=$(DOLLAR)(HOME)/Condor_glidein/glidein_condor_config;_condor_CONDOR_HOST=lsst-launch.ncsa.illinois.edu;_condor_GLIDEIN_HOST=lsst-launch.ncsa.illinois.edu;_condor_LOCAL_DIR=$ORCA_REMOTE_WORKDIR;_condor_SBIN=$CONDOR_SBIN;_condor_NUM_CPUS=$CPU_COUNT;_condor_UID_DOMAIN=ncsa.illinois.edu;_condor_FILESYSTEM_DOMAIN=ncsa.illinois.edu;_condor_MAIL=/bin/mail;_condor_STARTD_NOCLAIM_SHUTDOWN=900
 
 Transfer_Executable = False
 
@@ -44,7 +41,7 @@ error = run.error
 log = run.log
 
 
-gridresource = gt5 gridftp1.ls4.tacc.utexas.edu:2119/jobmanager-sge
+gridresource = gt5 gatekeeper.lonestar.tacc.utexas.edu:2119/jobmanager-sge
 
 Notification = Never
 Queue

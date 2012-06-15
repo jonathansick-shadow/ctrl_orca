@@ -89,27 +89,37 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
         self.logger.log(Log.DEBUG, "CondorWorkflowConfigurator:configure")
 
         localConfig = wfConfig.configuration["condor"]
-        self.remoteLoginName = localConfig.condorData.loginNode
         self.localScratch = localConfig.condorData.localScratch
 
         platformConfig = wfConfig.platform
         taskConfigs = wfConfig.task
 
 
+        self.localStagingDir = os.path.join(self.localScratch, self.runid)
+        os.makedirs(self.localStagingDir)
+
+        # write the glidein file
+        startDir = os.getcwd()
+        os.chdir(self.localStagingDir)
+
+        if localConfig.glidein.template.inputFile is not None:
+            self.writeGlideinFile(localConfig.glidein)
+        else:
+            print "not writing glidein file"
+        os.chdir(startDir)
+
         # TODO - fix this loop for multiple condor submits; still working
         # out what this might mean.
         for taskName in taskConfigs:
             task = taskConfigs[taskName]
             self.scriptDir = task.scriptDir
-            print "self.localScratch = ",self.localScratch
-            print "self.runid = ",self.runid
-            self.localStagingDir = os.path.join(self.localScratch, self.runid)
-            os.makedirs(self.localStagingDir)
             
             # save initial directory we were called from so we can get back
             # to it
             startDir = os.getcwd()
 
+            # switch to staging directory
+            os.chdir(self.localStagingDir)
 
             # switch to tasks directory in staging directory
             taskOutputDir = os.path.join(self.localStagingDir, task.scriptDir)
@@ -119,7 +129,7 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
             # generate pre job 
             preJobScript = EnvString.resolve(task.preJob.script.outputFile)
             preJobScriptTemplate = EnvString.resolve(task.preJob.script.template)
-            self.writeJobTemplate(preJobScript, preJobScriptTemplate, None)
+            self.writeJobTemplate(preJobScript, preJobScriptTemplate)
             preJobTemplate = EnvString.resolve(task.preJob.template)
             self.writeJobTemplate(task.preJob.outputFile, preJobTemplate, preJobScript)
             
@@ -127,14 +137,14 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
             # generate post job
             postJobScript = EnvString.resolve(task.postJob.script.outputFile)
             postJobScriptTemplate = EnvString.resolve(task.postJob.script.template)
-            self.writeJobTemplate(postJobScript, postJobScriptTemplate, None)
+            self.writeJobTemplate(postJobScript, postJobScriptTemplate)
             postJobTemplate = EnvString.resolve(task.postJob.template)
             self.writeJobTemplate(task.postJob.outputFile, postJobTemplate, postJobScript)
 
             # generate worker job
             workerJobScript = EnvString.resolve(task.workerJob.script.outputFile)
             workerJobScriptTemplate = EnvString.resolve(task.workerJob.script.template)
-            self.writeJobTemplate(workerJobScript, workerJobScriptTemplate, None)
+            self.writeJobTemplate(workerJobScript, workerJobScriptTemplate)
             workerJobTemplate = EnvString.resolve(task.workerJob.template)
             self.writeJobTemplate(task.workerJob.outputFile, workerJobTemplate, workerJobScript)
 
@@ -142,10 +152,10 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
             os.chdir(self.localStagingDir)
 
             # generate pre script
-            print "task.preScript = ",task.preScript
+
             if task.preScript.outputFile is not None:
                 preScriptTemplate = EnvString.resolve(task.preScript.template)
-                self.writePreScriptTemplate(task.preScript.outputFile, preScriptTemplate)
+                self.writePreScript(task.preScript.outputFile, preScriptTemplate)
                 os.chmod(task.preScript.outputFile, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
             
             # generate dag
@@ -155,7 +165,6 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
             if task.preScript.outputFile is not None:
                 dagCreatorCmd.append("-p")
                 dagCreatorCmd.append(task.preScript.outputFile)
-            print "dagCreatorCmd = ",dagCreatorCmd
             pid = os.fork()
             if not pid:
                 os.execvp(dagCreatorCmd[0], dagCreatorCmd)
@@ -193,14 +202,14 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
         return workflowLauncher
 
     # TODO - XXX - these probably can be combined
-    def writePreScriptTemplate(self, outputFileName, template):
+    def writePreScript(self, outputFileName, template):
         pairs = {}
         pairs["RUNID"] = self.runid
         pairs["DEFAULTROOT"] = self.defaultRoot
         writer = TemplateWriter()
         writer.rewrite(template, outputFileName, pairs)
 
-    def writeJobTemplate(self, outputFileName, template, scriptName):
+    def writeJobTemplate(self, outputFileName, template, scriptName = None):
         pairs = {}
         if scriptName is not None:
             pairs["SCRIPT"] = self.scriptDir+"/"+scriptName
@@ -208,6 +217,23 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
         pairs["DEFAULTROOT"] = self.defaultRoot
         writer = TemplateWriter()
         writer.rewrite(template, outputFileName, pairs)
+
+    def writeGlideinFile(self, glideinConfig):
+        template = glideinConfig.template
+        inputFile = EnvString.resolve(template.inputFile)
+
+        # copy the keywords so we can add a couple more
+        pairs = {}
+        for value in template.keywords:
+            val = template.keywords[value]
+            pairs[value] = val
+        pairs["ORCA_REMOTE_WORKDIR"] = self.defaultRoot+"/"+self.runid
+        if pairs.has_key("START_OWNER") == False:
+            pairs["START_OWNER"] = getpass.getuser()
+
+        writer = TemplateWriter()
+        writer.rewrite(inputFile, template.outputFile, pairs)
+          
 
     def getWorkflowName(self):
         return self.wfName

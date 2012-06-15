@@ -5,6 +5,7 @@ universe=vanilla
 executable=$SCRIPT
 
 transfer_executable=true
+notification=Error
 #
  
  

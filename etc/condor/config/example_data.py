@@ -7,7 +7,7 @@ root.production.repositoryDirectory = "/home/srp/working/pipeline_new"
 root.production.productionShutdownTopic = "productionShutdown"
 
 root.database["db1"].name = "dc3bGlobal"
-root.database["db1"].system.authInfo.host = "fester.ncsa.uiuc.edu"
+root.database["db1"].system.authInfo.host = "lsst10.ncsa.uiuc.edu"
 root.database["db1"].system.authInfo.port = 3306
 root.database["db1"].system.runCleanup.daysFirstNotice = 7
 root.database["db1"].system.runCleanup.daysFinalNotice = 1

@@ -24,6 +24,7 @@
 
 
 import os
+import subprocess
 import sys
 import re
 import time
@@ -37,7 +38,8 @@ from lsst.pex.logging import Log
 class CondorJobs:
     def __init__(self, logger):
         self.logger = logger
-        self.logger.log(Log.DEBUG, "CondorJobs:__init__")
+        if self.logger is not None:
+            self.logger.log(Log.DEBUG, "CondorJobs:__init__")
         return
 
 
@@ -48,7 +50,8 @@ class CondorJobs:
     # 1 job(s) submitted to cluster 1317.
     
     def submitJob(self, condorFile):
-        self.logger.log(Log.DEBUG, "CondorJobs:submitJob")
+        if self.logger is not None:
+            self.logger.log(Log.DEBUG, "CondorJobs:submitJob")
         clusterexp = re.compile("1 job\(s\) submitted to cluster (\d+).")
     
         submitRequest = "condor_submit %s" % condorFile
@@ -74,7 +77,8 @@ class CondorJobs:
     #1017.0   srp             5/24 09:18   0+00:00:00 R  0   0.0  launch_joboffices_
     
     def waitForJobToRun(self, num, extramsg=None):
-        self.logger.log(Log.DEBUG, "CondorJobs:waitForJobToRun")
+        if self.logger is not None:
+            self.logger.log(Log.DEBUG, "CondorJobs:waitForJobToRun")
         jobNum = "%s.0" % num
         queueExp = re.compile("\S+")
         cJobSeen = 0
@@ -131,7 +135,8 @@ class CondorJobs:
             secondsWaited = secondsWaited + 1
 
     def waitForAllJobsToRun(self, numList):
-        self.logger.log(Log.DEBUG, "CondorJobs:waitForAllJobsToRun")
+        if self.logger is not None:
+            self.logger.log(Log.DEBUG, "CondorJobs:waitForAllJobsToRun")
         queueExp = re.compile("\S+")
         jobList = list(numList)
         while 1:
@@ -160,3 +165,60 @@ class CondorJobs:
                         return
             pop.close()
             time.sleep(1)
+
+    # submit a condor dag and return its cluster number
+    def condorSubmitDag(self, filename):
+        if self.logger is not None:
+            self.logger.log(Log.DEBUG, "CondorJobs: submitCondorDag "+filename)
+        # Just a note about why this was done this way...
+        # There's something wierd about how "condor_submit_dag" prints it's output.
+        # If you run it on the command line, it'll print the "1 job(s) submitted" 
+        # message as one of the last lines of output.
+        # If you redirect output, even on the command line, to a file, it will
+        # be one of the first lines.
+        # In an effort to avoid having to fix any output behavior issues in the
+        # future, we just try and match every line of output with "1 jobs(s) submitted"
+        # and if we find, it, we grab the cluster id out of that line.
+        clusterexp = re.compile("1 job\(s\) submitted to cluster (\d+).")
+        cmd = "condor_submit_dag %s" % filename
+        print cmd
+        process = subprocess.Popen(cmd.split(), shell=False, stdout=subprocess.PIPE)
+        output = []
+        line = process.stdout.readline()
+        i = 0
+        while line != "":
+            line = line.strip()
+            output.append(line)
+            line = process.stdout.readline()
+            i += 1
+        for line in output:
+            num = clusterexp.findall(line)
+            if len(num) != 0:
+                return num[0]
+        return -1
+
+    def killCondorId(self, cid):
+        if self.logger is not None:
+            self.logger.log(Log.DEBUG, "CondorJobs: killCondorId"+str(cid))
+        cmd = "condor_rm "+str(cid)
+        process = subprocess.Popen(cmd.split(), shell=False, stdout=subprocess.PIPE)
+        line = process.stdout.readline()
+        while line != "":
+            line = line.strip()
+            print line
+            line = process.stdout.readline()
+
+    def isJobAlive(self,cid):
+        jobNum = "%s.0" % cid
+        queueExp = re.compile("\S+")
+        process = subprocess.Popen("condor_q", shell=False, stdout=subprocess.PIPE)
+        while 1:
+            line = process.stdout.readline()
+            if not line:
+                break
+            values = queueExp.findall(line)
+            if len(values) == 0:
+                continue
+            if (values[0] == jobNum):
+                return True
+        return False

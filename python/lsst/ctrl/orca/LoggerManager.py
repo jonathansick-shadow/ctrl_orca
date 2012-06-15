@@ -28,7 +28,7 @@ import sys
 import re
 import time
 import signal
-from subprocess import Popen
+import subprocess
 from lsst.pex.logging import Log
 
 
@@ -58,7 +58,9 @@ class LoggerManager:
             return
 
         directory = os.getenv("CTRL_ORCA_DIR")
-        self.process = Popen("%s/bin/Logger.py %s %s %s %s %s" % (directory, self.broker, self.dbHost, self.dbPort, self.runid, self.dbName), shell=True)
+        cmd = "%s/bin/Logger.py %s %s %s %s %s" % (directory, self.broker, self.dbHost, self.dbPort, self.runid, self.dbName)
+        print "Logger: ",cmd
+        self.process = subprocess.Popen(cmd, shell=True)
         return
 
     def stop(self):
