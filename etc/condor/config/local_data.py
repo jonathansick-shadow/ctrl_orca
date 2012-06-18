@@ -14,7 +14,7 @@ root.database["db1"].system.runCleanup.daysFinalNotice = 1
 
 root.database["db1"].configurationClass = "lsst.ctrl.orca.db.DC3Configurator"
 root.database["db1"].configuration["production"].globalDbName = "GlobalDB"
-root.database["db1"].configuration["production"].dcVersion = "PT1_2"
+root.database["db1"].configuration["production"].dcVersion = "S12_lsstsim"
 root.database["db1"].configuration["production"].dcDbName = "DC3b_DB"
 root.database["db1"].configuration["production"].minPercDiskSpaceReq = 10
 root.database["db1"].configuration["production"].userRunLife = 2
