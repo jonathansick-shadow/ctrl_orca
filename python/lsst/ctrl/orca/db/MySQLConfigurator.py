@@ -122,7 +122,6 @@ class MySQLConfigurator(MySQLBase):
         perRun = "setup_perRunTables%s.sql" % self.dcVersion
         dbScripts = [os.path.join(self.sqlDir, fN),
                      os.path.join(self.sqlDir, "setup_storedFunctions.sql"),
-                     os.path.join(self.sqlDir, "setup_sdqa.sql"),
                      os.path.join(self.sqlDir, perRun)]
 
         # Verify these scripts exist
