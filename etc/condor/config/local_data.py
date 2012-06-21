@@ -77,7 +77,7 @@ root.workflow["association"].task["isr"].postJob.outputFile = "W2012Pipe.post"
 #
 root.workflow["association"].task["isr"].workerJob.script.template = "$CTRL_ORCA_DIR/etc/condor/templates/helloworld.sh.template"
 root.workflow["association"].task["isr"].workerJob.script.outputFile = "helloworld.sh"
-root.workflow["association"].task["isr"].workerJob.template = "$CTRL_ORCA_DIR/etc/condor/templates/workerJob.condor.template"
+root.workflow["association"].task["isr"].workerJob.template = "$CTRL_ORCA_DIR/etc/condor/templates/localworkerJob.condor.template"
 root.workflow["association"].task["isr"].workerJob.outputFile = "W2012Pipeline-template.condor"
 
 #
@@ -89,5 +89,5 @@ root.workflow["association"].task["isr"].workerJob.outputFile = "W2012Pipeline-t
 #
 root.workflow["association"].task["isr"].dagGenerator.dagName = "W2012Pipe"
 root.workflow["association"].task["isr"].dagGenerator.script = "$CTRL_ORCA_DIR/etc/condor/scripts/generateDag.py"
-root.workflow["association"].task["isr"].dagGenerator.input = "$CTRL_ORCA_DIR/etc/condor/input/9429-CCDs.input"
+root.workflow["association"].task["isr"].dagGenerator.input = "$CTRL_ORCA_DIR/etc/condor/input/short.input"
 

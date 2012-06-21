@@ -1,7 +1,8 @@
 #!/bin/sh
 date
+echo "args are"
+echo $*
 echo "Hello from"
 /bin/hostname -f
-/bin/hostname -f >hostname.$$.out
+sleep 60
 date
-

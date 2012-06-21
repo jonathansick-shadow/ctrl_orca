@@ -68,11 +68,15 @@ def makeArgumentParser(description, inRootsRequired=True, addRegistryOption=True
         "-p", "--prescript", dest="prescript",
         help="pre shell script")
 
+    parser.add_argument(
+        "-r", "--runid", dest="runid",
+        help="runid of this job")
+
     return parser
  
 
 
-def writeDagFile(pipeline, templateFile, infile, workerdir, prescriptFile):
+def writeDagFile(pipeline, templateFile, infile, workerdir, prescriptFile, runid):
     """
     Write Condor Dag Submission files. 
     """
@@ -138,6 +142,8 @@ def writeDagFile(pipeline, templateFile, infile, workerdir, prescriptFile):
         outObj.write("VARS A" + str(count) + " var1=\"" + myData  + "\" \n"); 
         outObj.write("VARS A" + str(count) + " var2=\"" + newData + "\" \n"); 
         outObj.write("VARS A" + str(count) + " visit=\"" + visit + "\" \n"); 
+        outObj.write("VARS A" + str(count) + " runid=\"" + runid + "\" \n"); 
+        outObj.write("VARS A" + str(count) + " workerid=\"" + str(count) + "\" \n"); 
 
     print "Third Input File loop "
 
@@ -178,7 +184,7 @@ def main():
     #templateFile = "W2012Pipe-template.condor"
     #infile   = "9429-CCDs.input"
 
-    writeDagFile(pipeline, ns.template, ns.source, ns.workerdir, ns.prescript )
+    writeDagFile(pipeline, ns.template, ns.source, ns.workerdir, ns.prescript, ns.runid )
 
 
     sys.exit(0)
