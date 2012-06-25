@@ -21,12 +21,18 @@
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 import sys
+import lsst.ctrl.events as events
 from lsst.ctrl.events import EventLog
 from lsst.pipe.tasks.processCcdSdss import ProcessCcdSdssTask
 import lsst.pex.logging as log
 
+host = "lsst8.ncsa.uiuc.edu"
+topic = events.EventLog.LOGGING_TOPIC
+eventSystem = events.EventSystem.getDefaultEventSystem()
+eventSystem.createTransmitter(host,topic)
+
 runid = sys.argv[1]
-workerid = sys.argv[2]
+workerid = int(sys.argv[2])
 sys.argv.pop(1)
 sys.argv.pop(1)
 EventLog.createDefaultLog(runid, workerid)

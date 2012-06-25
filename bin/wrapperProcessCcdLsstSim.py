@@ -38,7 +38,7 @@ from lsst.ctrl.events import EventLog
 if __name__ == "__main__":
     # added by srp
     runid = sys.argv[1]
-    workerid = sys.argv[2]
+    workerid = int(sys.argv[2])
     sys.argv.pop(1)
     sys.argv.pop(1)
     EventLog.createDefaultLog(runid, workerid)
