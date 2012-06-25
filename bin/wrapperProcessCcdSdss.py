@@ -20,6 +20,7 @@
 # the GNU General Public License along with this program.  If not,
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
+import sys
 from lsst.ctrl.events import EventLog
 from lsst.pipe.tasks.processCcdSdss import ProcessCcdSdssTask
 import lsst.pex.logging as log
