@@ -1,7 +1,7 @@
 import sys
 import lsst.pex.config as pexConfig
 import PipelineConfig as pipe
-import LocalCondorWorkflowConfig as local
+import CondorWorkflowConfig as condor
 import VanillaCondorWorkflowConfig as van
 import GenericWorkflowConfig as gen
 import FakeTypeMap as fake
@@ -9,7 +9,7 @@ import DatabaseConfig as data
 import PlatformConfig as plat
 import TaskConfig as task
 
-typemap = {"generic":gen.GenericWorkflowConfig,"vanilla":van.VanillaCondorWorkflowConfig, "local":local.LocalCondorWorkflowConfig}
+typemap = {"generic":gen.GenericWorkflowConfig,"vanilla":van.VanillaCondorWorkflowConfig, "condor":condor.CondorWorkflowConfig}
 
 class WorkflowConfig(pexConfig.Config):
     shortName = pexConfig.Field("name of this workflow",str)

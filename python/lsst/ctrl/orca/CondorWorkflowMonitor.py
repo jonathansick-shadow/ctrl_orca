@@ -30,13 +30,15 @@ from lsst.pex.logging import Log
 from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
 from lsst.ctrl.orca.multithreading import SharedData
+from lsst.ctrl.orca.CondorJobs import CondorJobs
+
 
 class CondorWorkflowMonitor(WorkflowMonitor):
     ##
     # @brief in charge of monitoring and/or controlling the progress of a
     #        running workflow.
     #
-    def __init__(self, eventBrokerHost, shutdownTopic, runid, loggerManagers, logger):
+    def __init__(self, eventBrokerHost, shutdownTopic, runid, condorDagId, loggerManagers, logger):
 
         #self.__init__(logger)
 
@@ -61,6 +63,7 @@ class CondorWorkflowMonitor(WorkflowMonitor):
         self._shutdownTopic = shutdownTopic
         self.orcaTopic = "orca.monitor"
         self.runid = runid
+        self.condorDagId = condorDagId
 
         self._wfMonitorThread = None
         self.eventSystem = events.EventSystem.getDefaultEventSystem()
@@ -68,22 +71,25 @@ class CondorWorkflowMonitor(WorkflowMonitor):
         self.bSentLastLoggerEvent = False
 
         with self._locked:
-            self._wfMonitorThread = CondorWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, self.orcaTopic, runid)
+            self._wfMonitorThread = CondorWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, self.orcaTopic, runid, self.condorDagId)
 
 
     class _WorkflowMonitorThread(threading.Thread):
-        def __init__(self, parent, eventBrokerHost, shutdownTopic, eventTopic, runid):
+        def __init__(self, parent, eventBrokerHost, shutdownTopic, eventTopic, runid, condorDagId):
             threading.Thread.__init__(self)
             self.setDaemon(True)
             self._parent = parent
             self._eventBrokerHost = eventBrokerHost
             self._shutdownTopic = shutdownTopic
             self._eventTopic = eventTopic
+
             selector = "RUNID = '%s'" % runid
             self._receiver = events.EventReceiver(self._eventBrokerHost, self._eventTopic, selector)
             self._Logreceiver = events.EventReceiver(self._eventBrokerHost, "LoggerStatus", selector)
+            self.condorDagId = condorDagId
 
         def run(self):
+            cj = CondorJobs(self._parent.logger)
             self._parent.logger.log(Log.DEBUG, "CondorWorkflowMonitor Thread started")
             sleepInterval = 5
             # we don't decide when we finish, someone else does.
@@ -109,7 +115,12 @@ class CondorWorkflowMonitor(WorkflowMonitor):
                     sleepInterval = 0
                 else:
                     sleepInterval = 5
-
+                # if the dag is no longer running, send the logger an event
+                # telling it to clean up.
+                if cj.isJobAlive(self.condorDagId) == False:
+                    self._parent.sendLastLoggerEvent()
+                
+                
 
     def startMonitorThread(self, runid):
         with self._locked:
@@ -125,6 +136,7 @@ class CondorWorkflowMonitor(WorkflowMonitor):
         #print ps.toString()
         #print "==="
 
+        # check for Logger event status
         if event.getType() == events.EventTypes.STATUS:
             ps = event.getPropertySet()
             #print ps.toString()
@@ -132,42 +144,42 @@ class CondorWorkflowMonitor(WorkflowMonitor):
             if ps.exists("logger.status"):
                 loggerStatus = ps.get("logger.status")
                 pid = ps.getInt("logger.pid")
+                print "logger.pid = ",pid
                 if pid in self.loggerPIDs:
                     self.loggerPIDs.remove(pid)
 
-            # XXX - 'cnt' *was* the number of pipelines left
-            # we have to come up with a new way to test when things are
-            # done, likely something in postscript.sh
-            # force it to "cnt = 1" for now
-            cnt = 1 
-
-            if (cnt == 0) and (self.bSentLastLoggerEvent == False):
-                self.eventSystem.createTransmitter(self._eventBrokerHost, events.EventLog.LOGGING_TOPIC)
-                evtlog = events.EventLog(self.runid, -1)
-                tlog = logging.Log(evtlog, "orca.control")
-                logging.LogRec(tlog, 1) << logging.Prop("STATUS", "eol") << logging.LogRec.endr
-                self.bSentLastLoggerEvent = True
-
-            # if both lists are empty we're finished.
-            #if (len(self.pipelineNames) == 0) and (len(self.loggerPIDs) == 0):
+            # if the logger list is empty, we're finished.
             if len(self.loggerPIDs) == 0:
                with self._locked:
                    self._locked.running = False
         elif event.getType() == events.EventTypes.COMMAND:
+            # TODO: stop this thing right now.
+            # that means the logger and the dag.
             with self._locked:
                 self._locked.running = False
         else:
             print "didn't handle anything"
+
+    def sendLastLoggerEvent(self):
+        # send a message to the logger that we're done
+        if self.bSentLastLoggerEvent == False:
+            print "sending last Logger Event"
+            self.eventSystem.createTransmitter(self._eventBrokerHost, events.EventLog.LOGGING_TOPIC)
+            evtlog = events.EventLog(self.runid, -1)
+            tlog = logging.Log(evtlog, "orca.control")
+            logging.LogRec(tlog, 1) << logging.Prop("STATUS", "eol") << logging.LogRec.endr
+            self.bSentLastLoggerEvent = True
+
     ##
     # @brief stop the workflow
     #
     def stopWorkflow(self, urgency):
         self.logger.log(Log.DEBUG, "CondorWorkflowMonitor:stopWorkflow")
-        transmit = events.EventTransmitter(self._eventBrokerHost, self._shutdownTopic)
-        
-        root = PropertySet()
-        root.setInt("level",urgency)
-        root.setString("STATUS","shut things down")
 
-        event = events.CommandEvent(self.runid, self.originatorId, 0, root)
-        transmit.publishEvent(event)
+        # do a condor_rm on the cluster id for the dag we submitted.
+        cj = CondorJobs(self.logger)
+        cj.killCondorId(self.condorDagId)
+
+        self.sendLastLoggerEvent()
+    
+

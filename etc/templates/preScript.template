@@ -1,0 +1,24 @@
+#!/bin/sh
+cd $DEFAULTROOT
+mkdir -p $RUNID
+CD $RUNID
+mkdir -p html
+mkdir -p logs
+mkdir -p output
+mkdir -p setup-logs
+
+
+mkdir -p output/calexp
+mkdir -p output/icMatch
+mkdir -p output/icSrc
+mkdir -p output/postISRCCD
+mkdir -p output/processCcd_config
+mkdir -p output/processCcd_metadata
+mkdir -p output/psf
+mkdir -p output/src
+
+ln -s /scratch/00342/ux453102/base/lsst/pt1_2/data/obs/ImSim/bias output/bias
+ln -s /scratch/00342/ux453102/base/lsst/pt1_2/data/obs/ImSim/dark output/dark
+ln -s /scratch/00342/ux453102/base/lsst/pt1_2/data/obs/ImSim/flat output/flat
+ln -s /scratch/00342/ux453102/base/lsst/pt1_2/data/obs/ImSim/raw  output/raw
+ln -s /scratch/00342/ux453102/base/lsst/pt1_2/data/obs/ImSim/registry.sqlite3 output/registry.sqlite3

@@ -1,0 +1,20 @@
+universe=vanilla
+
+executable=$SCRIPT
+
+transfer_executable=true
+
+Requirements = (FileSystemDomain != "") && (Arch != "") && (OpSys != "") && (Disk != -1) && (Memory != -1) && (DiskUsage >= 0)
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+notification=Error
+
+
+args=$(var1)
+
+output=logs/$(visit)/worker-$(var2).out
+error=logs/$(visit)/worker-$(var2).err
+remote_initialdir=$DEFAULTROOT/$RUNID
+
+queue 1

@@ -60,26 +60,23 @@ class CondorWorkflowLauncher(WorkflowLauncher):
         # start the monitor first, because we want to catch any pipeline
         # events that might be sent from expiring pipelines.
         eventBrokerHost = self.prodConfig.production.eventBrokerHost
-        shutdownTopic = self.wfConfig.shutdownTopic
-
-        self.workflowMonitor = CondorWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, loggerManagers, self.logger)
-        if statusListener != None:
-            self.workflowMonitor.addStatusListener(statusListener)
-        self.workflowMonitor.startMonitorThread(self.runid)
+        shutdownTopic = self.prodConfig.production.productionShutdownTopic
 
 
         # Launch process
         startDir = os.getcwd()
         os.chdir(self.localStagingDir)
 
-        dagLaunchCmd = ["condor_submit_dag", self.dagFile]
-        print "dagLaunchCmd = ", dagLaunchCmd
-        pid = os.fork()
-        if not pid:
-            os.execvp(dagLaunchCmd[0], dagLaunchCmd)
-        os.wait()[0]
-
+        cj = CondorJobs(self.logger)
+        condorDagId = cj.condorSubmitDag(self.dagFile)
+        print "Condor dag submitted as job ",condorDagId
         os.chdir(startDir)
+
+        self.workflowMonitor = CondorWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, condorDagId, loggerManagers, self.logger)
+        if statusListener != None:
+            self.workflowMonitor.addStatusListener(statusListener)
+        self.workflowMonitor.startMonitorThread(self.runid)
+
 
 
     
