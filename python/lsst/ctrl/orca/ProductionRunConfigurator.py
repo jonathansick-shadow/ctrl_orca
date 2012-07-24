@@ -25,8 +25,9 @@ from lsst.ctrl.orca.LoggerManager import LoggerManager
 from lsst.ctrl.orca.DatabaseConfigurator import DatabaseConfigurator
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.ctrl.orca.WorkflowManager import WorkflowManager
+from lsst.ctrl.orca.config.ProductionConfig import ProductionConfig
 from lsst.pex.logging import Log
-from lsst.pex.policy import Policy, NameNotFound
+import lsst.pex.config as pexConfig
 from lsst.ctrl.provenance.ProvenanceSetup import ProvenanceSetup
 import lsst.pex.exceptions as pexEx
 
@@ -35,7 +36,7 @@ class ProductionRunConfigurator:
     # @brief create a basic production run.
     # Note that all ProductionRunConfigurator subclasses must support this
     # constructor signature.
-    def __init__(self, runid, policyFile, repository=None, logger=None, workflowVerbosity=None):
+    def __init__(self, runid, configFile, repository=None, logger=None, workflowVerbosity=None):
 
         # the logger used by this instance
         if not logger:
@@ -46,8 +47,10 @@ class ProductionRunConfigurator:
         logger.log(Log.DEBUG, "ProductionRunConfigurator:__init__")
 
         self.runid = runid
-        self._prodPolicyFile = policyFile
-        self.prodPolicy = Policy.createPolicy(policyFile, False)
+        self._prodConfigFile = configFile
+
+        self.prodConfig = ProductionConfig()
+        self.prodConfig.load(configFile)
 
         self.repository = repository
         self.workflowVerbosity = workflowVerbosity
@@ -64,26 +67,28 @@ class ProductionRunConfigurator:
 
         self.eventBrokerHost = None
 
-        # these are policy settings which can be overriden from what they
+        # these are config settings which can be overriden from what they
         # are in the workflow policies.
-        self.policyOverrides = Policy() 
-        if self.prodPolicy.exists("eventBrokerHost"):
-            self.eventBrokerHost = self.prodPolicy.get("eventBrokerHost")
-            self.policyOverrides.set("execute.eventBrokerHost", self.eventBrokerHost)
-        if self.prodPolicy.exists("logThreshold"):
-            self.policyOverrides.set("execute.logThreshold",
-                              self.prodPolicy.get("logThreshold"))
-        if self.prodPolicy.exists("shutdownTopic"):
-            self.policyOverrides.set("execute.shutdownTopic",
-                              self.prodPolicy.get("shutdownTopic"))
+        self.configOverrides = dict()
+        print "----"
+        print self.prodConfig.production
+        print "----"
+        production = self.prodConfig.production
+        if production.eventBrokerHost != None:
+            self.eventBrokerHost = production.eventBrokerHost
+            self.configOverrides["execute.eventBrokerHost"] = production.eventBrokerHost
+        if production.logThreshold != None:
+            self.configOverrides["execute.logThreshold"] = production.logThreshold
+        if production.productionShutdownTopic != None:
+            self.configOverrides["execute.shutdownTopic"] = production.productionShutdownTopic
 
     ##
     # @brief create the WorkflowManager for the pipelien with the given shortName
     #
-    def createWorkflowManager(self, prodPolicy, wfPolicy):
+    def createWorkflowManager(self, prodConfig, wfName, wfConfig):
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:createWorkflowManager")
 
-        wfManager = WorkflowManager(None, self.runid, self.repository, prodPolicy, wfPolicy, self.logger)
+        wfManager = WorkflowManager(wfName, self.runid, self.repository, prodConfig, wfConfig, self.logger)
         return wfManager
 
     ##
@@ -97,33 +102,32 @@ class ProductionRunConfigurator:
     #
     def configure(self, workflowVerbosity):
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:configure")
-        # TODO:  Check this next line - shouldn't be reassigned.
-        # self.repository = self.prodPolicy.get("repositoryDirectory")
 
-        self._provSetup = ProvenanceSetup()
-
-        self._provSetup.addAllProductionPolicyFiles(self._prodPolicyFile, self.repository)
+        # TODO - IMPORTANT - NEXT TWO LINES ARE FOR PROVENANCE
+        # --------------
+        #self._provSetup = ProvenanceSetup()
+        #self._provSetup.addAllProductionConfigFiles(self._prodConfigFile, self.repository)
+        # --------------
             
         #
-        # setup the database for each database listed in production policy.
+        # setup the database for each database listed in production config.
         # cache the configurators in case we want to check the configuration
         # later. 
         #
-        databasePolicies = None
-        try :
-            databasePolicies = self.prodPolicy.getArray("database")
-        except pexExLsstCppException, e:
-            pass
+        #databaseConfigNames = self.prodConfig.databaseConfigNames
+        databaseConfigs = self.prodConfig.database
 
-        for databasePolicy in databasePolicies:
-            cfg = self.createDatabaseConfigurator(databasePolicy)
+        #for databaseName in databaseConfigNames:
+        for databaseName in databaseConfigs:
+            databaseConfig = databaseConfigs[databaseName]
+            cfg = self.createDatabaseConfigurator(databaseConfig)
             cfg.setup(self._provSetup)
             dbInfo = cfg.getDBInfo()
             # check to see if we're supposed to launch a logging daemon
-            if databasePolicy.exists("logger"):
-                loggerPolicy = databasePolicy.get("logger")
-                if loggerPolicy.exists("launch"):
-                    launch = loggerPolicy.get("launch")
+            if databaseConfig.logger != None:
+                loggerConfig = databaseConfig.logger
+                if loggerConfig.launch != None:
+                    launch = loggerConfig.launch
                     if launch == True:
                         loggerManager = LoggerManager(self.logger, self.eventBrokerHost, dbInfo["host"], dbInfo["port"], self.runid, dbInfo["dbrun"])
                     self._loggerManagers.append(loggerManager)
@@ -133,17 +137,20 @@ class ProductionRunConfigurator:
         #
         # do specialized production level configuration, if it exists
         #
-        if self.prodPolicy.exists("configuration"):
-            specialConfigurationPolicy = self.prodPolicy.getPolicy("configuration")
-            self.specializedConfigure(self.productionPolicy)
+        if self.prodConfig.production.configuration.configurationClass != None:
+            specialConfigurationConfig = self.prodConfig.production.configuration
+            # XXX - specialConfigurationConfig maybe?
+            self.specializedConfigure(specialConfigurationConfig)
         
 
-        workflowPolicies = self.prodPolicy.getArray("workflow")
+        #workflowNames = self.prodConfig.workflowNames
+        workflowConfigs = self.prodConfig.workflow
         workflowManagers = []
-        for wfPolicy in workflowPolicies:
+        for wfName in workflowConfigs:
+            wfConfig = workflowConfigs[wfName]
             # copy in appropriate production level info into workflow Node  -- ?
 
-            workflowManager = self.createWorkflowManager(self.prodPolicy, wfPolicy)
+            workflowManager = self.createWorkflowManager(self.prodConfig, wfName, wfConfig)
             workflowLauncher = workflowManager.configure(self._provSetup, workflowVerbosity)
             workflowManagers.append(workflowManager)
 
@@ -168,6 +175,7 @@ class ProductionRunConfigurator:
             myProblems = MultiIssueConfigurationError("problems encountered while checking configuration")
 
         for dbconfig in self._databaseConfigurators:
+            print "-> dbconfig = ",dbconfig
             dbconfig.checkConfiguration(care, issueExc)
         
         if not issueExc and myProblems.hasProblems():
@@ -176,12 +184,12 @@ class ProductionRunConfigurator:
     ##
     # @brief lookup and create the configurator for database operations
     #
-    def createDatabaseConfigurator(self, databasePolicy):
+    def createDatabaseConfigurator(self, databaseConfig):
         self.logger.log(Log.DEBUG, "ProductionRunConfigurator:createDatabaseConfigurator")
-        className = databasePolicy.get("configurationClass")
+        className = databaseConfig.configurationClass
         classFactory = NamedClassFactory()
         configurationClass = classFactory.createClass(className)
-        configurator = configurationClass(self.runid, databasePolicy, self.prodPolicy, None, self.logger)
+        configurator = configurationClass(self.runid, databaseConfig, self.prodConfig, None, self.logger)
         return configurator
 
     ##
@@ -191,47 +199,11 @@ class ProductionRunConfigurator:
     # This implementation does nothing.  Subclasses may override this method
     # to provide specialized production-wide setup.  
     #
-    def _specializedConfigure(self, specialConfigurationPolicy):
+    def _specializedConfigure(self, specialConfigurationConfig):
         pass
 
     ##
     # @brief return the workflow names to be used for this set of workflows
     #
     def getWorkflowNames(self):
-        if not self._wfnames:
-            self._wfnames = self.determineWorkflowNames()
-        return list(self._wfnames)
-
-    ##
-    # @brief return a unique set of names for the workflows.
-    #
-    # The names are gotten from the "shortName" items from each "workflow"
-    # policy item.  This method ensures uniqueness of those names by appending
-    # suffixes if needed (e.g. "-#" where # is a number).
-    #
-    # This may be overridden by a subclass either to override the 
-    # names in the policy or fine tune the uniquification.
-    #
-    def determineWorkflowNames(self):
-        workflows = self.policy.getArray("workflow")
-        names = []
-        i = 1
-        for wf in workflows:
-            if wf.exists("shortName"):
-                names.append(wf.get("shortName"))
-            else:
-                names.append("Workflow")
-
-        return self._uniquifyWorkflowNames(names)
-
-    def _uniquifyWorkflowNames(self, names):
-        names = list(names)
-        idxs = range(len(names))
-        for i in idxs:
-            nonunique = filter(lambda idx: name[i] == names[idx], idxs)
-            while len(nonunique) > 1:
-                for j in nonunique:
-                    names[j] += "-%i" % (j+1)
-                nonunique = filter(lambda idx: name[i] == names[idx], idxs)
-        return names
-    
+        return self.prodConfig.workflowNames

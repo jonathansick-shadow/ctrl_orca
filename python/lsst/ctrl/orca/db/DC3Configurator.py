@@ -24,15 +24,15 @@ import os, stat
 import lsst.ctrl.orca as orca
 import lsst.ctrl.provenance.dc3 as dc3
 from lsst.pex.logging import Log
-from lsst.pex.policy import Policy
 from lsst.ctrl.orca.db.MySQLConfigurator import MySQLConfigurator
+from lsst.ctrl.orca.config.AuthConfig import AuthConfig
 
 class DC3Configurator:
-    def __init__(self, runid, dbPolicy, prodPolicy=None, wfPolicy=None, logger=None):
+    def __init__(self, runid, dbConfig, prodConfig=None, wfConfig=None, logger=None):
         """
         create a generic 
         @param type      the category of configurator
-        @param dbPolicy  the database policy
+        @param dbConfig  the database config
         @param logger    the caller's Log instance from which this manager can.
                             create a child Log
         """
@@ -42,27 +42,27 @@ class DC3Configurator:
         self.logger.log(Log.DEBUG, "DC3Configurator:__init__")
         self.type = "mysql"
         self.runid = runid
-        self.dbPolicy = dbPolicy
+        self.dbConfig = dbConfig
         self.delegate = None
         self.perProductionRunDatabase = None
 
         self.platformName = ""
-        self.prodPolicy = prodPolicy
-        if self.prodPolicy is not None:
+        self.prodConfig = prodConfig
+        if self.prodConfig == None:
             self.platformName = "production"
-        self.wfPolicy = wfPolicy
+        self.wfConfig = wfConfig
 
         #
         # extract the databaseConfig.database policy to get required
         # parameters from it.
 
-        self.dbHostName = dbPolicy.get("system.authInfo.host")
-        self.dbPort = dbPolicy.get("system.authInfo.port")
-        globalDbName = dbPolicy.get("configuration.globalDbName")
-        dcVersion = dbPolicy.get("configuration.dcVersion")
-        dcDbName = dbPolicy.get("configuration.dcDbName")
-        minPercDiskSpaceReq = dbPolicy.get("configuration.minPercDiskSpaceReq")
-        userRunLife = dbPolicy.get("configuration.userRunLife")
+        self.dbHostName = dbConfig.system.authInfo.host
+        self.dbPort = dbConfig.system.authInfo.port
+        globalDbName = dbConfig.configuration["production"].globalDbName
+        dcVersion = dbConfig.configuration["production"].dcVersion
+        dcDbName = dbConfig.configuration["production"].dcDbName
+        minPercDiskSpaceReq = dbConfig.configuration["production"].minPercDiskSpaceReq
+        userRunLife = dbConfig.configuration["production"].userRunLife
 
         self.delegate = MySQLConfigurator(self.dbHostName, self.dbPort, globalDbName, dcVersion, dcDbName, minPercDiskSpaceReq, userRunLife)
 
@@ -80,15 +80,17 @@ class DC3Configurator:
         dbRun = dbBaseURL+"/"+dbNames[0]
         dbGlobal = dbBaseURL+"/"+dbNames[1]
 
-        recorder = dc3.Recorder(self.runid, self.prodPolicy.get("shortName"), self.platformName, dbRun, dbGlobal, 0, None, self.logger)
-        provSetup.addProductionRecorder(recorder)
+        # TODO - Provenance
+        #recorder = dc3.Recorder(self.runid, self.prodConfig.shortName, self.platformName, dbRun, dbGlobal, 0, None, self.logger)
+        #provSetup.addProductionRecorder(recorder)
 
-        arglist = []
-        arglist.append("--runid=%s" % self.runid)
-        arglist.append("--dbrun=%s" % dbRun)
-        arglist.append("--dbglobal=%s" % dbGlobal)
-        arglist.append("--runoffset=%s" % recorder.getRunOffset())
-        provSetup.addWorkflowRecordCmd("PipelineProvenanceRecorder.py", arglist)
+        #arglist = []
+        #arglist.append("--runid=%s" % self.runid)
+        #arglist.append("--dbrun=%s" % dbRun)
+        #arglist.append("--dbglobal=%s" % dbGlobal)
+        #arglist.append("--runoffset=%s" % recorder.getRunOffset())
+        #provSetup.addWorkflowRecordCmd("PipelineProvenanceRecorder.py", arglist)
+        # end TODO
 
     def getDBInfo(self):
         dbInfo = {} 
@@ -101,7 +103,7 @@ class DC3Configurator:
     def setupInternal(self):
         self.logger.log(Log.DEBUG, "DC3Configurator:setupInternal")
 
-        self.checkConfiguration(self.dbPolicy)
+        self.checkConfiguration(self.dbConfig)
         dbNames = self.prepareForNewRun(self.runid)
         return dbNames
 
@@ -119,15 +121,15 @@ class DC3Configurator:
         self.checkUserOnlyPermissions(dbPolicyDir)
 
         #
-        # next, check that the $HOME/.lsst/db-auth.paf file is protected
+        # next, check that the $HOME/.lsst/db-auth.config file is protected
         #
-        dbPolicyCredentialsFile = os.path.join(os.environ["HOME"], ".lsst/db-auth.paf")
-        self.checkUserOnlyPermissions(dbPolicyCredentialsFile)
+        dbConfigCredentialsFile = os.path.join(os.environ["HOME"], ".lsst/db-auth.py")
+        self.checkUserOnlyPermissions(dbConfigCredentialsFile)
 
         #
         # now, look up and initialize the authorization information for host and port
         #
-        self.initAuthInfo(self.dbPolicy)
+        self.initAuthInfo(self.dbConfig)
 
     def getHostURL(self):
         schema = self.type.lower()
@@ -135,7 +137,7 @@ class DC3Configurator:
         return retVal
 
     def getUser(self):
-        return self.dbUser;
+        return self.dbUser
 
     def checkUserOnlyPermissions(self, checkFile):
         mode = os.stat(checkFile)[stat.ST_MODE]
@@ -156,55 +158,55 @@ class DC3Configurator:
         self.delegate(dbName)
 
     ##
-    # initAuthInfo - given a policy object with specifies "database.host" and
-    # optionally, "database.port", match it against the credential policy
+    # initAuthInfo - given a Config object with specifies "database.host" and
+    # "database.port", match it against the credential Config
     # file $HOME/.lsst/db-auth.paf
     #
-    # The credential policy has the following format:
+    # The credential Config has the following format:
     #
-    # database: {
-    #     authInfo: {
-    #         host:  lsst10.ncsa.uiuc.edu
-    #         user:  moose
-    #         password:  squirrel
-    #         port: 3306
-    #     }
-    # 
-    #     authInfo: {
-    #         host:  lsst10.ncsa.uiuc.edu
-    #         user:  boris
-    #         password:  natasha
-    #         port: 3307
-    #     }
-    # }
+    # root.database.authInfo.names = ["cred1", "cred2]
     #
+    # root.database.authInfo["cred1"].host = "lsst10.ncsa.illinois.edu"
+    # root.database.authInfo["cred1"].user = "moose"
+    # root.database.authInfo["cred1"].password = "squirrel"
+    # root.database.authInfo["cred1"].port = 3306
     #
+    # root.database.authInfo["cred2"].host = "lsst10.ncsa.illinois.edu"
+    # root.database.authInfo["cred2"].user = "boris"
+    # root.database.authInfo["cred2"].password = "natasha"
+    # root.database.authInfo["cred2"].port = 3306
     #
     # Terms "database.host" and "database.port" must be specified, 
     # and will match against the first "database.authInfo.host" and 
-    # "database.authInfo.port"  in the credentials policy.
+    # "database.authInfo.port"  in the credentials config.
     #
     # If there is no match, an exception is thrown.
     # 
-    def initAuthInfo(self, policy):
-        host = policy.get("system.authInfo.host")
+    def initAuthInfo(self, dbConfig):
+        host = dbConfig.system.authInfo.host
         if host == None:
-            raise RuntimeError("database host must be specified in policy")
-        port = policy.get("system.authInfo.port")
+            raise RuntimeError("database host must be specified in config")
+        port = dbConfig.system.authInfo.port
         if port == None:
-            raise RuntimeError("database port must be specified in policy")
-        dbPolicyCredentialsFile = os.path.join(os.environ["HOME"], ".lsst/db-auth.paf")
+            raise RuntimeError("database port must be specified in config")
+        dbAuthFile = os.path.join(os.environ["HOME"], ".lsst/db-auth.py")
         
-        dbPolicyCredentials = Policy.createPolicy(dbPolicyCredentialsFile)
+        authConfig = AuthConfig()
+        authConfig.load(dbAuthFile)
 
-        authArray = dbPolicyCredentials.getPolicyArray("database.authInfo")
+        #authInfo = authConfig.database.authInfo
+        #print "authInfo = ",authInfo
+        #authNames = authConfig.database.authInfo.active
 
-        for auth in authArray:
-            self.dbHost = auth.get("host")
-            self.dbPort = auth.get("port")
-            self.dbUser = auth.get("user")
-            self.dbPassword = auth.get("password")
-            if (self.dbHost == host) and (self.dbPort == port):
-                    self.logger.log(Log.DEBUG, "using host %s at port %d" % (host, port))
-                    return
+        for authName in authConfig.database.authInfo:
+            auth = authConfig.database.authInfo[authName]
+            print "authName = ",authName
+            print "auth = ",auth
+            if (auth.host == host) and (auth.port == port):
+                self.logger.log(Log.DEBUG, "using host %s at port %d" % (host, port))
+                self.dbHost = auth.host
+                self.dbPort = auth.port
+                self.dbUser = auth.user
+                self.dbPassword = auth.password
+                return
         raise RuntimeError("couldn't find any matching authorization for host %s and port %d " % (host, port))

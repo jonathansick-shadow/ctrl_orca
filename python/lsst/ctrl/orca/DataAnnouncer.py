@@ -26,31 +26,32 @@ from lsst.ctrl.orca.EnvString import EnvString
 
 class DataAnnouncer:
 
-    def __init__(self, runid, prodPolicy, wfPolicy, logger = None):
+    def __init__(self, runid, prodConfig, wfConfig, logger = None):
         self.logger = logger
         if self.logger is not None:
             self.logger.log(Log.DEBUG, "DataAnnouncer: __init__")
         self.runid = runid
-        self.prodPolicy = prodPolicy
-        self.wfPolicy = wfPolicy
+        self.prodConfig = prodConfig
+        self.wfConfig = wfConfig
 
     def announce(self):
         if self.logger is not None:
             self.logger.log(Log.DEBUG, "DataAnnouncer: announce")
-        broker = self.prodPolicy.get("eventBrokerHost")
-        config = None
-        if self.wfPolicy.exists("configuration"):
-            config = self.wfPolicy.get("configuration")
-        else:
+        broker = self.prodConfig.production.eventBrokerHost
+        
+        configType = self.wfConfig.configurationType
+        print "configType",configType
+        config = self.wfConfig.configuration[configType]
+        if config == None:
             print "configuration for workflow was not found"
             return False
 
-        if config.exists("announceData"):
-            annData = config.get("announceData")
-            script = annData.get("script")
+        if config.announceData != None:
+            annData = config.announceData
+            script = annData.script
             script = EnvString.resolve(script)
-            topic = annData.get("topic")
-            inputdata = annData.get("inputdata")
+            topic = annData.topic
+            inputdata = annData.inputdata
             inputdata = EnvString.resolve(inputdata)
             cmd = "%s -r %s -b %s -t %s %s" % (script, self.runid, broker, topic, inputdata)
             print cmd
@@ -60,12 +61,12 @@ class DataAnnouncer:
                 os.execvp(cmdSplit[0], cmdSplit)
             os.wait()[0]
 
-            if config.exists("announceData.dataCompleted"):
-                dataComp = config.get("announceData.dataCompleted")
-                script = dataComp.get("script")
+            if config.announceData.dataCompleted != None:
+                dataComp = config.announceData.dataCompleted
+                script = dataComp.script
                 script = EnvString.resolve(script)
-                topic = dataComp.get("topic")
-                status = dataComp.get("status")
+                topic = dataComp.topic
+                status = dataComp.status
                 cmd = "%s %s %s %s %s" % (script, broker, topic, self.runid, status)
                 print cmd
                 cmdSplit = cmd.split()

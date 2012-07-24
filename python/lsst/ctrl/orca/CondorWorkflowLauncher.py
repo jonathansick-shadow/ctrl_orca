@@ -21,68 +21,67 @@
 #
 
 import os, sys, subprocess
+import lsst.ctrl.orca as orca
 from lsst.pex.logging import Log
 from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
 from lsst.ctrl.orca.WorkflowLauncher import WorkflowLauncher
-from lsst.ctrl.orca.GenericPipelineWorkflowMonitor import GenericPipelineWorkflowMonitor
+from lsst.ctrl.orca.CondorJobs import CondorJobs
+from lsst.ctrl.orca.CondorWorkflowMonitor import CondorWorkflowMonitor
 
-class GenericPipelineWorkflowLauncher(WorkflowLauncher):
+class CondorWorkflowLauncher(WorkflowLauncher):
     ##
     # @brief
     #
-    def __init__(self, cmds, prodConfig, wfConfig, runid, fileWaiter, pipelineNames, logger = None):
+    def __init__(self, prodConfig, wfConfig, runid, localStagingDir, dagFile, logger = None):
         if logger != None:
-            logger.log(Log.DEBUG, "GenericPipelineWorkflowLauncher:__init__")
-        self.logger = logger
-        self.cmds = cmds
-        self.wfConfig = wfConfig
+            logger.log(Log.DEBUG, "CondorWorkflowLauncher:__init__")
         self.prodConfig = prodConfig
+        self.wfConfig = wfConfig
         self.runid = runid
-        self.fileWaiter = fileWaiter
-        self.pipelineNames = pipelineNames
+        self.localStagingDir = localStagingDir
+        self.dagFile = dagFile
+        self.logger = logger
 
     ##
     # @brief perform cleanup after workflow has ended.
     #
     def cleanUp(self):
         if self.logger != None:
-            self.logger.log(Log.DEBUG, "GenericPipelineWorkflowLauncher:cleanUp")
+            self.logger.log(Log.DEBUG, "CondorWorkflowLauncher:cleanUp")
 
     ##
     # @brief launch this workflow
     #
     def launch(self, statusListener, loggerManagers):
         if self.logger != None:
-            self.logger.log(Log.DEBUG, "GenericPipelineWorkflowLauncher:launch")
-
-        eventBrokerHost = self.prodConfig.production.eventBrokerHost
-        shutdownTopic = self.wfConfig.shutdownTopic
-
-        # listen on this topic for "workers" sending messages
+            self.logger.log(Log.DEBUG, "CondorWorkflowLauncher:launch")
 
         # start the monitor first, because we want to catch any pipeline
         # events that might be sent from expiring pipelines.
+        eventBrokerHost = self.prodConfig.production.eventBrokerHost
+        shutdownTopic = self.wfConfig.shutdownTopic
 
-        self.workflowMonitor = GenericPipelineWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, self.pipelineNames, loggerManagers, self.logger)
+        self.workflowMonitor = CondorWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, loggerManagers, self.logger)
         if statusListener != None:
             self.workflowMonitor.addStatusListener(statusListener)
-        # start the thread
         self.workflowMonitor.startMonitorThread(self.runid)
 
-        firstJob = True
-        for key in self.cmds:
-            cmd = key
-            pid = os.fork()
-            if not pid:
-                os.execvp(cmd[0], cmd)
-            if firstJob == True:
-                self.fileWaiter.waitForFirstFile()
-                firstJob = False
 
-            # commented out - don't wait for it to end
-            #os.wait()[0]
+        # Launch process
+        startDir = os.getcwd()
+        os.chdir(self.localStagingDir)
 
-        self.fileWaiter.waitForAllFiles()
+        dagLaunchCmd = ["condor_submit_dag", self.dagFile]
+        print "dagLaunchCmd = ", dagLaunchCmd
+        pid = os.fork()
+        if not pid:
+            os.execvp(dagLaunchCmd[0], dagLaunchCmd)
+        os.wait()[0]
+
+        os.chdir(startDir)
+
+
+    
 
         return self.workflowMonitor
