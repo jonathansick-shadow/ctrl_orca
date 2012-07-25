@@ -1,6 +1,6 @@
 universe=vanilla
 
-executable=$SCRIPT
+executable=$ORCA_SCRIPT
 
 transfer_executable=true
 
@@ -15,6 +15,6 @@ args=$(var1)
 
 output=logs/$(visit)/worker-$(var2).out
 error=logs/$(visit)/worker-$(var2).err
-remote_initialdir=$DEFAULTROOT/$RUNID
+remote_initialdir=$ORCA_DEFAULTROOT/$ORCA_RUNID
 
 queue 1

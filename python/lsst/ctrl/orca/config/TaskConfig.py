@@ -3,18 +3,17 @@ import lsst.pex.config as pexConfig
 import PipelineDefinitionConfig as pipe
 import FakeTypeMap as fake
 
-#class PreScriptTemplateConfig(pexConfig.Config):
-#    template = pexConfig.Field("template", str)
-#    outputFile = pexConfig.Field("output file", str)
-
 class ScriptTemplateConfig(pexConfig.Config):
-    template = pexConfig.Field("template", str)
+    inputFile = pexConfig.Field("input file", str)
+    keywords = pexConfig.DictField("key value pairs",keytype=str, itemtype=str, default=dict())
     outputFile = pexConfig.Field("output file", str)
 
 class JobTemplateConfig(pexConfig.Config):
     script = pexConfig.ConfigField("job script", ScriptTemplateConfig)
-    template = pexConfig.Field("template", str)
-    outputFile = pexConfig.Field("output file", str)
+    condor = pexConfig.ConfigField("template", ScriptTemplateConfig)
+
+class ScriptConfig(pexConfig.Config):
+    script = pexConfig.ConfigField("job script", ScriptTemplateConfig)
 
 class DagGeneratorConfig(pexConfig.Config):
     dagName = pexConfig.Field("dag name", str)
@@ -23,7 +22,7 @@ class DagGeneratorConfig(pexConfig.Config):
 
 class TaskConfig(pexConfig.Config):
     scriptDir = pexConfig.Field("script directory",str)
-    preScript = pexConfig.ConfigField("pre script", ScriptTemplateConfig)
+    preScript = pexConfig.ConfigField("pre script", ScriptConfig)
     preJob = pexConfig.ConfigField("pre job", JobTemplateConfig)
     postJob = pexConfig.ConfigField("post job", JobTemplateConfig)
     workerJob = pexConfig.ConfigField("worker job", JobTemplateConfig)

@@ -1,7 +1,7 @@
 #!/bin/sh
-cd $DEFAULTROOT
-mkdir -p $RUNID
-cd $RUNID
+cd $ORCA_DEFAULTROOT
+mkdir -p $ORCA_RUNID
+cd $ORCA_RUNID
 mkdir -p html
 mkdir -p logs
 mkdir -p output

@@ -128,43 +128,57 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
 
             # generate pre job 
             preJobScript = EnvString.resolve(task.preJob.script.outputFile)
-            preJobScriptTemplate = EnvString.resolve(task.preJob.script.template)
-            self.writeJobTemplate(preJobScript, preJobScriptTemplate)
-            preJobTemplate = EnvString.resolve(task.preJob.template)
-            self.writeJobTemplate(task.preJob.outputFile, preJobTemplate, preJobScript)
+            preJobScriptInputFile = EnvString.resolve(task.preJob.script.inputFile)
+            keywords = task.preJob.script.keywords
+            self.writeJobScript(preJobScript, preJobScriptInputFile, keywords)
+
+            preJobCondorOutputFile = EnvString.resolve(task.preJob.condor.outputFile)
+            preJobCondorInputFile = EnvString.resolve(task.preJob.condor.inputFile)
+            keywords = task.preJob.condor.keywords
+            self.writeJobScript(preJobCondorOutputFile, preJobCondorInputFile, keywords, preJobScript)
             
         
             # generate post job
             postJobScript = EnvString.resolve(task.postJob.script.outputFile)
-            postJobScriptTemplate = EnvString.resolve(task.postJob.script.template)
-            self.writeJobTemplate(postJobScript, postJobScriptTemplate)
-            postJobTemplate = EnvString.resolve(task.postJob.template)
-            self.writeJobTemplate(task.postJob.outputFile, postJobTemplate, postJobScript)
+            postJobScriptInputFile = EnvString.resolve(task.postJob.script.inputFile)
+            keywords = task.postJob.script.keywords
+            self.writeJobScript(postJobScript, postJobScriptInputFile, keywords)
+
+            postJobCondorOutputFile = EnvString.resolve(task.postJob.condor.outputFile)
+            postJobCondorInputFile = EnvString.resolve(task.postJob.condor.inputFile)
+            keywords = task.postJob.condor.keywords
+            self.writeJobScript(postJobCondorOutputFile, postJobCondorInputFile, keywords, postJobScript)
 
             # generate worker job
             workerJobScript = EnvString.resolve(task.workerJob.script.outputFile)
-            workerJobScriptTemplate = EnvString.resolve(task.workerJob.script.template)
-            self.writeJobTemplate(workerJobScript, workerJobScriptTemplate)
-            workerJobTemplate = EnvString.resolve(task.workerJob.template)
-            self.writeJobTemplate(task.workerJob.outputFile, workerJobTemplate, workerJobScript)
+            workerJobScriptInputFile = EnvString.resolve(task.workerJob.script.inputFile)
+            keywords = task.workerJob.script.keywords
+            self.writeJobScript(workerJobScript, workerJobScriptInputFile, keywords)
+
+            workerJobCondorOutputFile = EnvString.resolve(task.workerJob.condor.outputFile)
+            workerJobCondorInputFile = EnvString.resolve(task.workerJob.condor.inputFile)
+            keywords = task.workerJob.condor.keywords
+            self.writeJobScript(workerJobCondorOutputFile, workerJobCondorInputFile, keywords, workerJobScript)
 
             # switch to staging directory
             os.chdir(self.localStagingDir)
 
             # generate pre script
 
-            if task.preScript.outputFile is not None:
-                preScriptTemplate = EnvString.resolve(task.preScript.template)
-                self.writePreScript(task.preScript.outputFile, preScriptTemplate)
+            if task.preScript.script.outputFile is not None:
+                preScriptOutputFile = EnvString.resolve(task.preScript.script.outputFile)
+                preScriptInputFile = EnvString.resolve(task.preScript.script.inputFile)
+                keywords = task.preScript.script.keywords
+                self.writePreScript(preScriptOutputFile, preScriptInputFile, keywords)
                 os.chmod(task.preScript.outputFile, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
             
             # generate dag
             dagGenerator = EnvString.resolve(task.dagGenerator.script)
             dagGeneratorInput = EnvString.resolve(task.dagGenerator.input)
-            dagCreatorCmd = [dagGenerator, "-s", dagGeneratorInput, "-w", task.scriptDir, "-t", task.workerJob.outputFile, "-r", self.runid]
-            if task.preScript.outputFile is not None:
+            dagCreatorCmd = [dagGenerator, "-s", dagGeneratorInput, "-w", task.scriptDir, "-t", task.workerJob.condor.outputFile, "-r", self.runid]
+            if task.preScript.script.outputFile is not None:
                 dagCreatorCmd.append("-p")
-                dagCreatorCmd.append(task.preScript.outputFile)
+                dagCreatorCmd.append(task.preScript.script.outputFile)
             pid = os.fork()
             if not pid:
                 os.execvp(dagCreatorCmd[0], dagCreatorCmd)
@@ -201,20 +215,26 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
         workflowLauncher = CondorWorkflowLauncher(self.prodConfig, self.wfConfig, self.runid, self.localStagingDir, task.dagGenerator.dagName+".diamond.dag", self.logger)
         return workflowLauncher
 
-    # TODO - XXX - these probably can be combined
-    def writePreScript(self, outputFileName, template):
+    # TODO - XXX - these next two should probably be combined
+    def writePreScript(self, outputFileName, template, keywords):
         pairs = {}
-        pairs["RUNID"] = self.runid
-        pairs["DEFAULTROOT"] = self.defaultRoot
+        for value in keywords:
+            val = keywords[value]
+            pairs[value] = val
+        pairs["ORCA_RUNID"] = self.runid
+        pairs["ORCA_DEFAULTROOT"] = self.defaultRoot
         writer = TemplateWriter()
         writer.rewrite(template, outputFileName, pairs)
 
-    def writeJobTemplate(self, outputFileName, template, scriptName = None):
+    def writeJobScript(self, outputFileName, template, keywords, scriptName = None):
         pairs = {}
+        for value in keywords:
+            val = keywords[value]
+            pairs[value] = val
         if scriptName is not None:
-            pairs["SCRIPT"] = self.scriptDir+"/"+scriptName
-        pairs["RUNID"] = self.runid
-        pairs["DEFAULTROOT"] = self.defaultRoot
+            pairs["ORCA_SCRIPT"] = self.scriptDir+"/"+scriptName
+        pairs["ORCA_RUNID"] = self.runid
+        pairs["ORCA_DEFAULTROOT"] = self.defaultRoot
         writer = TemplateWriter()
         writer.rewrite(template, outputFileName, pairs)
 
@@ -228,8 +248,8 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
             val = template.keywords[value]
             pairs[value] = val
         pairs["ORCA_REMOTE_WORKDIR"] = self.defaultRoot+"/"+self.runid
-        if pairs.has_key("START_OWNER") == False:
-            pairs["START_OWNER"] = getpass.getuser()
+        if pairs.has_key("ORCA_START_OWNER") == False:
+            pairs["ORCA_START_OWNER"] = getpass.getuser()
 
         writer = TemplateWriter()
         writer.rewrite(inputFile, template.outputFile, pairs)

@@ -3,6 +3,8 @@ date
 echo "args are"
 echo $*
 echo "Hello from"
+echo $SRP_TEST2
+echo $SRP_TEST
 /bin/hostname -f
 sleep 60
 date

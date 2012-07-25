@@ -42,8 +42,10 @@ root.workflow["workflow1"].configuration["condor"].glidein.template.outputFile =
 root.workflow["workflow1"].task["task1"].scriptDir = "workers"
 # this is used if we're running a script that runs LOCALLY before the
 # preJob condor job is submitted.
-#root.workflow["workflow1"].task["task1"].preScript.template = "$CTRL_ORCA_DIR/etc/condor/templates/preScript.template"
-#root.workflow["workflow1"].task["task1"].preScript.outputFile = "pre.sh"
+#root.workflow["workflow1"].task["task1"].preScript.script.inputFile = "$CTRL_ORCA_DIR/etc/condor/templates/preScript.template"
+#root.workflow["workflow1"].task["task1"].preScript.script.keywords["A"] = "A"
+#root.workflow["workflow1"].task["task1"].preScript.script.keywords["B"] = "B"
+#root.workflow["workflow1"].task["task1"].preScript.script.outputFile = "pre.sh"
 
 #
 # There are two stages of templating.  
@@ -58,26 +60,35 @@ root.workflow["workflow1"].task["task1"].scriptDir = "workers"
 # 
 # preJob
 #
-root.workflow["workflow1"].task["task1"].preJob.script.template = "$CTRL_ORCA_DIR/etc/condor/templates/preJob.sh.template"
+root.workflow["workflow1"].task["task1"].preJob.script.inputFile = "$CTRL_ORCA_DIR/etc/condor/templates/preJob.sh.template"
 root.workflow["workflow1"].task["task1"].preJob.script.outputFile = "preJob.sh"
-root.workflow["workflow1"].task["task1"].preJob.template = "$CTRL_ORCA_DIR/etc/condor/templates/preJob.condor.template"
-root.workflow["workflow1"].task["task1"].preJob.outputFile = "W2012Pipe.pre"
+
+root.workflow["workflow1"].task["task1"].preJob.condor.inputFile = "$CTRL_ORCA_DIR/etc/condor/templates/preJob.condor.template"
+root.workflow["workflow1"].task["task1"].preJob.condor.outputFile = "W2012Pipe.pre"
 
 # 
 # postJob
 #
-root.workflow["workflow1"].task["task1"].postJob.script.template = "$CTRL_ORCA_DIR/etc/condor/templates/postJob.sh.template"
+root.workflow["workflow1"].task["task1"].postJob.script.inputFile = "$CTRL_ORCA_DIR/etc/condor/templates/postJob.sh.template"
+root.workflow["workflow1"].task["task1"].postJob.script.keywords["DATADIR"] = "/oasis/blah"
+root.workflow["workflow1"].task["task1"].postJob.script.keywords["SRP_HOME"] = "/real/path/to/lsst"
+root.workflow["workflow1"].task["task1"].postJob.script.keywords["LSST_HOME"] = "/real/path/to/lsst2"
 root.workflow["workflow1"].task["task1"].postJob.script.outputFile = "postJob.sh"
-root.workflow["workflow1"].task["task1"].postJob.template = "$CTRL_ORCA_DIR/etc/condor/templates/postJob.condor.template"
-root.workflow["workflow1"].task["task1"].postJob.outputFile = "W2012Pipe.post"
+root.workflow["workflow1"].task["task1"].postJob.condor.inputFile = "$CTRL_ORCA_DIR/etc/condor/templates/postJob.condor.template"
+root.workflow["workflow1"].task["task1"].postJob.condor.keywords["EXAMPLE_A"] = "A"
+root.workflow["workflow1"].task["task1"].postJob.condor.keywords["EXAMPLE_B"] = "B"
+root.workflow["workflow1"].task["task1"].postJob.condor.outputFile = "W2012Pipe.post"
 
 # 
 # workerJob
 #
-root.workflow["workflow1"].task["task1"].workerJob.script.template = "$CTRL_ORCA_DIR/etc/condor/templates/helloworld.sh.template"
+root.workflow["workflow1"].task["task1"].workerJob.script.inputFile = "$CTRL_ORCA_DIR/etc/condor/templates/helloworld.sh.template"
+root.workflow["workflow1"].task["task1"].workerJob.script.keywords["SRP_TEST"] = "srp_test"
+root.workflow["workflow1"].task["task1"].workerJob.script.keywords["SRP_HOME"] = "/real/path/to/lsst"
+root.workflow["workflow1"].task["task1"].workerJob.script.keywords["LSST_HOME"] = "/real/path/to/lsst2"
 root.workflow["workflow1"].task["task1"].workerJob.script.outputFile = "helloworld.sh"
-root.workflow["workflow1"].task["task1"].workerJob.template = "$CTRL_ORCA_DIR/etc/condor/templates/workerJob.condor.template"
-root.workflow["workflow1"].task["task1"].workerJob.outputFile = "W2012Pipeline-template.condor"
+root.workflow["workflow1"].task["task1"].workerJob.condor.inputFile = "$CTRL_ORCA_DIR/etc/condor/templates/workerJob.condor.template"
+root.workflow["workflow1"].task["task1"].workerJob.condor.outputFile = "W2012Pipeline-template.condor"
 
 #
 # This configures a diamond condor DAG.
