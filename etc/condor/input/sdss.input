@@ -1,0 +1,6 @@
+run=3325 filter=i camcol=4 field=56
+run=3325 filter=g camcol=4 field=51
+run=3325 filter=z camcol=4 field=52
+run=3325 filter=i camcol=4 field=49
+run=3325 filter=i camcol=4 field=54
+run=3325 filter=g camcol=4 field=53

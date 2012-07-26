@@ -72,11 +72,15 @@ def makeArgumentParser(description, inRootsRequired=True, addRegistryOption=True
         "-r", "--runid", dest="runid",
         help="runid of this job")
 
+    parser.add_argument(
+        "-i", "--idsPerJob", dest="idsPerJob",
+        help="number of ids to run per job")
+
     return parser
  
 
 
-def writeDagFile(pipeline, templateFile, infile, workerdir, prescriptFile, runid):
+def writeDagFile(pipeline, templateFile, infile, workerdir, prescriptFile, runid, idsPerJob):
     """
     Write Condor Dag Submission files. 
     """
@@ -180,11 +184,11 @@ def main():
     # infile   = "visits-449"
 
     #   processCcdLsstSim
-    pipeline = "W2012Pipe"
+    pipeline = "S2012Pipe"
     #templateFile = "W2012Pipe-template.condor"
     #infile   = "9429-CCDs.input"
 
-    writeDagFile(pipeline, ns.template, ns.source, ns.workerdir, ns.prescript, ns.runid )
+    writeDagFile(pipeline, ns.template, ns.source, ns.workerdir, ns.prescript, ns.runid, ns.idsPerJob )
 
 
     sys.exit(0)

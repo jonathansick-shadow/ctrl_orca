@@ -19,6 +19,7 @@ class DagGeneratorConfig(pexConfig.Config):
     dagName = pexConfig.Field("dag name", str)
     script = pexConfig.Field("script", str)
     input = pexConfig.Field("input", str)
+    idsPerJob = pexConfig.Field("the number of ids that will be handled per job", int)
 
 class TaskConfig(pexConfig.Config):
     scriptDir = pexConfig.Field("script directory",str)

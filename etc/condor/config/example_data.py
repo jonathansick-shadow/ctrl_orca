@@ -64,7 +64,7 @@ root.workflow["workflow1"].task["task1"].preJob.script.inputFile = "$CTRL_ORCA_D
 root.workflow["workflow1"].task["task1"].preJob.script.outputFile = "preJob.sh"
 
 root.workflow["workflow1"].task["task1"].preJob.condor.inputFile = "$CTRL_ORCA_DIR/etc/condor/templates/preJob.condor.template"
-root.workflow["workflow1"].task["task1"].preJob.condor.outputFile = "W2012Pipe.pre"
+root.workflow["workflow1"].task["task1"].preJob.condor.outputFile = "S2012Pipe.pre"
 
 # 
 # postJob
@@ -77,7 +77,7 @@ root.workflow["workflow1"].task["task1"].postJob.script.outputFile = "postJob.sh
 root.workflow["workflow1"].task["task1"].postJob.condor.inputFile = "$CTRL_ORCA_DIR/etc/condor/templates/postJob.condor.template"
 root.workflow["workflow1"].task["task1"].postJob.condor.keywords["EXAMPLE_A"] = "A"
 root.workflow["workflow1"].task["task1"].postJob.condor.keywords["EXAMPLE_B"] = "B"
-root.workflow["workflow1"].task["task1"].postJob.condor.outputFile = "W2012Pipe.post"
+root.workflow["workflow1"].task["task1"].postJob.condor.outputFile = "S2012Pipe.post"
 
 # 
 # workerJob
@@ -88,7 +88,7 @@ root.workflow["workflow1"].task["task1"].workerJob.script.keywords["SRP_HOME"] =
 root.workflow["workflow1"].task["task1"].workerJob.script.keywords["LSST_HOME"] = "/real/path/to/lsst2"
 root.workflow["workflow1"].task["task1"].workerJob.script.outputFile = "helloworld.sh"
 root.workflow["workflow1"].task["task1"].workerJob.condor.inputFile = "$CTRL_ORCA_DIR/etc/condor/templates/workerJob.condor.template"
-root.workflow["workflow1"].task["task1"].workerJob.condor.outputFile = "W2012Pipeline-template.condor"
+root.workflow["workflow1"].task["task1"].workerJob.condor.outputFile = "S2012Pipeline-template.condor"
 
 #
 # This configures a diamond condor DAG.
@@ -97,7 +97,7 @@ root.workflow["workflow1"].task["task1"].workerJob.condor.outputFile = "W2012Pip
 # to form the middle of the diamond and the "postJob" is the tail of the 
 # diamond
 #
-root.workflow["workflow1"].task["task1"].dagGenerator.dagName = "W2012Pipe"
+root.workflow["workflow1"].task["task1"].dagGenerator.dagName = "S2012Pipe"
 root.workflow["workflow1"].task["task1"].dagGenerator.script = "$CTRL_ORCA_DIR/etc/condor/scripts/generateDag.py"
 root.workflow["workflow1"].task["task1"].dagGenerator.input = "$CTRL_ORCA_DIR/etc/condor/input/short.input"
-
+root.workflow["workflow1"].task["task1"].dagGenerator.idsPerJob = 1

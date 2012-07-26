@@ -175,7 +175,7 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
             # generate dag
             dagGenerator = EnvString.resolve(task.dagGenerator.script)
             dagGeneratorInput = EnvString.resolve(task.dagGenerator.input)
-            dagCreatorCmd = [dagGenerator, "-s", dagGeneratorInput, "-w", task.scriptDir, "-t", task.workerJob.condor.outputFile, "-r", self.runid]
+            dagCreatorCmd = [dagGenerator, "-s", dagGeneratorInput, "-w", task.scriptDir, "-t", task.workerJob.condor.outputFile, "-r", self.runid, "--idsPerJob", str(task.dagGenerator.idsPerJob)]
             if task.preScript.script.outputFile is not None:
                 dagCreatorCmd.append("-p")
                 dagCreatorCmd.append(task.preScript.script.outputFile)
