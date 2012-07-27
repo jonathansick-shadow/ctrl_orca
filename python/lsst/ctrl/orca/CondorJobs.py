@@ -194,7 +194,11 @@ class CondorJobs:
         for line in output:
             num = clusterexp.findall(line)
             if len(num) != 0:
+                # read the rest (if any) and terminate
+                stdoutdata, stderrdata = process.communicate()
                 return num[0]
+        # read the rest (if any) and terminate
+        stdoutdata, stderrdata = process.communicate()
         return -1
 
     def killCondorId(self, cid):
@@ -207,6 +211,8 @@ class CondorJobs:
             line = line.strip()
             print line
             line = process.stdout.readline()
+        # read the rest (if any) and terminate
+        stdoutdata, stderrdata = process.communicate()
 
     def isJobAlive(self,cid):
         jobNum = "%s.0" % cid
@@ -220,5 +226,9 @@ class CondorJobs:
             if len(values) == 0:
                 continue
             if (values[0] == jobNum):
+                # read the rest (if any) and terminate
+                stdoutdata, stderrdata = process.communicate()
                 return True
+        # read the rest (if any) and terminate
+        stdoutdata, stderrdata = process.communicate()
         return False
