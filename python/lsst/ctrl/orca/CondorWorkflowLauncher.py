@@ -33,7 +33,7 @@ class CondorWorkflowLauncher(WorkflowLauncher):
     ##
     # @brief
     #
-    def __init__(self, prodConfig, wfConfig, runid, localStagingDir, dagFile, logger = None):
+    def __init__(self, prodConfig, wfConfig, runid, localStagingDir, dagFile, monitorConfig, logger = None):
         if logger != None:
             logger.log(Log.DEBUG, "CondorWorkflowLauncher:__init__")
         self.prodConfig = prodConfig
@@ -41,6 +41,7 @@ class CondorWorkflowLauncher(WorkflowLauncher):
         self.runid = runid
         self.localStagingDir = localStagingDir
         self.dagFile = dagFile
+        self.monitorConfig = monitorConfig
         self.logger = logger
 
     ##
@@ -72,7 +73,7 @@ class CondorWorkflowLauncher(WorkflowLauncher):
         print "Condor dag submitted as job ",condorDagId
         os.chdir(startDir)
 
-        self.workflowMonitor = CondorWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, condorDagId, loggerManagers, self.logger)
+        self.workflowMonitor = CondorWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, condorDagId, loggerManagers, self.monitorConfig, self.logger)
         if statusListener != None:
             self.workflowMonitor.addStatusListener(statusListener)
         self.workflowMonitor.startMonitorThread(self.runid)

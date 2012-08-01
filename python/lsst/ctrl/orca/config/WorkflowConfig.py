@@ -7,6 +7,7 @@ import GenericWorkflowConfig as gen
 import FakeTypeMap as fake
 import DatabaseConfig as data
 import PlatformConfig as plat
+import MonitorConfig as mon
 import TaskConfig as task
 
 typemap = {"generic":gen.GenericWorkflowConfig,"vanilla":van.VanillaCondorWorkflowConfig, "condor":condor.CondorWorkflowConfig}
@@ -26,3 +27,4 @@ class WorkflowConfig(pexConfig.Config):
 
     #pipeline = pexConfig.ConfigChoiceField("pipeline",fake.FakeTypeMap(pipe.PipelineConfig))
     task = pexConfig.ConfigChoiceField("task",fake.FakeTypeMap(task.TaskConfig))
+    monitor = pexConfig.ConfigField("monitor configuration", mon.MonitorConfig)

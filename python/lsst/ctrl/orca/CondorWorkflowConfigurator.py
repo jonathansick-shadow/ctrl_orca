@@ -212,7 +212,7 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
         # create the Launcher
 
         #workflowLauncher = CondorWorkflowLauncher(jobs, self.initialWorkDir,  self.prodConfig, self.wfConfig, self.runid, self.pipelineNames, self.logger)
-        workflowLauncher = CondorWorkflowLauncher(self.prodConfig, self.wfConfig, self.runid, self.localStagingDir, task.dagGenerator.dagName+".diamond.dag", self.logger)
+        workflowLauncher = CondorWorkflowLauncher(self.prodConfig, self.wfConfig, self.runid, self.localStagingDir, task.dagGenerator.dagName+".diamond.dag", wfConfig.monitor, self.logger)
         return workflowLauncher
 
     # TODO - XXX - these next two should probably be combined

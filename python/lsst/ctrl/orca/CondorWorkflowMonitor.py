@@ -38,7 +38,7 @@ class CondorWorkflowMonitor(WorkflowMonitor):
     # @brief in charge of monitoring and/or controlling the progress of a
     #        running workflow.
     #
-    def __init__(self, eventBrokerHost, shutdownTopic, runid, condorDagId, loggerManagers, logger):
+    def __init__(self, eventBrokerHost, shutdownTopic, runid, condorDagId, loggerManagers, monitorConfig, logger):
 
         #self.__init__(logger)
 
@@ -64,6 +64,7 @@ class CondorWorkflowMonitor(WorkflowMonitor):
         self.orcaTopic = "orca.monitor"
         self.runid = runid
         self.condorDagId = condorDagId
+        self.monitorConfig = monitorConfig
 
         self._wfMonitorThread = None
         self.eventSystem = events.EventSystem.getDefaultEventSystem()
@@ -71,11 +72,11 @@ class CondorWorkflowMonitor(WorkflowMonitor):
         self.bSentLastLoggerEvent = False
 
         with self._locked:
-            self._wfMonitorThread = CondorWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, self.orcaTopic, runid, self.condorDagId)
+            self._wfMonitorThread = CondorWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, self.orcaTopic, runid, self.condorDagId, self.monitorConfig)
 
 
     class _WorkflowMonitorThread(threading.Thread):
-        def __init__(self, parent, eventBrokerHost, shutdownTopic, eventTopic, runid, condorDagId):
+        def __init__(self, parent, eventBrokerHost, shutdownTopic, eventTopic, runid, condorDagId, monitorConfig):
             threading.Thread.__init__(self)
             self.setDaemon(True)
             self._parent = parent
@@ -87,15 +88,18 @@ class CondorWorkflowMonitor(WorkflowMonitor):
             self._receiver = events.EventReceiver(self._eventBrokerHost, self._eventTopic, selector)
             self._Logreceiver = events.EventReceiver(self._eventBrokerHost, "LoggerStatus", selector)
             self.condorDagId = condorDagId
+            self.monitorConfig = monitorConfig
 
         def run(self):
             cj = CondorJobs(self._parent.logger)
             self._parent.logger.log(Log.DEBUG, "CondorWorkflowMonitor Thread started")
-            sleepInterval = 5
+            statusCheckInterval = int(self.monitorConfig.statusCheckInterval)
+            sleepInterval = statusCheckInterval
             # we don't decide when we finish, someone else does.
             while True:
                 # TODO:  this timeout value should go away when the GIL lock relinquish is implemented in events.
                 if sleepInterval != 0:
+                    #print "sleep interval =",sleepInterval
                     time.sleep(sleepInterval)
                 event = self._receiver.receiveEvent(1)
 
@@ -114,7 +118,7 @@ class CondorWorkflowMonitor(WorkflowMonitor):
                 if (event is not None) or (logEvent is not None):
                     sleepInterval = 0
                 else:
-                    sleepInterval = 5
+                    sleepInterval = statusCheckInterval
                 # if the dag is no longer running, send the logger an event
                 # telling it to clean up.
                 if cj.isJobAlive(self.condorDagId) == False:

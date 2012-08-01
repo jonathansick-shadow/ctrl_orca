@@ -101,3 +101,5 @@ root.workflow["workflow1"].task["task1"].dagGenerator.dagName = "S2012Pipe"
 root.workflow["workflow1"].task["task1"].dagGenerator.script = "$CTRL_ORCA_DIR/etc/condor/scripts/generateDag.py"
 root.workflow["workflow1"].task["task1"].dagGenerator.input = "$CTRL_ORCA_DIR/etc/condor/input/short.input"
 root.workflow["workflow1"].task["task1"].dagGenerator.idsPerJob = 1
+
+root.workflow["workflow1"].monitor.statusCheckInterval = 15
