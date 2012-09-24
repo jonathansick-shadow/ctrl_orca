@@ -59,7 +59,7 @@ class LoggerManager:
 
         directory = os.getenv("CTRL_ORCA_DIR")
         cmd = "%s/bin/Logger.py %s %s %s %s %s" % (directory, self.broker, self.dbHost, self.dbPort, self.runid, self.dbName)
-        print "Logger: ",cmd
+        self.logger.log(Log.DEBUG, "LoggerManager:cmd = %s " % cmd)
         self.process = subprocess.Popen(cmd, shell=True)
         return
 

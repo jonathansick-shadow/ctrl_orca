@@ -105,7 +105,7 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
         if localConfig.glidein.template.inputFile is not None:
             self.writeGlideinFile(localConfig.glidein)
         else:
-            print "not writing glidein file"
+            self.logger.log(Log.DEBUG, "CondorWorkflowConfigurator: not writing glidein file")
         os.chdir(startDir)
 
         # TODO - fix this loop for multiple condor submits; still working
@@ -181,6 +181,13 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
                 dagCreatorCmd.append(task.preScript.script.outputFile)
             pid = os.fork()
             if not pid:
+                # turn off all output from this command
+                sys.stdin.close()
+                sys.stdout.close()
+                sys.stderr.close()
+                os.close(0)
+                os.close(1)
+                os.close(2)
                 os.execvp(dagCreatorCmd[0], dagCreatorCmd)
             os.wait()[0]
 

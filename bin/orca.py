@@ -31,7 +31,6 @@ import lsst.pex.harness.run as run
 from lsst.pex.logging import Log
 from lsst.ctrl.orca.ProductionRunManager import ProductionRunManager 
 
-print "1"
 usage = """usage: %prog [-gndvqsc] [-r dir] [-e script] [-V int][-L lev] pipelineConfigFile runId"""
 
 parser = optparse.OptionParser(usage)

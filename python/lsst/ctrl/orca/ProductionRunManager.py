@@ -180,7 +180,7 @@ class ProductionRunManager:
         # Note: this is not a sanctioned pattern; should be replaced with use
         # of default config.
         checkCare = 1
-        print "self.config.production.configCheckCare = ", self.config.production.configCheckCare
+
         if self.config.production.configCheckCare != 0:
             checkCare = self.config.production.configCheckCare
         if checkCare < 0:
@@ -199,8 +199,8 @@ class ProductionRunManager:
             # make sure the configuration was successful.
             if not self._workflowManagers:
                 raise ConfigurationError("Failed to obtain workflowManagers from configurator")
-            print "skipConfigCheck = ",skipConfigCheck
-            print "checkCare = ",checkCare
+
+
             if skipConfigCheck == False:
                 self.checkConfiguration(checkCare)
 

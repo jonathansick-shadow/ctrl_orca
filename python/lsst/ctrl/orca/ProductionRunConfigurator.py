@@ -70,9 +70,6 @@ class ProductionRunConfigurator:
         # these are config settings which can be overriden from what they
         # are in the workflow policies.
         self.configOverrides = dict()
-        print "----"
-        print self.prodConfig.production
-        print "----"
         production = self.prodConfig.production
         if production.eventBrokerHost != None:
             self.eventBrokerHost = production.eventBrokerHost
