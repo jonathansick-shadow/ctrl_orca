@@ -201,12 +201,13 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
             # No space is something simple like a skytile id  
             for aline in fileObj:
                 count += 1
-                myData = aline.rstrip()
-                if " " in myData:
-                    myList = myData.split(' ')
-                    visit = myList[0].split('=')[1]
-                else:
-                    visit = myData
+                #myData = aline.rstrip()
+                #if " " in myData:
+                #    myList = myData.split(' ')
+                #    visit = myList[0].split('=')[1]
+                #else:
+                #    visit = myData
+                visit = str(int(count / 100))
                 visitSet.add(visit)
             logDirName = os.path.join(self.localStagingDir, "logs")
             for visit in visitSet:
