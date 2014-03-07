@@ -1,10 +1,10 @@
-setupRequired(cat >= 4.6.0.0)
-setupRequired(utils >= 4.6.0.0)
-setupRequired(pex_policy >= 4.6.0.0)
-setupRequired(pex_harness >= 4.6.0.0)
-setupRequired(daf_persistence >= 4.6.0.0)
-setupRequired(ctrl_events >= 4.6.0.0)
-setupRequired(ctrl_provenance >= 4.6.0.0)
+setupRequired(cat)
+setupRequired(utils)
+setupRequired(pex_policy)
+setupRequired(pex_harness)
+setupRequired(daf_persistence)
+setupRequired(ctrl_events)
+setupRequired(ctrl_provenance)
 
 #
 setupOptional(condor)
