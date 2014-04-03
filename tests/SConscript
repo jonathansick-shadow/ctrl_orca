@@ -1,6 +1,9 @@
 # -*- python -*-
 from lsst.sconsUtils import scripts
+# removing tests from ignore list RAllsman 4/3/2014
+#    ignoreList=["Provenance_1.py", "testExceptions.py", 
+#                "testMySQLConfigurator.py", "testSharedData.py"]
 scripts.BasicSConscript.tests(
-    ignoreList=["Provenance_1.py", "testExceptions.py", 
+    ignoreList=[ 
                 "testMySQLConfigurator.py", "testSharedData.py"]
 )
