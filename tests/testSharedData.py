@@ -34,7 +34,7 @@ import unittest
 import time
 import threading
 
-from lsst.ctrl.orca.threading import SharedData
+from lsst.ctrl.orca.multithreading import SharedData
 
 class ShareDataTestCase(unittest.TestCase):
 
