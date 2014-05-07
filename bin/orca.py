@@ -68,11 +68,6 @@ if len(parser.args) < 2:
     print usage
     raise RuntimeError("Missing args: pipelineConfigFile runId")
 
-#-----------------------------------------------------------------------
-# The following is installed to cause a build failure 
-blech = tinyTots.getchBall()
-#-----------------------------------------------------------------------
-
 pipelineConfigFile = parser.args[0]
 runId = parser.args[1]
 
