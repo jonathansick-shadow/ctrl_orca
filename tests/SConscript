@@ -4,6 +4,6 @@ from lsst.sconsUtils import scripts
 #    ignoreList=["Provenance_1.py", "testExceptions.py", 
 #                "testMySQLConfigurator.py", "testSharedData.py"]
 scripts.BasicSConscript.tests(
-    ignoreList=[ "testExceptions.py",
+    ignoreList=[ 
                 "testMySQLConfigurator.py" ]
 )
