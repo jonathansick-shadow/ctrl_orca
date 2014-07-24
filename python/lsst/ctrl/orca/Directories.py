@@ -132,7 +132,7 @@ class Directories(object):
         configDict = self.config.toDict()
         try:
             dir = configDict[name] % self.patdata
-        except pexExcept.exceptionsLib.LsstCppException, e:
+        except pexExcept.Exception as e:
             dir = configDict["updateDir"] % self.patdata
 
         if not os.path.isabs(dir):
