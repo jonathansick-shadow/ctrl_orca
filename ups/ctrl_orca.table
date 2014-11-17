@@ -10,5 +10,5 @@ setupRequired(ctrl_provenance)
 setupOptional(condor)
 setupOptional(condor_glidein)
 
-envAppend(PYTHONPATH, ${PRODUCT_DIR}/python)
+envPrepend(PYTHONPATH, ${PRODUCT_DIR}/python)
 envPrepend(PATH, ${PRODUCT_DIR}/bin)
