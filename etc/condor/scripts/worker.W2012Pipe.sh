@@ -149,7 +149,6 @@ num4=${arr4[0]}
 c4=1
 while [ $num4 -gt 0 ]
 do
-        echo "Not zero: redo harness"
         c4++
         sleep 30
         sleep ${delay}

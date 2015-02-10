@@ -1,7 +1,6 @@
 setupRequired(cat)
 setupRequired(utils)
 setupRequired(pex_policy)
-setupRequired(pex_harness)
 setupRequired(daf_persistence)
 setupRequired(ctrl_events)
 setupRequired(ctrl_provenance)

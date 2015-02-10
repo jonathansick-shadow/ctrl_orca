@@ -27,7 +27,6 @@ from __future__ import with_statement
 import re, sys, os, os.path, shutil, subprocess
 import optparse, traceback, time
 import lsst.ctrl.orca as orca
-import lsst.pex.harness.run as run
 from lsst.pex.logging import Log
 from lsst.ctrl.orca.ProductionRunManager import ProductionRunManager 
 
@@ -57,7 +56,6 @@ parser.add_option("-q", "--quiet", action="store_const", const=-1,
 parser.add_option("-s", "--silent", action="store_const", const=-3,
                   dest="verbosity", help="print nothing (if possible)")
 parser.add_option("-P", "--pipeverb", type="int", action="store", dest="pipeverb", default=0, metavar="int", help="pipeline verbosity level (0=normal, 1=debug, -1=quiet, -3=silent)")
-run.addVerbosityOption(parser, dest="pipeverb")
 
 parser.opts = {}
 parser.args = []
