@@ -34,7 +34,7 @@ root.workflow["PT1Workflow"].platform.hw.maxCoresPerNode = 12
 root.workflow["PT1Workflow"].platform.hw.minRamPerNode = 32.0
 root.workflow["PT1Workflow"].platform.hw.maxRamPerNode = 32.0
 
-root.workflow["PT1Workflow"].platform.deploy.defaultDomain: "tacc.utexas.edu"
+root.workflow["PT1Workflow"].platform.deploy.defaultDomain = "tacc.utexas.edu"
 root.workflow["PT1Workflow"].platform.deploy.nodes = ["remoteabe1:8", "remoteabe2:8", "remoteabe3:8", "remoteabe4:8", "remoteabe5:8", "remoteabe6:8", "remoteabe7:8", "remoteabe8:8"];
 
 root.workflow["PT1Workflow"].shutdownTopic = "workflowShutdown"
