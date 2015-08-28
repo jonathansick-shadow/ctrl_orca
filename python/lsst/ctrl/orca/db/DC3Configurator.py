@@ -164,17 +164,17 @@ class DC3Configurator:
     #
     # The credential Config has the following format:
     #
-    # root.database.authInfo.names = ["cred1", "cred2]
+    # config.database.authInfo.names = ["cred1", "cred2]
     #
-    # root.database.authInfo["cred1"].host = "lsst10.ncsa.illinois.edu"
-    # root.database.authInfo["cred1"].user = "moose"
-    # root.database.authInfo["cred1"].password = "squirrel"
-    # root.database.authInfo["cred1"].port = 3306
+    # config.database.authInfo["cred1"].host = "lsst10.ncsa.illinois.edu"
+    # config.database.authInfo["cred1"].user = "moose"
+    # config.database.authInfo["cred1"].password = "squirrel"
+    # config.database.authInfo["cred1"].port = 3306
     #
-    # root.database.authInfo["cred2"].host = "lsst10.ncsa.illinois.edu"
-    # root.database.authInfo["cred2"].user = "boris"
-    # root.database.authInfo["cred2"].password = "natasha"
-    # root.database.authInfo["cred2"].port = 3306
+    # config.database.authInfo["cred2"].host = "lsst10.ncsa.illinois.edu"
+    # config.database.authInfo["cred2"].user = "boris"
+    # config.database.authInfo["cred2"].password = "natasha"
+    # config.database.authInfo["cred2"].port = 3306
     #
     # Terms "database.host" and "database.port" must be specified, 
     # and will match against the first "database.authInfo.host" and 
