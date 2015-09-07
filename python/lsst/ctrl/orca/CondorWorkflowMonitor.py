@@ -23,10 +23,9 @@
 from __future__ import with_statement
 import os, sys, subprocess, threading, time
 import lsst.ctrl.events as events
-import lsst.pex.logging as logging
+import lsst.log as log
 
 from lsst.daf.base import PropertySet
-from lsst.pex.logging import Log
 from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
 from lsst.ctrl.orca.multithreading import SharedData
@@ -38,19 +37,14 @@ class CondorWorkflowMonitor(WorkflowMonitor):
     # @brief in charge of monitoring and/or controlling the progress of a
     #        running workflow.
     #
-    def __init__(self, eventBrokerHost, shutdownTopic, runid, condorDagId, loggerManagers, monitorConfig, logger):
-
-        #self.__init__(logger)
+    def __init__(self, eventBrokerHost, shutdownTopic, runid, condorDagId, loggerManagers, monitorConfig):
 
         # _locked: a container for data to be shared across threads that 
         # have access to this object.
         self._locked = SharedData(False,
                                             {"running": False, "done": False})
 
-        if not logger:
-            logger = Log.getDefaultLog()
-        self.logger = Log(logger, "monitor")
-        self.logger.log(Log.DEBUG, "CondorWorkflowMonitor:__init__")
+        log.debug("CondorWorkflowMonitor:__init__")
         self._statusListeners = []
         # make a copy of this liste, since we'll be removing things.
 
@@ -91,8 +85,8 @@ class CondorWorkflowMonitor(WorkflowMonitor):
             self.monitorConfig = monitorConfig
 
         def run(self):
-            cj = CondorJobs(self._parent.logger)
-            self._parent.logger.log(Log.DEBUG, "CondorWorkflowMonitor Thread started")
+            cj = CondorJobs()
+            log.debug("CondorWorkflowMonitor Thread started")
             statusCheckInterval = int(self.monitorConfig.statusCheckInterval)
             sleepInterval = statusCheckInterval
             # we don't decide when we finish, someone else does.
@@ -132,7 +126,7 @@ class CondorWorkflowMonitor(WorkflowMonitor):
             self._locked.running = True
 
     def handleEvent(self, event):
-        self.logger.log(Log.DEBUG, "CondorWorkflowMonitor:handleEvent called")
+        log.debug("CondorWorkflowMonitor:handleEvent called")
 
         # make sure this is really for us.
 
@@ -168,20 +162,30 @@ class CondorWorkflowMonitor(WorkflowMonitor):
         # send a message to the logger that we're done
         if self.bSentLastLoggerEvent == False:
             print "sending last Logger Event"
-            self.eventSystem.createTransmitter(self._eventBrokerHost, events.EventLog.LOGGING_TOPIC)
-            evtlog = events.EventLog(self.runid, -1)
-            tlog = logging.Log(evtlog, "orca.control")
-            logging.LogRec(tlog, 1) << logging.Prop("STATUS", "eol") << logging.LogRec.endr
+            transmitter = events.EventTransmitter(self._eventBrokerHost, events.LogEvent.LOGGING_TOPIC)
+
+            #self.eventSystem.createTransmitter(self._eventBrokerHost, events.LogEvent.LOGGING_TOPIC)
+
+            props = PropertySet()
+            props.set("LOGGER", "orca.control")
+            props.set("STATUS", "eol")
+
+            e = events.Event(self.runid, props)
+            transmitter.publishEvent(e)
+
+            #evtlog = events.EventLog(self.runid, -1)
+            #tlog = logging.Log(evtlog, "orca.control")
+            #logging.LogRec(tlog, 1) << logging.Prop("STATUS", "eol") << logging.LogRec.endr
             self.bSentLastLoggerEvent = True
 
     ##
     # @brief stop the workflow
     #
     def stopWorkflow(self, urgency):
-        self.logger.log(Log.DEBUG, "CondorWorkflowMonitor:stopWorkflow")
+        log.debug("CondorWorkflowMonitor:stopWorkflow")
 
         # do a condor_rm on the cluster id for the dag we submitted.
-        cj = CondorJobs(self.logger)
+        cj = CondorJobs()
         cj.killCondorId(self.condorDagId)
 
         self.sendLastLoggerEvent()
