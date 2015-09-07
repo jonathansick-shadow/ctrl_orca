@@ -21,7 +21,7 @@
 #
 
 import subprocess
-from lsst.pex.logging import Log
+import lsst.log as log
 
 ##
 # @brief an interface for getting notified about changes in the status
@@ -29,11 +29,8 @@ from lsst.pex.logging import Log
 #
 class StatusListener:
     # 
-    def __init__(self, logger):
-        if not logger:
-            logger = Log.getDefaultLog()
-        self.logger = Log(logger, "launch")
-        self.logger.log(Log.DEBUG, "StatusListener:__init__")
+    def __init__(self):
+        log.debug("StatusListener:__init__")
 
     ##
     #

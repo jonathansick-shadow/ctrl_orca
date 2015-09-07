@@ -22,7 +22,7 @@
 
 import os, sys, subprocess
 import lsst.ctrl.orca as orca
-from lsst.pex.logging import Log
+import lsst.log as log
 from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
 from lsst.ctrl.orca.WorkflowLauncher import WorkflowLauncher
@@ -33,30 +33,26 @@ class CondorWorkflowLauncher(WorkflowLauncher):
     ##
     # @brief
     #
-    def __init__(self, prodConfig, wfConfig, runid, localStagingDir, dagFile, monitorConfig, logger = None):
-        if logger != None:
-            logger.log(Log.DEBUG, "CondorWorkflowLauncher:__init__")
+    def __init__(self, prodConfig, wfConfig, runid, localStagingDir, dagFile, monitorConfig):
+        log.debug("CondorWorkflowLauncher:__init__")
         self.prodConfig = prodConfig
         self.wfConfig = wfConfig
         self.runid = runid
         self.localStagingDir = localStagingDir
         self.dagFile = dagFile
         self.monitorConfig = monitorConfig
-        self.logger = logger
 
     ##
     # @brief perform cleanup after workflow has ended.
     #
     def cleanUp(self):
-        if self.logger != None:
-            self.logger.log(Log.DEBUG, "CondorWorkflowLauncher:cleanUp")
+        log.debug("CondorWorkflowLauncher:cleanUp")
 
     ##
     # @brief launch this workflow
     #
     def launch(self, statusListener, loggerManagers):
-        if self.logger != None:
-            self.logger.log(Log.DEBUG, "CondorWorkflowLauncher:launch")
+        log.debug("CondorWorkflowLauncher:launch")
 
         # start the monitor first, because we want to catch any pipeline
         # events that might be sent from expiring pipelines.
@@ -68,18 +64,14 @@ class CondorWorkflowLauncher(WorkflowLauncher):
         startDir = os.getcwd()
         os.chdir(self.localStagingDir)
 
-        cj = CondorJobs(self.logger)
+        cj = CondorJobs()
         condorDagId = cj.condorSubmitDag(self.dagFile)
         print "Condor dag submitted as job ",condorDagId
         os.chdir(startDir)
 
-        self.workflowMonitor = CondorWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, condorDagId, loggerManagers, self.monitorConfig, self.logger)
+        self.workflowMonitor = CondorWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, condorDagId, loggerManagers, self.monitorConfig)
         if statusListener != None:
             self.workflowMonitor.addStatusListener(statusListener)
         self.workflowMonitor.startMonitorThread(self.runid)
-
-
-
-    
 
         return self.workflowMonitor

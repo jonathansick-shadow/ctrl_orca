@@ -29,7 +29,7 @@ import lsst.ctrl.events as events
 from lsst.ctrl.orca.config.ProductionConfig import ProductionConfig
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.ctrl.orca.StatusListener import StatusListener
-from lsst.pex.logging import Log
+import lsst.log as log
 
 from EnvString import EnvString
 from exceptions import ConfigurationError
@@ -48,21 +48,15 @@ class ProductionRunManager:
     # @brief initialize
     # @param runid           name of the run
     # @param configFileName  production run config file
-    # @param logger          the Log object to use
     # @param repository      the config repository to assume; this will
     #                          override the value in the config file
     #
-    def __init__(self, runid, configFileName, logger=None, repository=None):
+    def __init__(self, runid, configFileName, repository=None):
 
         # _locked: a container for data to be shared across threads that 
         # have access to this object.
         self._locked = SharedData(False,
                                             {"running": False, "done": False})
-
-        # the logger used by this instance
-        if not logger:
-            logger = Log.getDefaultLogger()
-        self.logger = Log(logger, "manager")
 
         # the run id for this production
         self.runid = runid
@@ -129,7 +123,7 @@ class ProductionRunManager:
     #
     def configure(self, workflowVerbosity=None):
         if self._productionRunConfigurator:
-            self.logger.log(Log.INFO-1, "production has already been configured.")
+            log.info("production has already been configured.")
             return
         
         # lock this branch of code
@@ -166,14 +160,13 @@ class ProductionRunManager:
     # @throws ConfigurationError  raised if any error arises during configuration or
     #                             while checking the configuration.
     def runProduction(self, skipConfigCheck=False, workflowVerbosity=None):
-        self.logger.log(Log.DEBUG, "Running production: " + self.runid)
+        log.debug("Running production: " + self.runid)
 
         if not self.isRunnable():
             if self.isRunning():
-                self.logger.log(Log.INFO, "Production Run %s is already running" % self.runid)
+                log.info("Production Run %s is already running" % self.runid)
             if self.isDone():
-                self.logger.log(Log.INFO,
-                                "Production Run %s has already run; start with new runid" % self.runid)
+                log.info("Production Run %s has already run; start with new runid" % self.runid)
             return False
 
         # set configuration check care level.
@@ -216,7 +209,7 @@ class ProductionRunManager:
             for workflow in self._workflowManagers["__order"]:
                 mgr = self._workflowManagers[workflow.getName()]
 
-                statusListener = StatusListener(self.logger)
+                statusListener = StatusListener()
                 # this will block until the monitor is created.
                 monitor = mgr.runWorkflow(statusListener, self._loggerManagers)
                 self._workflowMonitors.append(monitor)
@@ -274,7 +267,7 @@ class ProductionRunManager:
     #
     #
     def createConfigurator(self, runid, configFile):
-        self.logger.log(Log.DEBUG, "ProductionRunManager:createConfigurator")
+        log.debug("ProductionRunManager:createConfigurator")
 
         configuratorClass = ProductionRunConfigurator
         configuratorClassName = None
@@ -284,7 +277,7 @@ class ProductionRunManager:
             classFactory = NamedClassFactory()
             configuratorClass = classFactory.createClass(configuratorClassName)
 
-        return configuratorClass(runid, configFile, self.repository, self.logger)
+        return configuratorClass(runid, configFile, self.repository)
 
     ##
     # @brief
@@ -297,7 +290,7 @@ class ProductionRunManager:
     def checkConfiguration(self, care=1, issueExc=None):
         # care - level of "care" in checking the configuration to take. In
         # general, the higher the number, the more checks that are made.
-        self.logger.log(Log.DEBUG, "checkConfiguration")
+        log.debug("checkConfiguration")
 
         if not self._workflowManagers:
             msg = "%s: production has not been configured yet" % self.runid
@@ -339,13 +332,10 @@ class ProductionRunManager:
         #   NOW                 - end as soon as possible, forgoing any 
         #                         checkpointing
         if not self.isRunning():
-            self.logger.log(Log.INFO-1,
-                           "shutdown requested when production is not running")
+            log.info("shutdown requested when production is not running")
             return
         
-        if self.logger.sends(Log.INFO):
-            self.logger.log(Log.INFO,
-                            "Shutting down production (urgency=%s)" % urgency)
+        log.info("Shutting down production (urgency=%s)" % urgency)
 
         for workflow in self._workflowManagers["__order"]:
             workflowMgr = self._workflowManagers[workflow.getName()]
@@ -366,7 +356,7 @@ class ProductionRunManager:
                 self._locked.running = False
                 self._locked.done = True
         else:
-            self.logger.log(Log.DEBUG, "Failed to shutdown pipelines within timeout: %ss" % timeout)
+            log.debug("Failed to shutdown pipelines within timeout: %ss" % timeout)
             return False
 
 
@@ -420,24 +410,22 @@ class ProductionRunManager:
             self._evsys.createReceiver(brokerhost, self._topic, selector)
 
         def run(self):
-            self._parent.logger.log(Log.DEBUG,
-                                   "listening for shutdown event at %s s intervals" % self._pollintv)
+            log.debug("listening for shutdown event at %s s intervals" % self._pollintv)
 
-            self._parent.logger.log(Log.DEBUG-10, "checking for shutdown event")
-            self._parent.logger.log(Log.DEBUG, "self._timeout = %s" % self._timeout)
+            log.debug("checking for shutdown event")
+            log.debug("self._timeout = %s" % self._timeout)
             shutdownEvent = self._evsys.receiveEvent(self._topic, self._timeout)
             while self._parent.isRunning() and shutdownEvent is None:
                 time.sleep(self._pollintv)
-                #self._parent.logger.log(Log.DEBUG-10, "checking for shutdown event")
                 shutdownEvent = self._evsys.receiveEvent(self._topic, self._timeout)
                 #time.sleep(1)
                 #shutdownData = self._evsys.receiveEvent(self._topic, 10)
-            self._parent.logger.log(Log.DEBUG, "DONE!")
+            log.debug("DONE!")
 
             if shutdownEvent:
                 shutdownData = shutdownEvent.getPropertySet()
                 self._parent.stopProduction(shutdownData.getInt("level"))
-            self._parent.logger.log(Log.DEBUG, "Everything shutdown - All finished")
+            log.debug("Everything shutdown - All finished")
 
     def _startShutdownThread(self):
         self._sdthread = ProductionRunManager._ShutdownThread(self, self.runid)

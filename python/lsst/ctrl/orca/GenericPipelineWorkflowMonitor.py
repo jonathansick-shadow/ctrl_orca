@@ -23,10 +23,9 @@
 from __future__ import with_statement
 import os, sys, subprocess, threading, time
 import lsst.ctrl.events as events
-import lsst.pex.logging as logging
+import lsst.log as log
 
 from lsst.daf.base import PropertySet
-from lsst.pex.logging import Log
 from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
 from lsst.ctrl.orca.multithreading import SharedData
@@ -36,19 +35,14 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
     # @brief in charge of monitoring and/or controlling the progress of a
     #        running workflow.
     #
-    def __init__(self, eventBrokerHost, shutdownTopic, runid, pipelineNames, loggerManagers, logger):
-
-        #self.__init__(logger)
+    def __init__(self, eventBrokerHost, shutdownTopic, runid, pipelineNames, loggerManagers):
 
         # _locked: a container for data to be shared across threads that 
         # have access to this object.
         self._locked = SharedData(False,
                                             {"running": False, "done": False})
 
-        if not logger:
-            logger = Log.getDefaultLog()
-        self.logger = Log(logger, "monitor")
-        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowMonitor:__init__")
+        log.debug("GenericPipelineWorkflowMonitor:__init__")
         self._statusListeners = []
         self.pipelineNames = pipelineNames[:] # make a copy of this list, since we'll be removing things
 
@@ -95,7 +89,7 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
 
 
         def run(self):
-            self._parent.logger.log(Log.DEBUG, "GenericPipelineWorkflowMonitor Thread started")
+            log.debug("GenericPipelineWorkflowMonitor Thread started")
             # we don't decide when we finish, someone else does.
             while True:
                 # TODO:  this timeout value should go away when the GIL lock relinquish is implemented in events.
@@ -127,12 +121,12 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
             ps = event.getPropertySet()
             status = ps.get("STATUS")
             if status == "joboffice:done":
-                self.logger.log(Log.DEBUG, "GenericPipelineWorkflowMonitor:handleJobOfficeEvent joboffice:done received")
+                log.debug("GenericPipelineWorkflowMonitor:handleJobOfficeEvent joboffice:done received")
                 self.stopWorkflow(1)
         return
 
     def handleEvent(self, event):
-        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowMonitor:handleEvent called")
+        log.debug("GenericPipelineWorkflowMonitor:handleEvent called")
 
         # make sure this is really for us.
 
@@ -164,7 +158,7 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
                 self.bSentJobOfficeEvent = True
 
             if (cnt == 0) and (self.bSentLastLoggerEvent == False):
-                self.eventSystem.createTransmitter(self._eventBrokerHost, events.EventLog.LOGGING_TOPIC)
+                self.eventSystem.createTransmitter(self._eventBrokerHost, events.LogEvent.LOGGING_TOPIC)
                 evtlog = events.EventLog(self.runid, -1)
                 tlog = logging.Log(evtlog, "orca.control")
                 logging.LogRec(tlog, 1) << logging.Prop("STATUS", "eol") << logging.LogRec.endr
@@ -186,7 +180,7 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
     # @brief stop the workflow
     #
     def stopWorkflow(self, urgency):
-        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowMonitor:stopWorkflow: %s %s " % (self._eventBrokerHost, self._shutdownTopic))
+        log.debug("GenericPipelineWorkflowMonitor:stopWorkflow: %s %s " % (self._eventBrokerHost, self._shutdownTopic))
         transmit = events.EventTransmitter(self._eventBrokerHost, self._shutdownTopic)
         
         root = PropertySet()

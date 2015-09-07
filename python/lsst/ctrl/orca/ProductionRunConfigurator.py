@@ -26,7 +26,7 @@ from lsst.ctrl.orca.DatabaseConfigurator import DatabaseConfigurator
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.ctrl.orca.WorkflowManager import WorkflowManager
 from lsst.ctrl.orca.config.ProductionConfig import ProductionConfig
-from lsst.pex.logging import Log
+import lsst.log as log
 import lsst.pex.config as pexConfig
 from lsst.ctrl.provenance.ProvenanceSetup import ProvenanceSetup
 import lsst.pex.exceptions as pexEx
@@ -36,15 +36,9 @@ class ProductionRunConfigurator:
     # @brief create a basic production run.
     # Note that all ProductionRunConfigurator subclasses must support this
     # constructor signature.
-    def __init__(self, runid, configFile, repository=None, logger=None, workflowVerbosity=None):
+    def __init__(self, runid, configFile, repository=None, workflowVerbosity=None):
 
-        # the logger used by this instance
-        if not logger:
-            logger = Log.getDefaultLogger()
-        self.parentLogger = logger
-        self.logger = Log(logger, "config")
-
-        logger.log(Log.DEBUG, "ProductionRunConfigurator:__init__")
+        log.debug("ProductionRunConfigurator:__init__")
 
         self.runid = runid
         self._prodConfigFile = configFile
@@ -83,9 +77,9 @@ class ProductionRunConfigurator:
     # @brief create the WorkflowManager for the pipelien with the given shortName
     #
     def createWorkflowManager(self, prodConfig, wfName, wfConfig):
-        self.logger.log(Log.DEBUG, "ProductionRunConfigurator:createWorkflowManager")
+        log.debug("ProductionRunConfigurator:createWorkflowManager")
 
-        wfManager = WorkflowManager(wfName, self.runid, self.repository, prodConfig, wfConfig, self.logger)
+        wfManager = WorkflowManager(wfName, self.runid, self.repository, prodConfig, wfConfig)
         return wfManager
 
     ##
@@ -98,7 +92,7 @@ class ProductionRunConfigurator:
     # @brief configure this production run
     #
     def configure(self, workflowVerbosity):
-        self.logger.log(Log.DEBUG, "ProductionRunConfigurator:configure")
+        log.debug("ProductionRunConfigurator:configure")
 
         # TODO - IMPORTANT - NEXT TWO LINES ARE FOR PROVENANCE
         # --------------
@@ -125,9 +119,11 @@ class ProductionRunConfigurator:
                 loggerConfig = databaseConfig.logger
                 if loggerConfig.launch != None:
                     launch = loggerConfig.launch
+                    loggerManager = None
                     if launch == True:
-                        loggerManager = LoggerManager(self.logger, self.eventBrokerHost, dbInfo["host"], dbInfo["port"], self.runid, dbInfo["dbrun"])
-                    self._loggerManagers.append(loggerManager)
+                        loggerManager = LoggerManager(self.eventBrokerHost, dbInfo["host"], dbInfo["port"], self.runid, dbInfo["dbrun"])
+                    if loggerManager is not None:
+                        self._loggerManagers.append(loggerManager)
             self._databaseConfigurators.append(cfg)
 
 
@@ -166,7 +162,7 @@ class ProductionRunConfigurator:
     #                   that the caller will raise that exception is necessary.
     #
     def checkConfiguration(self, care=1, issueExc=None):
-        self.logger.log(Log.DEBUG, "checkConfiguration")
+        log.debug("checkConfiguration")
         myProblems = issueExc
         if myProblems is None:
             myProblems = MultiIssueConfigurationError("problems encountered while checking configuration")
@@ -182,11 +178,11 @@ class ProductionRunConfigurator:
     # @brief lookup and create the configurator for database operations
     #
     def createDatabaseConfigurator(self, databaseConfig):
-        self.logger.log(Log.DEBUG, "ProductionRunConfigurator:createDatabaseConfigurator")
+        log.debug("ProductionRunConfigurator:createDatabaseConfigurator")
         className = databaseConfig.configurationClass
         classFactory = NamedClassFactory()
         configurationClass = classFactory.createClass(className)
-        configurator = configurationClass(self.runid, databaseConfig, self.prodConfig, None, self.logger)
+        configurator = configurationClass(self.runid, databaseConfig, self.prodConfig, None)
         return configurator
 
     ##

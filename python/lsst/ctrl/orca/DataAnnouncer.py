@@ -21,22 +21,19 @@
 #
 
 import os
-from lsst.pex.logging import Log
+import lsst.log as log
 from lsst.ctrl.orca.EnvString import EnvString
 
 class DataAnnouncer:
 
     def __init__(self, runid, prodConfig, wfConfig, logger = None):
-        self.logger = logger
-        if self.logger is not None:
-            self.logger.log(Log.DEBUG, "DataAnnouncer: __init__")
+        log.debug("DataAnnouncer: __init__")
         self.runid = runid
         self.prodConfig = prodConfig
         self.wfConfig = wfConfig
 
     def announce(self):
-        if self.logger is not None:
-            self.logger.log(Log.DEBUG, "DataAnnouncer: announce")
+        log.debug("DataAnnouncer: announce")
         broker = self.prodConfig.production.eventBrokerHost
         
         configType = self.wfConfig.configurationType

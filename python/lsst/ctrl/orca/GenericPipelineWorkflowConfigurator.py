@@ -25,7 +25,7 @@ import lsst.ctrl.orca as orca
 import lsst.pex.config as pexConfig
 
 from lsst.ctrl.orca.Directories import Directories
-from lsst.pex.logging import Log
+import lsst.log as log
 
 from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowConfigurator import WorkflowConfigurator
@@ -37,9 +37,8 @@ from lsst.ctrl.orca.GenericFileWaiter import GenericFileWaiter
 # GenericPipelineWorkflowConfigurator 
 #
 class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
-    def __init__(self, runid, repository, prodConfig, wfConfig, wfName, logger):
-        self.logger = logger
-        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:__init__")
+    def __init__(self, runid, repository, prodConfig, wfConfig, wfName):
+        log.debug("GenericPipelineWorkflowConfigurator:__init__")
         self.runid = runid
         self.prodConfig = prodConfig
         self.wfConfig = wfConfig
@@ -76,7 +75,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
     #
     
     def _configureSpecialized(self, provSetup, wfConfig):
-        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:configure")
+        log.debug("GenericPipelineWorkflowConfigurator:configure")
 
         platformConfig = wfConfig.platform
 
@@ -98,14 +97,14 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
             self.createDirs(platformConfig, pipelineConfig)
             pipelineShortName = pipelineConfig
             launchName = "%s_%d" % (pipelineShortName, num)
-            self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator: launchName = %s" % launchName)
+            log.debug("GenericPipelineWorkflowConfigurator: launchName = %s" % launchName)
             val = self.deploySetup(provSetup, wfConfig, platformConfig, pipelineConfigGroup)
             launchCmd.append(val)
-            self.logger.log(Log.DEBUG, "launchCmd = %s" % launchCmd)
+            log.debug("launchCmd = %s" % launchCmd)
         self.deployData(wfConfig)
 
-        fileWaiter = GenericFileWaiter(self.logFileNames, self.logger)
-        workflowLauncher = GenericPipelineWorkflowLauncher(launchCmd, self.prodConfig, wfConfig, self.runid, fileWaiter, self.pipelineNames, self.logger)
+        fileWaiter = GenericFileWaiter(self.logFileNames)
+        workflowLauncher = GenericPipelineWorkflowLauncher(launchCmd, self.prodConfig, wfConfig, self.runid, fileWaiter, self.pipelineNames)
         return workflowLauncher
 
     ##
@@ -113,7 +112,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
     # @return the list of nodes
     #
     def createNodeList(self,  pipelineConfig):
-        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:createNodeList")
+        log.debug("GenericPipelineWorkflowConfigurator:createNodeList")
         print "pipelineConfig = ",pipelineConfig
         print "pipelineConfig.deploy = ",pipelineConfig.deploy
         node = pipelineConfig.deploy.processesOnNode
@@ -138,7 +137,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         return len(self.nodes)
 
     def deployData(self, wfConfig):
-        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:deployData")
+        log.debug("GenericPipelineWorkflowConfigurator:deployData")
 
         # add data deploy here
 
@@ -161,7 +160,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
                         os.execvp(deployCmd[0], deployCmd)
                     os.wait()[0]
                 else:
-                    self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:deployData: warning: script '%s' doesn't exist" % deployScript)
+                    log.debug("GenericPipelineWorkflowConfigurator:deployData: warning: script '%s' doesn't exist" % deployScript)
         # end data deploy here
 
 
@@ -169,7 +168,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
     # @brief 
     #
     def deploySetup(self, provSetup, wfConfig, platformConfig, pipelineConfigGroup):
-        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:deploySetup")
+        log.debug("GenericPipelineWorkflowConfigurator:deploySetup")
 
         pipelineConfig = pipelineConfigGroup.getConfigName()
         shortName = pipelineConfig
@@ -239,7 +238,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         self.script = setupPath
 
         if orca.envscript is None:
-            self.logger.log(self.logger.INFO-1, "Using configured setup.sh")
+            log.info("Using configured setup.sh")
         else:
             self.script = orca.envscript
         if not self.script:
@@ -325,7 +324,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
 #            launchCmd = ' '.join(cmd)
 #
 #            # extract the pipeline config and all the files it includes, and add it to the command
-#            filelist = provSetup.extractSinglePipelineFileNames(pipelineConfig, self.repository, self.logger)
+#            filelist = provSetup.extractSinglePipelineFileNames(pipelineConfig, self.repository)
 #            fileargs = ' '.join(filelist)
 #            launcher.write("%s %s\n" % (launchCmd, fileargs))
 
@@ -345,7 +344,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
     # @brief create the platform.dir directories
     #
     def createDirs(self, platformConfig, pipelineConfig):
-        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:createDirs")
+        log.debug("GenericPipelineWorkflowConfigurator:createDirs")
 
         print "pipelineConfig = ",pipelineConfig
         dirConfig = platformConfig.dir
@@ -363,7 +362,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
     # @brief set up this workflow's database
     #
     def setupDatabase(self):
-        self.logger.log(Log.DEBUG, "GenericPipelineWorkflowConfigurator:setupDatabase")
+        log.debug("GenericPipelineWorkflowConfigurator:setupDatabase")
 
     ##
     # @brief perform a node host name expansion
@@ -379,10 +378,9 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
             elif colon > 0:
                 node = nodeentry[0:colon]
                 if len(node) < 3:
-                    #logger.log(Log.WARN, "Suspiciously short node name: " + node)
-                    self.logger.log(Log.DEBUG, "Suspiciously short node name: " + node)
-                self.logger.log(Log.DEBUG, "-> nodeentry  =" + nodeentry)
-                self.logger.log(Log.DEBUG, "-> node  =" + node)
+                    log.debug("Suspiciously short node name: " + node)
+                log.debug("-> nodeentry  =" + nodeentry)
+                log.debug("-> node  =" + node)
 
                 if self.defaultDomain is not None:
                     node += "."+self.defaultDomain

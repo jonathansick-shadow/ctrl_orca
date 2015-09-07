@@ -20,7 +20,7 @@
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 
-from lsst.pex.logging import Log
+import lsst.log as log
 import lsst.pex.exceptions as pexEx
 
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
@@ -69,24 +69,14 @@ class WorkflowConfigurator:
     # 
     # @param runid       the run identifier for the production run
     # @param wfConfig    the workflow config that describes the workflow
-    # @param logger      the logger used by the caller.  This class
-    #                       will set this create a child log with the
-    #                       subname "config".  A sub class may wish to
-    #                       reset the child logger for a different subname.
     # @param fromSub     set this to True to indicate that it is being called
     #                       from a subclass constructor.  If False (default),
     #                       an exception will be raised under the assumption
     #                       that one is trying instantiate it directly.
-    def __init__(self, runid, prodConfig, wfConfig, logger, fromSub=False):
+    def __init__(self, runid, prodConfig, wfConfig, fromSub=False):
         self.runid = runid
 
-        # the logger used by this instance
-        if not logger:
-            logger = Log.getDefaultLogger()
-        self.parentLogger = logger
-        self.logger = Log(logger, "config")
-
-        sel.logger.log(Log.DEBUG, "WorkflowConfigurator:__init__")
+        log.debug("WorkflowConfigurator:__init__")
 
         self.prodConfig = prodConfig
         self.wfConfig = wfConfig
@@ -100,7 +90,7 @@ class WorkflowConfigurator:
     # @brief Configure the databases, and call an specialization required
     #
     def configure(self, provSetup, workflowVerbosity=None):
-        self.logger.log(Log.DEBUG, "WorkflowConfigurator:configure")
+        log.debug("WorkflowConfigurator:configure")
         self._configureDatabases(provSetup)
         return self._configureSpecialized(self.wfConfig, workflowVerbosity)
 
@@ -112,7 +102,7 @@ class WorkflowConfigurator:
     # @param provSetup
     #
     def _configureDatabases(self, provSetup):
-        self.logger.log(Log.DEBUG, "WorkflowConfigurator:_configureDatabases")
+        log.debug("WorkflowConfigurator:_configureDatabases")
 
         #
         # setup the database for each database listed in workflow config
@@ -149,18 +139,18 @@ class WorkflowConfigurator:
     # @return workflowLauncher
     def _createWorkflowLauncher(self):
         msg = 'called "abstract" WorkflowConfigurator._createWorkflowLauncher'
-        self.logger.log(Log.FAIL, msg)
+        log.info(msg)
         raise RuntimeError(msg)
 
     ##
     # @brief lookup and create the configurator for database operations
     #
     def createDatabaseConfigurator(self, databaseConfig):
-        self.logger.log(Log.DEBUG, "WorkflowConfigurator:createDatabaseConfigurator")
+        log.debug("WorkflowConfigurator:createDatabaseConfigurator")
         className = databaseConfig.configurationClass
         classFactory = NamedClassFactory()
         configurationClass = classFactory.createClass(className)
-        configurator = configurationClass(self.runid, databaseConfig, self.logger) 
+        configurator = configurationClass(self.runid, databaseConfig)
         return configurator
 
     ##

@@ -28,7 +28,7 @@ import subprocess
 import sys
 import re
 import time
-from lsst.pex.logging import Log
+import lsst.log as log
 
 
 #
@@ -36,10 +36,8 @@ from lsst.pex.logging import Log
 # condor_submit and condor_q
 #
 class CondorJobs:
-    def __init__(self, logger):
-        self.logger = logger
-        if self.logger is not None:
-            self.logger.log(Log.DEBUG, "CondorJobs:__init__")
+    def __init__(self):
+        log.debug("CondorJobs:__init__")
         return
 
 
@@ -50,8 +48,7 @@ class CondorJobs:
     # 1 job(s) submitted to cluster 1317.
     
     def submitJob(self, condorFile):
-        if self.logger is not None:
-            self.logger.log(Log.DEBUG, "CondorJobs:submitJob")
+        log.debug("CondorJobs:submitJob")
         clusterexp = re.compile("1 job\(s\) submitted to cluster (\d+).")
     
         submitRequest = "condor_submit %s" % condorFile
@@ -77,8 +74,7 @@ class CondorJobs:
     #1017.0   srp             5/24 09:18   0+00:00:00 R  0   0.0  launch_joboffices_
     
     def waitForJobToRun(self, num, extramsg=None):
-        if self.logger is not None:
-            self.logger.log(Log.DEBUG, "CondorJobs:waitForJobToRun")
+        log.debug("CondorJobs:waitForJobToRun")
         jobNum = "%s.0" % num
         queueExp = re.compile("\S+")
         cJobSeen = 0
@@ -135,8 +131,7 @@ class CondorJobs:
             secondsWaited = secondsWaited + 1
 
     def waitForAllJobsToRun(self, numList):
-        if self.logger is not None:
-            self.logger.log(Log.DEBUG, "CondorJobs:waitForAllJobsToRun")
+        log.debug("CondorJobs:waitForAllJobsToRun")
         queueExp = re.compile("\S+")
         jobList = list(numList)
         while 1:
@@ -168,8 +163,7 @@ class CondorJobs:
 
     # submit a condor dag and return its cluster number
     def condorSubmitDag(self, filename):
-        if self.logger is not None:
-            self.logger.log(Log.DEBUG, "CondorJobs: submitCondorDag "+filename)
+        log.debug("CondorJobs: submitCondorDag "+filename)
         # Just a note about why this was done this way...
         # There's something wierd about how "condor_submit_dag" prints it's output.
         # If you run it on the command line, it'll print the "1 job(s) submitted" 
@@ -202,8 +196,7 @@ class CondorJobs:
         return -1
 
     def killCondorId(self, cid):
-        if self.logger is not None:
-            self.logger.log(Log.DEBUG, "CondorJobs: killCondorId"+str(cid))
+        log.debug("CondorJobs: killCondorId"+str(cid))
         cmd = "condor_rm "+str(cid)
         process = subprocess.Popen(cmd.split(), shell=False, stdout=subprocess.PIPE)
         line = process.stdout.readline()
