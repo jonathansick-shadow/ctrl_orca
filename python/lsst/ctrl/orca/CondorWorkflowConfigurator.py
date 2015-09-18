@@ -27,7 +27,7 @@ import lsst.ctrl.orca as orca
 import lsst.pex.config as pexConfig
 
 from lsst.ctrl.orca.Directories import Directories
-from lsst.pex.logging import Log
+import lsst.log as log
 
 from lsst.ctrl.orca.EnvString import EnvString
 #from lsst.ctrl.orca.ConfigUtils import ConfigUtils
@@ -42,9 +42,8 @@ from lsst.ctrl.orca.FileWaiter import FileWaiter
 # CondorWorkflowConfigurator 
 #
 class CondorWorkflowConfigurator(WorkflowConfigurator):
-    def __init__(self, runid, repository, prodConfig, wfConfig, wfName, logger):
-        self.logger = logger
-        self.logger.log(Log.DEBUG, "CondorWorkflowConfigurator:__init__")
+    def __init__(self, runid, repository, prodConfig, wfConfig, wfName):
+        log.debug("CondorWorkflowConfigurator:__init__")
 
         self.runid = runid
         self.repository = repository
@@ -86,7 +85,7 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
     # @param wfConfig
     #
     def _configureSpecialized(self, provSetup, wfConfig):
-        self.logger.log(Log.DEBUG, "CondorWorkflowConfigurator:configure")
+        log.debug("CondorWorkflowConfigurator:configure")
 
         localConfig = wfConfig.configuration["condor"]
         self.localScratch = localConfig.condorData.localScratch
@@ -105,7 +104,7 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
         if localConfig.glidein.template.inputFile is not None:
             self.writeGlideinFile(localConfig.glidein)
         else:
-            self.logger.log(Log.DEBUG, "CondorWorkflowConfigurator: not writing glidein file")
+            log.debug("CondorWorkflowConfigurator: not writing glidein file")
         os.chdir(startDir)
 
         # TODO - fix this loop for multiple condor submits; still working
@@ -164,6 +163,7 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
             os.chdir(self.localStagingDir)
 
             # generate pre script
+            log.debug("CondorWorkflowConfigurator:configure: generate pre script")
 
             if task.preScript.script.outputFile is not None:
                 preScriptOutputFile = EnvString.resolve(task.preScript.script.outputFile)
@@ -173,6 +173,7 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
                 os.chmod(task.preScript.outputFile, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
             
             # generate dag
+            log.debug("CondorWorkflowConfigurator:configure: generate dag")
             dagGenerator = EnvString.resolve(task.dagGenerator.script)
             dagGeneratorInput = EnvString.resolve(task.dagGenerator.input)
             dagCreatorCmd = [dagGenerator, "-s", dagGeneratorInput, "-w", task.scriptDir, "-t", task.workerJob.condor.outputFile, "-r", self.runid, "--idsPerJob", str(task.dagGenerator.idsPerJob)]
@@ -209,9 +210,14 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
                 #    visit = myData
                 visit = str(int(count / 100))
                 visitSet.add(visit)
+            log.debug("CondorWorkflowConfigurator:configure: about to make logs")
             logDirName = os.path.join(self.localStagingDir, "logs")
+            log.debug("CondorWorkflowConfigurator:configure: logDirName = "+logDirName)
+            logDirName = os.path.join(self.localStagingDir, "logs")
+            os.makedirs(logDirName)
             for visit in visitSet:
                 dirName = os.path.join(logDirName, str(visit))
+                log.debug("making dir "+dirName)
                 os.makedirs(dirName)
             
             # change back to initial directory
@@ -219,8 +225,7 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
 
         # create the Launcher
 
-        #workflowLauncher = CondorWorkflowLauncher(jobs, self.initialWorkDir,  self.prodConfig, self.wfConfig, self.runid, self.pipelineNames, self.logger)
-        workflowLauncher = CondorWorkflowLauncher(self.prodConfig, self.wfConfig, self.runid, self.localStagingDir, task.dagGenerator.dagName+".diamond.dag", wfConfig.monitor, self.logger)
+        workflowLauncher = CondorWorkflowLauncher(self.prodConfig, self.wfConfig, self.runid, self.localStagingDir, task.dagGenerator.dagName+".diamond.dag", wfConfig.monitor)
         return workflowLauncher
 
     # TODO - XXX - these next two should probably be combined
@@ -271,19 +276,17 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
     # @brief 
     #
     def deploySetup(self, provSetup, wfConfig, platformConfig, pipelineConfigGroup):
-        self.logger.log(Log.DEBUG, "CondorWorkflowConfigurator:deploySetup")
-
+        log.debug("CondorWorkflowConfigurator:deploySetup")
 
     ##
     # @brief create the platform.dir directories
     #
     def createDirs(self, localStagingDir, platformDirConfig):
-        self.logger.log(Log.DEBUG, "CondorWorkflowConfigurator:createDirs")
-
+        log.debug("CondorWorkflowConfigurator:createDirs")
 
     ##
     # @brief set up this workflow's database
     #
     def setupDatabase(self):
-        self.logger.log(Log.DEBUG, "CondorWorkflowConfigurator:setupDatabase")
+        log.debug("CondorWorkflowConfigurator:setupDatabase")
 

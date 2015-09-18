@@ -26,21 +26,18 @@
 import os
 import sys
 import time
-from lsst.pex.logging import Log
+import lsst.log as log
 
 
 #
 #
 class GenericFileWaiter:
-    def __init__(self, fileNames, logger = None):
-        self.logger = logger
-        if self.logger != None:
-            self.logger.log(Log.DEBUG, "GenericFileWaiter:__init__")
+    def __init__(self, fileNames):
+        log.debug("GenericFileWaiter:__init__")
         self.fileNames = fileNames
 
     def waitForFirstFile(self):
-        if self.logger != None:
-            self.logger.log(Log.DEBUG, "GenericFileWaiter:waitForFirstFile")
+        log.debug("GenericFileWaiter:waitForFirstFile")
         print "waiting for log file to be created to confirm launch."
 
         while os.path.exists(self.fileNames[0]) == False:
@@ -48,8 +45,7 @@ class GenericFileWaiter:
         return
 
     def waitForAllFiles(self):
-        if self.logger != None:
-            self.logger.log(Log.DEBUG, "GenericFileWaiter:waitForAllFiles")
+        log.debug("GenericFileWaiter:waitForAllFiles")
 
         print "waiting for all log files to be created to confirm launch"
 

@@ -22,7 +22,7 @@
 
 import os, sys, subprocess
 import lsst.ctrl.orca as orca
-from lsst.pex.logging import Log
+import lsst.log as log
 from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
 from lsst.ctrl.orca.WorkflowLauncher import WorkflowLauncher
@@ -33,10 +33,8 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
     ##
     # @brief
     #
-    def __init__(self, jobs, localScratch, condorGlideinFile, prodConfig, wfConfig, runid, filewaiter, pipelineNames, logger = None):
-        if logger != None:
-            logger.log(Log.DEBUG, "VanillaCondorWorkflowLauncher:__init__")
-        self.logger = logger
+    def __init__(self, jobs, localScratch, condorGlideinFile, prodConfig, wfConfig, runid, filewaiter, pipelineNames):
+        log.debug("VanillaCondorWorkflowLauncher:__init__")
         self.jobs = jobs
         self.localScratch = localScratch
         self.condorGlideinFile = condorGlideinFile
@@ -50,22 +48,20 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
     # @brief perform cleanup after workflow has ended.
     #
     def cleanUp(self):
-        if self.logger != None:
-            self.logger.log(Log.DEBUG, "VanillaCondorWorkflowLauncher:cleanUp")
+        log.debug("VanillaCondorWorkflowLauncher:cleanUp")
 
     ##
     # @brief launch this workflow
     #
     def launch(self, statusListener, loggerManagers):
-        if self.logger != None:
-            self.logger.log(Log.DEBUG, "VanillaCondorWorkflowLauncher:launch")
+        log.debug("VanillaCondorWorkflowLauncher:launch")
 
         # start the monitor first, because we want to catch any pipeline
         # events that might be sent from expiring pipelines.
         eventBrokerHost = self.prodConfig.production.eventBrokerHost
         shutdownTopic = self.wfConfig.shutdownTopic
 
-        self.workflowMonitor = VanillaCondorWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, self.pipelineNames, loggerManagers, self.logger)
+        self.workflowMonitor = VanillaCondorWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, self.pipelineNames, loggerManagers)
         if statusListener != None:
             self.workflowMonitor.addStatusListener(statusListener)
         self.workflowMonitor.startMonitorThread(self.runid)
@@ -79,7 +75,7 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
         # wait for all other jobs to start
         # notify the user it's time to do the announceData
 
-        condor = CondorJobs(self.logger)
+        condor = CondorJobs()
 
         # if we've set the "skipglidein", just don't do that.
         if orca.skipglidein == False:
@@ -133,8 +129,7 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
     #
     #
     def writeJobFile(self, jobNumber, jobFile):
-        if self.logger != None:
-            self.logger.log(Log.DEBUG, "VanillaCondorWorkflowLauncher:writeJobFile: writing %s" % jobFile)
+        log.debug("VanillaCondorWorkflowLauncher:writeJobFile: writing %s" % jobFile)
         jobfile = open(jobFile, 'w')
         jobfile.write("%s.0\n" % jobNumber)
         jobfile.close()

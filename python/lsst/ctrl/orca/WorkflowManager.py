@@ -22,7 +22,7 @@
 
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.ctrl.orca.StatusListener import StatusListener
-from lsst.pex.logging import Log
+import lsst.log as log
 import lsst.pex.config as pexConfig
 from lsst.ctrl.orca.multithreading import SharedData
 from lsst.ctrl.orca.DataAnnouncer import DataAnnouncer
@@ -31,7 +31,7 @@ class WorkflowManager:
     ##
     # @brief 
     #
-    def __init__(self, name, runid, repository, prodConfig, wfConfig, logger=None):
+    def __init__(self, name, runid, repository, prodConfig, wfConfig):
 
         # _locked: a container for data to be shared across threads that 
         # have access to this object.
@@ -47,12 +47,7 @@ class WorkflowManager:
         self.prodConfig = prodConfig
         self._workflowConfigurator = None
 
-        # the logger used by this instance
-        if not logger:
-            logger = Log.getDefaultLogger()
-        self.logger = Log(logger, "workflow")
-
-        self.logger.log(Log.DEBUG, "WorkflowManager:__init__")
+        log.debug("WorkflowManager:__init__")
 
         self.urgency = 0
         self._launcher = None
@@ -69,14 +64,13 @@ class WorkflowManager:
     #            clean-up.
     #
     def runWorkflow(self, statusListener, loggerManagers):
-        self.logger.log(Log.DEBUG, "WorkflowManager:runWorkflow")
+        log.debug("WorkflowManager:runWorkflow")
 
         if not self.isRunnable():
             if self.isRunning():
-                self.logger.log(Log.INFO, "Workflow %s is already running" % self.runid)
+                log.info("Workflow %s is already running" % self.runid)
             if self.isDone():
-                self.logger.log(Log.INFO,
-                                "Workflow %s has already run; start with new runid" % self.runid)
+                log.info("Workflow %s has already run; start with new runid" % self.runid)
             return False
 
         try:
@@ -96,11 +90,11 @@ class WorkflowManager:
     # @brief stop the workflow.
     #
     def stopWorkflow(self, urgency):
-        self.logger.log(Log.DEBUG, "WorkflowManager:stopWorkflow")
+        log.debug("WorkflowManager:stopWorkflow")
         if self._monitor:
             self._monitor.stopWorkflow(urgency)
         else:
-            self.logger.log(Log.INFO, "Workflow %s is not running" % self.name)
+            log.info("Workflow %s is not running" % self.name)
 
     ##
     # @brief carry out post-execution tasks for removing workflow data and
@@ -108,7 +102,7 @@ class WorkflowManager:
     #            needed.
     #
     def cleanUp(self):
-        self.logger.log(Log.DEBUG, "WorkflowManager:cleanUp")
+        log.debug("WorkflowManager:cleanUp")
 
 
 
@@ -118,9 +112,9 @@ class WorkflowManager:
     #                        DatabaseConfigurator instances 
     # @return WorkflowLauncher
     def configure(self, provSetup=None, workflowVerbosity=None):
-        self.logger.log(Log.DEBUG, "WorkflowManager:configure")
+        log.debug("WorkflowManager:configure")
         if self._workflowConfigurator:
-            self.logger.log(Log.INFO-1, "production has already been configured.")
+            log.info("production has already been configured.")
             return
         
         # lock this branch of code
@@ -145,13 +139,13 @@ class WorkflowManager:
     #                       provides common data (e.g. event broker host)
     #                       that needs to be shared with all pipelines. 
     def createConfigurator(self, runid, repository, wfName, wfConfig, prodConfig):
-        self.logger.log(Log.DEBUG, "WorkflowManager:createConfigurator")
+        log.debug("WorkflowManager:createConfigurator")
 
         className = wfConfig.configurationClass
         classFactory = NamedClassFactory()
         
         configuratorClass = classFactory.createClass(className)
-        configurator = configuratorClass(self.runid, repository, prodConfig, wfConfig, wfName, self.logger) 
+        configurator = configuratorClass(self.runid, repository, prodConfig, wfConfig, wfName)
         return configurator
 
     ##
@@ -168,7 +162,7 @@ class WorkflowManager:
     #            if it was stopped and clean-up has been called.
     #
     def isDone(self):
-        self.logger.log(Log.DEBUG, "WorkflowManager:isDone")
+        log.debug("WorkflowManager:isDone")
         if self._monitor:
             return self._monitor.isDone()
         return False
@@ -179,7 +173,7 @@ class WorkflowManager:
     #            re-run.
     #
     def isRunnable(self):
-        self.logger.log(Log.DEBUG, "WorkflowManager:isRunnable")
+        log.debug("WorkflowManager:isRunnable")
         return not self.isRunning() and not self.isDone()
 
     ##
@@ -194,7 +188,7 @@ class WorkflowManager:
     def checkConfiguration(self, care=1, issueExc=None):
         # care - an indication of how throughly to check.  In general, a
         # higher number will result in more checks being run.
-        self.logger.log(Log.DEBUG, "WorkflowManager:createConfiguration")
+        log.debug("WorkflowManager:createConfiguration")
 
         myProblems = issueExc
         if myProblems is None:
@@ -214,7 +208,7 @@ class WorkflowManager:
         return self._workflowConfigurator.getNodeCount()
 
     def announceData(self):
-        announcer = DataAnnouncer(self.runid, self.prodConfig, self.wfConfig, self.logger)
+        announcer = DataAnnouncer(self.runid, self.prodConfig, self.wfConfig)
         if announcer.announce():
             print "Data announced via config for %s" % self.name
         else:

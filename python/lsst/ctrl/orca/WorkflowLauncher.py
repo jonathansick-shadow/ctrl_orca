@@ -21,7 +21,7 @@
 #
 
 import subprocess
-from lsst.pex.logging import Log
+import lsst.log as log
 from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
 
@@ -40,17 +40,9 @@ class WorkflowLauncher:
     # set to True.
     # 
     # @param wfConfig    workflow config
-    # @param logger      the logger used by the caller.  This class
-    #                       will set this create a child log with the
-    #                       subname "config".  A sub class may wish to
-    #                       reset the child logger for a different subname.
     # 
-    def __init__(self, wfConfig, logger = None):
-        if not logger:
-            logger = Log.getDefaultLog()
-        self.parentLogger = logger
-        self.logger = Log(logger, "launch")
-        self.logger.log(Log.DEBUG, "WorkflowLauncher:__init__")
+    def __init__(self, wfConfig):
+        log.debug("WorkflowLauncher:__init__")
 
         self.wfConfig = wfConfig
 
@@ -58,15 +50,15 @@ class WorkflowLauncher:
     # @brief perform cleanup after workflow has ended.
     #
     def cleanUp(self):
-        self.logger.log(Log.DEBUG, "WorkflowLauncher:cleanUp")
+        log.debug("WorkflowLauncher:cleanUp")
 
     ##
     # @brief launch this workflow
     #
     def launch(self, statusListener):
-        self.logger.log(Log.DEBUG, "WorkflowLauncher:launch")
+        log.debug("WorkflowLauncher:launch")
 
-        self.workflowMonitor = WorkflowMonitor(self.logger, self.wfConfig)
+        self.workflowMonitor = WorkflowMonitor()
         if statusListener != None:
             self.workflowMonitor.addStatusListener(statusListener)
         return self.workflowMonitor # returns WorkflowMonitor

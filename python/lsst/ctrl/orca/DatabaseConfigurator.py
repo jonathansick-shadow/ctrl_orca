@@ -34,10 +34,9 @@
 # @brief
 #
 class DatabaseConfigurator:
-    def __init__(self, runid, config, logger):
+    def __init__(self, runid, config):
         self.runid = runid
         self.config = config
-        self.logger = logger
         return
 
     ##
@@ -46,7 +45,7 @@ class DatabaseConfigurator:
     def setDatabase(self, provSetup):
 
         # setup the database - using Dc3aDatabaseConfigurator as a placeholder
-        dbConfigurator = Dc3aDatabaseConfigurator(self.runid, self.config, self.logger)
+        dbConfigurator = Dc3aDatabaseConfigurator(self.runid, self.config)
         dbConfigurator.setup()
 
         if provSetup is not None:

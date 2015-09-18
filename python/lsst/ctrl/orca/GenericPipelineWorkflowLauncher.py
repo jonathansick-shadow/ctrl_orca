@@ -21,7 +21,7 @@
 #
 
 import os, sys, subprocess
-from lsst.pex.logging import Log
+import lsst.log as log
 from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
 from lsst.ctrl.orca.WorkflowLauncher import WorkflowLauncher
@@ -31,10 +31,8 @@ class GenericPipelineWorkflowLauncher(WorkflowLauncher):
     ##
     # @brief
     #
-    def __init__(self, cmds, prodConfig, wfConfig, runid, fileWaiter, pipelineNames, logger = None):
-        if logger != None:
-            logger.log(Log.DEBUG, "GenericPipelineWorkflowLauncher:__init__")
-        self.logger = logger
+    def __init__(self, cmds, prodConfig, wfConfig, runid, fileWaiter, pipelineNames):
+        log.debug("GenericPipelineWorkflowLauncher:__init__")
         self.cmds = cmds
         self.wfConfig = wfConfig
         self.prodConfig = prodConfig
@@ -46,15 +44,13 @@ class GenericPipelineWorkflowLauncher(WorkflowLauncher):
     # @brief perform cleanup after workflow has ended.
     #
     def cleanUp(self):
-        if self.logger != None:
-            self.logger.log(Log.DEBUG, "GenericPipelineWorkflowLauncher:cleanUp")
+        log.debug("GenericPipelineWorkflowLauncher:cleanUp")
 
     ##
     # @brief launch this workflow
     #
     def launch(self, statusListener, loggerManagers):
-        if self.logger != None:
-            self.logger.log(Log.DEBUG, "GenericPipelineWorkflowLauncher:launch")
+        log.debug("GenericPipelineWorkflowLauncher:launch")
 
         eventBrokerHost = self.prodConfig.production.eventBrokerHost
         shutdownTopic = self.wfConfig.shutdownTopic
@@ -64,7 +60,7 @@ class GenericPipelineWorkflowLauncher(WorkflowLauncher):
         # start the monitor first, because we want to catch any pipeline
         # events that might be sent from expiring pipelines.
 
-        self.workflowMonitor = GenericPipelineWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, self.pipelineNames, loggerManagers, self.logger)
+        self.workflowMonitor = GenericPipelineWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, self.pipelineNames, loggerManagers)
         if statusListener != None:
             self.workflowMonitor.addStatusListener(statusListener)
         # start the thread

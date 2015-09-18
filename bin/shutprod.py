@@ -30,7 +30,7 @@ import sys
 if __name__ == "__main__":
     host = "lsst8.ncsa.uiuc.edu"
     
-    topic = "productionShutdown"
+    topic = "productionShutdown2"
 
     level = int(sys.argv[1])
     runid = sys.argv[2]

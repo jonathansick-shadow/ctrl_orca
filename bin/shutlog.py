@@ -23,7 +23,6 @@
 #
 
 import lsst.ctrl.events as events
-import lsst.pex.logging as logging
 from lsst.daf.base import PropertySet
 import sys
 
@@ -31,15 +30,17 @@ import sys
 if __name__ == "__main__":
     host = "lsst8.ncsa.uiuc.edu"
     
-    topic = events.EventLog.LOGGING_TOPIC
+    topic = events.LogEvent.LOGGING_TOPIC
 
     runid = sys.argv[1]
 
     eventSystem = events.EventSystem.getDefaultEventSystem()
     eventSystem.createTransmitter(host, topic)
 
-    logger = events.EventLog(runid, -1)
+    props = PropertySet()
+    props.set("LOGGER","orca.control")
+    props.set("STATUS","eol")
 
-    tlog = logging.Log(logger, "orca.control")
-    
-    logging.LogRec(tlog, 1) << logging.Prop("STATUS", "eol") << logging.LogRec.endr;
+    e = events.Event(runid, props)
+
+    eventSystem.publishEvent(topic, e)

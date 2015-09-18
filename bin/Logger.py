@@ -77,7 +77,7 @@ highwatermark = 10000
 tmpFilename = "/dev/shm/logdb_"+getpass.getuser()+".txt"
 
 # create an event receiver
-receiver = events.EventReceiver(broker, events.EventLog.LOGGING_TOPIC, "RUNID='%s'" % runid)
+receiver = events.EventReceiver(broker, events.LogEvent.LOGGING_TOPIC, "RUNID = '%s'" % runid)
 
 # create an event transmitter
 transmitter = events.EventTransmitter(broker, "LoggerStatus")
@@ -96,7 +96,7 @@ while True:
     event = receiver.receiveEvent(50)
     if event != None:
         propSet = event.getPropertySet()
-        log = propSet.get("LOG")
+        log = propSet.get("LOGGER")
         if log == None:
             continue
         if log == "orca.control":

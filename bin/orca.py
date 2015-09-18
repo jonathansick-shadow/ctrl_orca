@@ -27,7 +27,8 @@ from __future__ import with_statement
 import re, sys, os, os.path, shutil, subprocess
 import optparse, traceback, time
 import lsst.ctrl.orca as orca
-from lsst.pex.logging import Log
+import lsst.log as log
+import lsst.utils
 from lsst.ctrl.orca.ProductionRunManager import ProductionRunManager 
 
 usage = """usage: %prog [-gndvqsc] [-r dir] [-e script] [-V int][-L lev] pipelineConfigFile runId"""
@@ -57,6 +58,10 @@ parser.add_option("-s", "--silent", action="store_const", const=-3,
                   dest="verbosity", help="print nothing (if possible)")
 parser.add_option("-P", "--pipeverb", type="int", action="store", dest="pipeverb", default=0, metavar="int", help="pipeline verbosity level (0=normal, 1=debug, -1=quiet, -3=silent)")
 
+parser.add_option("-L", "--logconfig", type="string", action="store",
+              dest="logconfig", default=None,
+              help="lsst.log configuration file")
+
 parser.opts = {}
 parser.args = []
 
@@ -78,20 +83,29 @@ orca.envscript = parser.opts.envscript
 #
 # orca.logger = Log(Log.getDefaultLog(), "orca")
 
+configPath = None
+if parser.opts.logconfig is None:
+    package = lsst.utils.getPackageDir("ctrl_orca")
+    configPath = os.path.join(package, "etc", "logging.py")
+else:
+    configPath = parse.opts.logconfig
+log.configure(configPath)
+
 orca.verbosity = parser.opts.verbosity
-orca.logger.setThreshold(-10 * parser.opts.verbosity)
+#orca.logger.setThreshold(-10 * parser.opts.verbosity)
 
 # set the dryrun singleton to the value set on the command line.
 # we reference this in other classes
 orca.dryrun = parser.opts.dryrun
 
 
-orca.logger.log(Log.DEBUG,"pipelineConfigFile = "+pipelineConfigFile)
-orca.logger.log(Log.DEBUG, "runId = "+runId)
+log.debug("pipelineConfigFile = "+pipelineConfigFile)
+log.debug("runId = "+runId)
 
 # create the ProductionRunManager, configure it, and launch it
 #productionRunManager = ProductionRunManager(runId, pipelineConfigFile, orca.logger, pipelineVerbosity=parser.opts.pipeverb)
-productionRunManager = ProductionRunManager(runId, pipelineConfigFile, orca.logger, orca.repository)
+#productionRunManager = ProductionRunManager(runId, pipelineConfigFile, orca.logger, orca.repository)
+productionRunManager = ProductionRunManager(runId, pipelineConfigFile, orca.repository)
 
 
 productionRunManager.runProduction(skipConfigCheck=parser.opts.skipconfigcheck, workflowVerbosity=parser.opts.pipeverb)

@@ -23,23 +23,18 @@
 import os, stat
 import lsst.ctrl.orca as orca
 import lsst.ctrl.provenance.dc3 as dc3
-from lsst.pex.logging import Log
+import lsst.log as log
 from lsst.ctrl.orca.db.MySQLConfigurator import MySQLConfigurator
 from lsst.ctrl.orca.config.AuthConfig import AuthConfig
 
 class DC3Configurator:
-    def __init__(self, runid, dbConfig, prodConfig=None, wfConfig=None, logger=None):
+    def __init__(self, runid, dbConfig, prodConfig=None, wfConfig=None):
         """
         create a generic 
         @param type      the category of configurator
         @param dbConfig  the database config
-        @param logger    the caller's Log instance from which this manager can.
-                            create a child Log
         """
-        if logger is None:  logger = orca.logger
-        self.logger = Log(logger, "dbconfig")
-
-        self.logger.log(Log.DEBUG, "DC3Configurator:__init__")
+        log.debug("DC3Configurator:__init__")
         self.type = "mysql"
         self.runid = runid
         self.dbConfig = dbConfig
@@ -67,7 +62,7 @@ class DC3Configurator:
         self.delegate = MySQLConfigurator(self.dbHostName, self.dbPort, globalDbName, dcVersion, dcDbName, minPercDiskSpaceReq, userRunLife)
 
     def setup(self, provSetup):
-        self.logger.log(Log.DEBUG, "DC3Configurator:setup")
+        log.debug("DC3Configurator:setup")
 
         # TODO: use provSetup when it's implemented
 
@@ -81,7 +76,7 @@ class DC3Configurator:
         dbGlobal = dbBaseURL+"/"+dbNames[1]
 
         # TODO - Provenance
-        #recorder = dc3.Recorder(self.runid, self.prodConfig.shortName, self.platformName, dbRun, dbGlobal, 0, None, self.logger)
+        #recorder = dc3.Recorder(self.runid, self.prodConfig.shortName, self.platformName, dbRun, dbGlobal, 0, None)
         #provSetup.addProductionRecorder(recorder)
 
         #arglist = []
@@ -101,19 +96,19 @@ class DC3Configurator:
         return dbInfo
 
     def setupInternal(self):
-        self.logger.log(Log.DEBUG, "DC3Configurator:setupInternal")
+        log.debug("DC3Configurator:setupInternal")
 
         self.checkConfiguration(self.dbConfig)
         dbNames = self.prepareForNewRun(self.runid)
         return dbNames
 
     def checkConfiguration(self, val):
-        self.logger.log(Log.DEBUG, "DC3Configurator:checkConfiguration")
+        log.debug("DC3Configurator:checkConfiguration")
         # TODO: use val when implemented
         self.checkConfigurationInternal()
 
     def checkConfigurationInternal(self):
-        self.logger.log(Log.DEBUG, "DC3Configurator:checkConfigurationInternal")
+        log.debug("DC3Configurator:checkConfigurationInternal")
         #
         # first, check that the $HOME/.lsst directory is protected
         #
@@ -203,7 +198,7 @@ class DC3Configurator:
             #print "authName = ",authName
             #print "auth = ",auth
             if (auth.host == host) and (auth.port == port):
-                self.logger.log(Log.DEBUG, "using host %s at port %d" % (host, port))
+                log.debug("using host %s at port %d" % (host, port))
                 self.dbHost = auth.host
                 self.dbPort = auth.port
                 self.dbUser = auth.user

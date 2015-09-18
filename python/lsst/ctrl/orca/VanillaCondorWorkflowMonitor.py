@@ -23,10 +23,9 @@
 from __future__ import with_statement
 import os, sys, subprocess, threading, time
 import lsst.ctrl.events as events
-import lsst.pex.logging as logging
+import lsst.log as log
 
 from lsst.daf.base import PropertySet
-from lsst.pex.logging import Log
 from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
 from lsst.ctrl.orca.multithreading import SharedData
@@ -36,19 +35,14 @@ class VanillaCondorWorkflowMonitor(WorkflowMonitor):
     # @brief in charge of monitoring and/or controlling the progress of a
     #        running workflow.
     #
-    def __init__(self, eventBrokerHost, shutdownTopic, runid, pipelineNames, loggerManagers, logger):
-
-        #self.__init__(logger)
+    def __init__(self, eventBrokerHost, shutdownTopic, runid, pipelineNames, loggerManagers):
 
         # _locked: a container for data to be shared across threads that 
         # have access to this object.
         self._locked = SharedData(False,
                                             {"running": False, "done": False})
 
-        if not logger:
-            logger = Log.getDefaultLog()
-        self.logger = Log(logger, "monitor")
-        self.logger.log(Log.DEBUG, "VanillaCondorWorkflowMonitor:__init__")
+        log.debug("VanillaCondorWorkflowMonitor:__init__")
         self._statusListeners = []
         # make a copy of this liste, since we'll be removing things.
         self.pipelineNames = pipelineNames[:] 
@@ -87,7 +81,7 @@ class VanillaCondorWorkflowMonitor(WorkflowMonitor):
             self._jobOfficeReceiver = events.EventReceiver(self._eventBrokerHost, "JobOfficeStatus", selector)
 
         def run(self):
-            self._parent.logger.log(Log.DEBUG, "VanillaCondorWorkflowMonitor Thread started")
+            log.debug("VanillaCondorWorkflowMonitor Thread started")
             sleepInterval = 5
             # we don't decide when we finish, someone else does.
             while True:
@@ -124,20 +118,20 @@ class VanillaCondorWorkflowMonitor(WorkflowMonitor):
             self._locked.running = True
 
     def handleJobOfficeEvent(self, event):
-        self.logger.log(Log.DEBUG, "VanillaCondorWorkflowMonitor:handleJobOfficeEvent")
+        log.debug("VanillaCondorWorkflowMonitor:handleJobOfficeEvent")
         if event.getType() == events.EventTypes.STATUS:
             ps = event.getPropertySet()
             status = ps.get("STATUS")
             print "STATUS = "+status
             if status == "joboffice:done": 
-                self.logger.log(Log.DEBUG, "VanillaCondorWorkflowMonitor:handleJobOfficeEvent joboffice:done received")
+                log.debug("VanillaCondorWorkflowMonitor:handleJobOfficeEvent joboffice:done received")
                 self.stopWorkflow(1)
-        self.logger.log(Log.DEBUG, "VanillaCondorWorkflowMonitor:handleJobOfficeEvent done")
+        log.debug("VanillaCondorWorkflowMonitor:handleJobOfficeEvent done")
         return
 
 
     def handleEvent(self, event):
-        self.logger.log(Log.DEBUG, "VanillaCondorWorkflowMonitor:handleEvent called")
+        log.debug("VanillaCondorWorkflowMonitor:handleEvent called")
 
         # make sure this is really for us.
 
@@ -169,7 +163,7 @@ class VanillaCondorWorkflowMonitor(WorkflowMonitor):
                 self.bSentJobOfficeEvent = True
             
             if (cnt == 0) and (self.bSentLastLoggerEvent == False):
-                self.eventSystem.createTransmitter(self._eventBrokerHost, events.EventLog.LOGGING_TOPIC)
+                self.eventSystem.createTransmitter(self._eventBrokerHost, events.LogEvent.LOGGING_TOPIC)
                 evtlog = events.EventLog(self.runid, -1)
                 tlog = logging.Log(evtlog, "orca.control")
                 logging.LogRec(tlog, 1) << logging.Prop("STATUS", "eol") << logging.LogRec.endr
@@ -188,7 +182,7 @@ class VanillaCondorWorkflowMonitor(WorkflowMonitor):
     # @brief stop the workflow
     #
     def stopWorkflow(self, urgency):
-        self.logger.log(Log.DEBUG, "VanillaCondorWorkflowMonitor:stopWorkflow")
+        log.debug("VanillaCondorWorkflowMonitor:stopWorkflow")
         transmit = events.EventTransmitter(self._eventBrokerHost, self._shutdownTopic)
         
         root = PropertySet()

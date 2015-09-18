@@ -29,7 +29,7 @@ import re
 import time
 import signal
 import subprocess
-from lsst.pex.logging import Log
+import lsst.log as log
 
 
 #
@@ -37,9 +37,8 @@ from lsst.pex.logging import Log
 # condor_submit and condor_q
 #
 class LoggerManager:
-    def __init__(self, logger, broker, dbHost, dbPort, runid, dbName):
-        self.logger = logger
-        self.logger.log(Log.DEBUG, "LoggerManager:__init__")
+    def __init__(self, broker, dbHost, dbPort, runid, dbName):
+        log.debug("LoggerManager:__init__")
         self.broker = broker
         self.dbHost = dbHost
         self.dbPort = dbPort
@@ -53,18 +52,18 @@ class LoggerManager:
         return self.process.pid
 
     def start(self):
-        self.logger.log(Log.DEBUG, "LoggerManager:start")
+        log.debug("LoggerManager:start")
         if self.process != None:
             return
 
         directory = os.getenv("CTRL_ORCA_DIR")
         cmd = "%s/bin/Logger.py %s %s %s %s %s" % (directory, self.broker, self.dbHost, self.dbPort, self.runid, self.dbName)
-        self.logger.log(Log.DEBUG, "LoggerManager:cmd = %s " % cmd)
+        log.debug("LoggerManager:cmd = %s " % cmd)
         self.process = subprocess.Popen(cmd, shell=True)
         return
 
     def stop(self):
-        self.logger.log(Log.DEBUG, "LoggerManager:stop")
+        log.debug("LoggerManager:stop")
         if self.process == None:
             return
 
@@ -72,8 +71,8 @@ class LoggerManager:
             os.kill(self.process.pid, signal.SIGKILL)
             os.waitpid(self.process.pid,0)
             self.process = None
-            self.logger.log(Log.DEBUG, "LoggerManager:stop: killed Logger process")
+            log.debug("LoggerManager:stop: killed Logger process")
         except Exception,e:
-            self.logger.log(Log.DEBUG, "LoggerManager:stop: tried to kill Logger process, but it didn't exist")
+            log.debug("LoggerManager:stop: tried to kill Logger process, but it didn't exist")
             
         return
