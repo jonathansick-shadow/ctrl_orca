@@ -28,7 +28,7 @@ import lsst.log as log
 # of a workflow: when it has started and when it has finished.
 #
 class StatusListener:
-    # 
+    ## initializer 
     def __init__(self):
         log.debug("StatusListener:__init__")
 

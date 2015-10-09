@@ -44,6 +44,7 @@ class WorkflowLauncher:
     def __init__(self, wfConfig):
         log.debug("WorkflowLauncher:__init__")
 
+        ## workflow configuration
         self.wfConfig = wfConfig
 
     ##
@@ -58,6 +59,7 @@ class WorkflowLauncher:
     def launch(self, statusListener):
         log.debug("WorkflowLauncher:launch")
 
+        ## monitors status of the workflow
         self.workflowMonitor = WorkflowMonitor()
         if statusListener != None:
             self.workflowMonitor.addStatusListener(statusListener)

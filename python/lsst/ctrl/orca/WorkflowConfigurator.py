@@ -38,24 +38,40 @@ class WorkflowConfigurator:
 
 
     class ConfigGroup(object):
+        ##
+        # @brief configuration initializer
         def __init__(self, name, config, number, offset):
+            ## name of this configuration
             self.configName = name
+            ## the configuration itself
             self.config = config
+            ## the value assigned to this particular configuration
             self.configNumber = number
+            ## @deprecated global offset
             self.globalOffset = offset
 
+        ##
+        # @return the configuration
         def getConfig(self):
             return self.config
 
+        ##
+        # @return the configuration name
         def getConfigName(self):
             return self.configName
 
+        ##
+        # @return the number of this configuration
         def getConfigNumber(self):
             return self.configNumber
 
+        ##
+        # @deprecated the offset to use
         def getGlobalOffset(self):
             return self.globalOffset
 
+        ##
+        # @return a string describing this configuration group
         def __str__(self):
             print "self.configName = ",self.configName,"self.config = ",self.config
             return "configName ="+self.configName
@@ -68,18 +84,23 @@ class WorkflowConfigurator:
     # set to True.
     # 
     # @param runid       the run identifier for the production run
+    # @param prodConfig  the production config for this workflow
     # @param wfConfig    the workflow config that describes the workflow
     # @param fromSub     set this to True to indicate that it is being called
     #                       from a subclass constructor.  If False (default),
     #                       an exception will be raised under the assumption
     #                       that one is trying instantiate it directly.
     def __init__(self, runid, prodConfig, wfConfig, fromSub=False):
+        ## the run id associated with this workflow
         self.runid = runid
 
         log.debug("WorkflowConfigurator:__init__")
 
+        ## the production configuration
         self.prodConfig = prodConfig
+        ## the workflow configuration
         self.wfConfig = wfConfig
+        ## the repository location
         self.repository = repository
 
         if fromSub:

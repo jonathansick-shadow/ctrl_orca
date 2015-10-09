@@ -38,11 +38,11 @@ class SharedData(object):
     acquire() is reentrant.  
 
     SharedData instances may be used with the with statement:
-    @verbatim
+    @code
       sd = SharedData()
       with sd:
           sd.blah = 1
-    @endverbatim
+    @endcode
     The with statement will acquire the lock and ensure that it is released
     when its block is exited.  
     """
@@ -71,10 +71,16 @@ class SharedData(object):
         self._cond = cond
 
         # behave like a Condition
+
+        ## acquire method
         self.acquire   = cond.acquire
+        ## release method
         self.release   = cond.release
+        ## notify method
         self.notify    = cond.notify
+        ## notifyall method
         self.notifyAll = cond.notifyAll
+        ## wait method
         self.wait      = cond.wait
         self._is_owned = cond._is_owned
 
@@ -85,12 +91,15 @@ class SharedData(object):
         if data is None:
             self._d["__"] = True
         
+    ## overrides __enter__
     def __enter__(self, *args, **kwds):
         return self._cond.__enter__(*args, **kwds)
 
+    ## overrides __exit__
     def __exit__(self, *args, **kwds):
         return self._cond.__exit__(*args, **kwds)
     
+    ## overrides __getattribute__
     def __getattribute__(self, name):
         if name == "_d" or len(self._d) == 0 or not self._d.has_key(name):
             return object.__getattribute__(self, name)
@@ -100,6 +109,7 @@ class SharedData(object):
         return self._d[name]
         
 
+    ## overrides __setattr__
     def __setattr__(self, name, value):
         if name == "_d" or len(self._d) == 0 or name in self.__dict__.keys():
             object.__setattr__(self, name, value)
@@ -139,6 +149,7 @@ class SharedData(object):
             if len(self._d) == 0:
                 self._d["__"] = True 
 
+    ## overrides dir() method
     def dir(self):
         return filter(lambda k: k != "__", self._d.keys())
     

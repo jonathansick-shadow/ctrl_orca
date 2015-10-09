@@ -29,16 +29,25 @@ import os
 import sys
 import subprocess
 
+##
+# @deprecated insert logging records into the database.  Note that this is
+# completely depedent on the CAT schema for this database, depends on writing
+# to a file, and needs to be completely replaced.
 class DatabaseLogger(MySQLBase):
 
+    ## initialize
     def __init__(self, dbHostName, portNumber):
         MySQLBase.__init__(self, dbHostName, portNumber)
 
+        ## table keywords
         self.keywords = ['HOSTID', 'RUNID', 'LOG', 'workerid', 'stagename', 'SLICEID', 'STAGEID', 'LOOPNUM', 'STATUS', 'LEVEL', 'DATE', 'TIMESTAMP', 'node', 'custom', 'timereceived', 'visitid', 'COMMENT', 'PIPELINE', 'TYPE', 'EVENTTIME', 'PUBTIME', 'usertime', 'systemtime']
 
+        ## set of table keywords
         self.keywordSet = set(self.keywords)
+        ## @deprecated high water mark
         self.highwater = 10
 
+    ## insert the messages into the database, using a file
     def insertRecords(self, dbTable, msgs, filename):
         cnt = len(msgs)
         
@@ -53,10 +62,13 @@ class DatabaseLogger(MySQLBase):
         cmd = "LOAD DATA LOCAL INFILE '%s' INTO TABLE %s FIELDS OPTIONALLY ENCLOSED BY '\"' ESCAPED BY '\\\\' LINES TERMINATED BY '\\n' SET timereceived=NOW();" % (filename, dbTable)
         self.execCommand0(cmd)
 
+    ## insert a record into the table "dbTable" , given the property set "ps"
     def insertRecord(self, dbTable, ps):
         ins = self.createInsertString(dbTable,ps)
         self.execCommand0(ins)
 
+    ## create an insert string based on the keywords for the table, filling
+    # in defaults as needed.
     def createInsertString(self, dbTable, ps):
         hostId = ps.getString("HOSTID")
         runId = ps.getString("RUNID")

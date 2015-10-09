@@ -29,7 +29,7 @@ from lsst.ctrl.orca.DataAnnouncer import DataAnnouncer
 
 class WorkflowManager:
     ##
-    # @brief 
+    # @brief Manage lifecycle of this workflow
     #
     def __init__(self, name, runid, repository, prodConfig, wfConfig):
 
@@ -37,24 +37,34 @@ class WorkflowManager:
         # have access to this object.
         self._locked = SharedData(False)
 
+        ##  workflow name
+        self.name = "unnamed"
         if name != None:
             self.name = name
-        else:
-            self.name = "unnamed"
+
+        ## run id of this workflow
         self.runid = runid
+
+        ## repository where the configuration is kept
         self.repository = repository
+
+        ## workflow configuration
         self.wfConfig = wfConfig
+
+        ## production configuration
         self.prodConfig = prodConfig
+
         self._workflowConfigurator = None
 
         log.debug("WorkflowManager:__init__")
 
+        ## the urgency level of how fast to stop the workflow
         self.urgency = 0
         self._launcher = None
         self._monitor = None
 
     ##
-    # @brief return the name of this workflow
+    # @deprecated return the name of this workflow 
     #
     def getName(self):
         return self.name
@@ -110,6 +120,7 @@ class WorkflowManager:
     # @brief prepare a workflow for launching.
     # @param provSetup    a provenance setup object to pass to
     #                        DatabaseConfigurator instances 
+    # @param workflowVerbosity the log level at which to emit messages
     # @return WorkflowLauncher
     def configure(self, provSetup=None, workflowVerbosity=None):
         log.debug("WorkflowManager:configure")
@@ -134,6 +145,8 @@ class WorkflowManager:
     # @brief  create a Workflow configurator for this workflow.
     #
     # @param runid       the production run id 
+    # @param repository  the directory location of the repository
+    # @param wfName      the workflow name
     # @param wfConfig    the config describing the workflow
     # @param prodConfig  the config describing the overall production.  This
     #                       provides common data (e.g. event broker host)
@@ -201,12 +214,21 @@ class WorkflowManager:
             raise myProblems
 
 
+    ##
+    # return the name of this workflow
+    #
     def getWorkflowName(self):
         return self.name
 
+    ##
+    # return the number of nodes used by  f this workflow
+    #
     def getNodeCount(self):
         return self._workflowConfigurator.getNodeCount()
 
+    ##
+    # Announce that data is available for this workflow
+    #
     def announceData(self):
         announcer = DataAnnouncer(self.runid, self.prodConfig, self.wfConfig)
         if announcer.announce():

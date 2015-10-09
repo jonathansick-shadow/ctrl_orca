@@ -39,29 +39,47 @@ from lsst.ctrl.orca.FileWaiter import FileWaiter
 
 ##
 #
-# VanillaCondorWorkflowConfigurator 
+# @deprecated VanillaCondorWorkflowConfigurator 
 #
 class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
+    ##
+    # @brief initalize the workflow configurator
+    #
     def __init__(self, runid, repository, prodConfig, wfConfig, wfName):
         log.debug("VanillaCondorWorkflowConfigurator:__init__")
 
+        ## run id for this workflow
         self.runid = runid
+        ## repository directory
         self.repository = repository
+        ## production configuration
         self.prodConfig = prodConfig
+        ## workflow configuration
         self.wfConfig = wfConfig
+        ## workflow name
         self.wfName = wfName
 
+        ## the verbosity level for this workflow
         self.wfVerbosity = None
 
+        ## the list of directories in the configuration
         self.dirs = None
+        ## @deprecated the list of directories in the configuration
         self.directories = None
+        ## the nodes used
         self.nodes = None
+        ## the number of nodes requested
         self.numNodes = None
+        ## names of the log files
         self.logFileNames = []
+        ## names of the pipelines
         self.pipelineNames = []
 
+        ## @deprecated directory list
         self.directoryList = {}
+        ## initial remote working directory
         self.initialWorkDir = None
+        ## the first remote working directory; (special case)
         self.firstRemoteWorkDir = None
         
     ##
@@ -87,9 +105,13 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         log.debug("VanillaCondorWorkflowConfigurator:configure")
 
         vanConfig = wfConfig.configuration["vanilla"]
+        ## remote login user
         self.remoteLoginName = vanConfig.condorData.loginNode
+        ## remote ftp node
         self.remoteFTPName = vanConfig.condorData.ftpNode
+        ## file transfer protocol prefix to use
         self.transferProtocolPrefix = vanConfig.condorData.transferProtocol+"://"+self.remoteFTPName
+        ## local scratch directory
         self.localScratch = vanConfig.condorData.localScratch
 
         platformConfig = wfConfig.platform
@@ -120,7 +142,9 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         remoteFileWaiterName = None
         linkScriptname = None
 
+        ## local file staging directory
         self.localStagingDir = os.path.join(self.localScratch, self.runid)
+        ## local workflow directory
         self.localWorkflowDir = os.path.join(self.localStagingDir, self.wfName)
         for pipelineConfigGroup in expandedPipelineConfigs:
             pipelineConfig = pipelineConfigGroup.getConfigName()
@@ -136,6 +160,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             self.dirs = self.directories.getDirs()
 
             indexedNamedDir = os.path.join(self.localWorkflowDir, indexName)
+            ## local working directory
             self.localWorkDir = os.path.join(indexedNamedDir, "workDir")
 
             if not os.path.exists(self.localWorkDir):
@@ -258,10 +283,15 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
 
         return condorJobFile
 
+    ## 
+    # @return the workflow name
+    #
     def getWorkflowName(self):
         return self.wfName
 
     
+    ##
+    # perform local staging of files
     def stageLocally(self, localName, remoteName):
         log.debug("VanillaCondorWorkflowConfigurator:stageLocally")
 
@@ -275,6 +305,8 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             os.makedirs(os.path.dirname(localStageName))
         shutil.copyfile(localName, localStageName)
 
+    ##
+    # copy the locally staged directory structure to the remote site
     def copyToRemote(self, localName, remoteName):
         log.debug("VanillaCondorWorkflowConfigurator:copyToRemote")
         
@@ -303,6 +335,8 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             os.execvp("globus-url-copy",cmd.split())
         os.wait()[0]
 
+    ##
+    # create remote directories
     def remoteMakeDirs(self, remoteName):
         log.debug("VanillaCondorWorkflowConfigurator:remoteMakeDirs")
         cmd = "gsissh %s mkdir -p %s" % (self.remoteLoginName, remoteName)
@@ -312,6 +346,9 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             os.execvp("gsissh",cmd.split())
         os.wait()[0]
         
+    ##
+    # chmod executables remotely
+    # this needs to be done because the cp does not preserve the execution bit
     def remoteChmodX(self, remoteName):
         log.debug("VanillaCondorWorkflowConfigurator:remoteChmodX")
         cmd = "gsissh %s chmod +x %s" % (self.remoteLoginName, remoteName)
@@ -320,6 +357,8 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             os.execvp("gsissh",cmd.split())
         os.wait()[0]
 
+    ##
+    #  @deprecated create remote directories
     def remoteMkdir(self, remoteDir):
         log.debug("VanillaCondorWorkflowConfigurator:remoteMkdir")
         cmd = "gsissh %s mkdir -p %s" % (self.remoteLoginName, remoteDir)
@@ -329,7 +368,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             os.execvp("gsissh",cmd.split())
         os.wait()[0]
     ##
-    # @brief 
+    # @brief create setup configurations
     #
     def deploySetup(self, provSetup, wfConfig, platformConfig, pipelineConfigGroup):
         log.debug("VanillaCondorWorkflowConfigurator:deploySetup")
@@ -394,6 +433,7 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         print "setupPath = ",setupPath
         if setupPath:
             setupPath = EnvString.resolve(setupPath)        
+        ## path to the setup script
         self.script = setupPath
 
         if orca.envscript is None:
@@ -509,6 +549,9 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
 
         return
 
+    ##
+    # @deprecated collect all directories names from the configuration
+    #
     def collectDirNames(self, dirSet, platformConfig, pipelineConfig, num):
         log.debug("VanillaCondorWorkflowConfigurator:collectDirNames")
         
@@ -535,6 +578,9 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
             self.remoteMakeDirs(remoteName)
 
 
+    ##
+    # create the local condor glidein directory
+    #
     def createCondorDir(self, workDir):
         # create Condor_glidein/local directory under "workDir"
         condorDir = os.path.join(workDir,"Condor_glidein")
@@ -549,6 +595,9 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         log.debug("VanillaCondorWorkflowConfigurator:setupDatabase")
 
 
+    ##
+    # Copy the link script to the remote directory
+    #
     def copyLinkScript(self, wfConfig):
         log.debug("VanillaPipelineWorkflowConfigurator:copyLinkScript")
 
@@ -572,6 +621,9 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         log.debug("GenericPipelineWorkflowConfigurator:deployData: warning: script '%s' doesn't exist" % deployScript)
         return None
 
+    ##
+    # run the remote linking script
+    #
     def runLinkScript(self, wfConfig, remoteName):
         log.debug("VanillaPipelineWorkflowConfigurator:runLinkScript")
         configuration = wfConfig.configuration["vanilla"]
@@ -594,6 +646,9 @@ class VanillaCondorWorkflowConfigurator(WorkflowConfigurator):
         os.wait()[0]
         return
 
+    ###
+    # write the glidein request using the template
+    #
     def writeGlideinRequest(self, config):
         log.debug("VanillaPipelineWorkflowConfigurator:writeGlideinRequest")
         glideinRequest = config.glideinRequest

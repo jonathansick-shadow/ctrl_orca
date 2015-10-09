@@ -37,20 +37,29 @@ import lsst.log as log
 # condor_submit and condor_q
 #
 class LoggerManager:
+    ## initialize
     def __init__(self, broker, dbHost, dbPort, runid, dbName):
         log.debug("LoggerManager:__init__")
+        ## the event broker to listen on
         self.broker = broker
+        ## the database host to connect to
         self.dbHost = dbHost
+        ## the database port to connect to
         self.dbPort = dbPort
+        ## the run id of the logger messages to listen for
         self.runid = runid
+        ## the database name
         self.dbName = dbName
+        ## the logger process
         self.process = None
         return
 
 
+    ## @return the id of the logger process
     def getPID(self):
         return self.process.pid
 
+    ## start the logger daemon process
     def start(self):
         log.debug("LoggerManager:start")
         if self.process != None:
@@ -62,6 +71,7 @@ class LoggerManager:
         self.process = subprocess.Popen(cmd, shell=True)
         return
 
+    ## halt the logger daemon process
     def stop(self):
         log.debug("LoggerManager:stop")
         if self.process == None:

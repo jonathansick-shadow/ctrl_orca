@@ -41,15 +41,22 @@ class MySQLConfigurator(MySQLBase):
     allows to register run in global database.
     """
 
+    ## initializer
     def __init__(self, dbHostName, portNo, globalDbName,
                  dcVersion, dcDb, minPercDiskSpaceReq, userRunLife):
         MySQLBase.__init__(self, dbHostName, portNo)
 
+        ## the global database
         self.globalDbName = globalDbName
+        ## data challenge version
         self.dcVersion = dcVersion
+        ## data challenge database name
         self.dcDbName = dcDb
+        ## the $CAT_DIR/sql directory
         self.sqlDir = os.path.join(os.environ["CAT_DIR"], "sql")
+        ## minimum percent disk space required
         self.minPercDiskSpaceReq = minPercDiskSpaceReq
+        ## @deprecated user run lifetime
         self.userRunLife = userRunLife
 
         if self.globalDbName == "":
