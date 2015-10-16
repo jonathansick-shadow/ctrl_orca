@@ -31,11 +31,12 @@ import lsst.pex.config as pexConfig
 from lsst.ctrl.provenance.ProvenanceSetup import ProvenanceSetup
 import lsst.pex.exceptions as pexEx
 
+##
+# @brief create a basic production run.
+# Note that all ProductionRunConfigurator subclasses must support this
+# constructor signature.
 class ProductionRunConfigurator:
-    ##
-    # @brief create a basic production run.
-    # Note that all ProductionRunConfigurator subclasses must support this
-    # constructor signature.
+    ## initialize
     def __init__(self, runid, configFile, repository=None, workflowVerbosity=None):
 
         log.debug("ProductionRunConfigurator:__init__")

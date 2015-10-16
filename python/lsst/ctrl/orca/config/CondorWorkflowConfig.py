@@ -2,10 +2,12 @@ import lsst.pex.config as pexConfig
 import PipelineConfig as pipe
 import FakeTypeMap as fake
 
+## condor data configuration
 class CondorDataConfig(pexConfig.Config):
     ## local scratch space
     localScratch = pexConfig.Field("temp data area",str)
 
+## template information
 class TemplateConfig(pexConfig.Config):
     ## key/value pairs
     keywords = pexConfig.DictField("key value pairs",keytype=str, itemtype=str, default=dict())
@@ -14,10 +16,12 @@ class TemplateConfig(pexConfig.Config):
     ## output file
     outputFile = pexConfig.Field("name of file to write",str, default=None)
 
+## condor glide-in configuration
 class GlideinConfig(pexConfig.Config):
     ## condor glide-in template
     template = pexConfig.ConfigField("condor template", TemplateConfig)
 
+## condor workflow configuration
 class CondorWorkflowConfig(pexConfig.Config):
     ## condor data configuration
     condorData = pexConfig.ConfigField("condor data",CondorDataConfig)

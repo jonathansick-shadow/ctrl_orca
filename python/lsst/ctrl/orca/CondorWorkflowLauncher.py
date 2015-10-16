@@ -29,17 +29,22 @@ from lsst.ctrl.orca.WorkflowLauncher import WorkflowLauncher
 from lsst.ctrl.orca.CondorJobs import CondorJobs
 from lsst.ctrl.orca.CondorWorkflowMonitor import CondorWorkflowMonitor
 
+## launches condor workflows using DAGman files
 class CondorWorkflowLauncher(WorkflowLauncher):
-    ##
-    # @brief
-    #
+    ## initialize
     def __init__(self, prodConfig, wfConfig, runid, localStagingDir, dagFile, monitorConfig):
         log.debug("CondorWorkflowLauncher:__init__")
+        ## production configuration
         self.prodConfig = prodConfig
+        ## workflow configuration
         self.wfConfig = wfConfig
+        ## run id
         self.runid = runid
+        ## local directory where staging occurs
         self.localStagingDir = localStagingDir
+        ## DAGman file
         self.dagFile = dagFile
+        ## monitor configuration
         self.monitorConfig = monitorConfig
 
     ##
@@ -69,6 +74,7 @@ class CondorWorkflowLauncher(WorkflowLauncher):
         print "Condor dag submitted as job ",condorDagId
         os.chdir(startDir)
 
+        ## workflow monitor for HTCondor jobs
         self.workflowMonitor = CondorWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, condorDagId, loggerManagers, self.monitorConfig)
         if statusListener != None:
             self.workflowMonitor.addStatusListener(statusListener)

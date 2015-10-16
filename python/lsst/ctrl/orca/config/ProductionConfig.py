@@ -4,10 +4,12 @@ import FakeTypeMap as fake
 import WorkflowConfig as work
 import DatabaseConfig as db
 
+## production level configuration
 class ProductionLevelConfig(pexConfig.Config):
     ## class that handles production level
     configurationClass = pexConfig.Field("configuration class",str)
 
+## production information
 class Production(pexConfig.Config):
     ## name of the production
     shortName = pexConfig.Field("name of production", str)
@@ -24,6 +26,7 @@ class Production(pexConfig.Config):
     ## production configuration class
     configuration = pexConfig.ConfigField("production level config",ProductionLevelConfig)
 
+## production configuration
 class ProductionConfig(pexConfig.Config):
     ## production configuration
     production = pexConfig.ConfigField("production configuration",Production)

@@ -11,6 +11,7 @@ class DeployDataConfig(pexConfig.Config):
     ## script name
     script = pexConfig.Field("script name",str)
 
+## configuration to perform transfer of information to a remote site
 class CondorDataConfig(pexConfig.Config):
     ## local scratch area
     localScratch = pexConfig.Field("temp data area",str)
@@ -21,6 +22,7 @@ class CondorDataConfig(pexConfig.Config):
     ## protocol used to transfer files
     transferProtocol = pexConfig.Field("method of file transfer",str)
 
+## HTCondor glide-in request configuration
 class GlideinRequestConfig(pexConfig.Config):
     #keyNames = pexConfig.ListField("keys",str)
     ## key value pairs for glide-in template
@@ -30,6 +32,7 @@ class GlideinRequestConfig(pexConfig.Config):
     ## output file name
     outputFileName = pexConfig.Field("name of file to write",str)
 
+## script to run to announce that data has completed
 class DataCompletedConfig(pexConfig.Config):
     ## shell script for data completed
     script = pexConfig.Field("shell script",str)
@@ -38,6 +41,7 @@ class DataCompletedConfig(pexConfig.Config):
     ## status to announce
     status = pexConfig.Field("status to announce",str)
 
+## configuration information used to announce data to the workflow
 class AnnounceDataConfig(pexConfig.Config):
     ## data announcement script to execute
     script = pexConfig.Field("announce script",str)
@@ -48,6 +52,7 @@ class AnnounceDataConfig(pexConfig.Config):
     ## script to execute when data announcement is finished
     dataCompleted = pexConfig.ConfigField("data completed script",DataCompletedConfig)
 
+## htcondor configuration for vanilla universe, uses data announcements for the job office
 class VanillaCondorWorkflowConfig(pexConfig.Config):
     ## depoloy data configuration
     deployData = pexConfig.ConfigField("deploy data",DeployDataConfig)

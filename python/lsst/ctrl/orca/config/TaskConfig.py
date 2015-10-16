@@ -3,6 +3,7 @@ import lsst.pex.config as pexConfig
 import PipelineDefinitionConfig as pipe
 import FakeTypeMap as fake
 
+## script template
 class ScriptTemplateConfig(pexConfig.Config):
     ## input file
     inputFile = pexConfig.Field("input file", str)
@@ -12,16 +13,19 @@ class ScriptTemplateConfig(pexConfig.Config):
     outputFile = pexConfig.Field("output file", str)
 
 
+## job template
 class JobTemplateConfig(pexConfig.Config):
     ## job script template configuration
     script = pexConfig.ConfigField("job script", ScriptTemplateConfig)
     ## condor template configuration
     condor = pexConfig.ConfigField("template", ScriptTemplateConfig)
 
+## script
 class ScriptConfig(pexConfig.Config):
     ## job script template
     script = pexConfig.ConfigField("job script", ScriptTemplateConfig)
 
+## DAG generation script
 class DagGeneratorConfig(pexConfig.Config):
     ## DAG name
     dagName = pexConfig.Field("dag name", str)
@@ -32,6 +36,7 @@ class DagGeneratorConfig(pexConfig.Config):
     ## number of ids per job given to execute
     idsPerJob = pexConfig.Field("the number of ids that will be handled per job", int)
 
+## task
 class TaskConfig(pexConfig.Config):
     ## script directory
     scriptDir = pexConfig.Field("script directory",str)

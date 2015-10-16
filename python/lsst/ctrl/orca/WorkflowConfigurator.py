@@ -37,6 +37,7 @@ from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 class WorkflowConfigurator:
 
 
+    ## configuration group
     class ConfigGroup(object):
         ##
         # @brief configuration initializer

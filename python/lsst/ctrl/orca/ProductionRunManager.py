@@ -397,6 +397,7 @@ class ProductionRunManager:
             return None
         return self._workflowManagers[name]
 
+    ## shutdown thread
     class _ShutdownThread(threading.Thread):
         ## initialize the shutdown thread
         def __init__(self, parent, runid, pollingIntv=0.2, listenTimeout=10):

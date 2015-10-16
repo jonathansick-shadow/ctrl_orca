@@ -30,6 +30,8 @@ from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
 from lsst.ctrl.orca.multithreading import SharedData
 
+## @deprecated generic pipeline workflow monitor
+# watches workflow and waits for information from job office and shutdown indication from logger
 class GenericPipelineWorkflowMonitor(WorkflowMonitor):
     ##
     # @brief in charge of monitoring and/or controlling the progress of a
@@ -73,6 +75,7 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
 
         with self._locked:
             self._wfMonitorThread = GenericPipelineWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, self.orcaTopic, runid)
+    ## seperate thread to monitor workflow messages from the logger and job office
     class _WorkflowMonitorThread(threading.Thread):
         ## initialize
         def __init__(self, parent, eventBrokerHost, shutdownTopic, eventTopic, runid):

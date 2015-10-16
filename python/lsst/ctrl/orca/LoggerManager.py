@@ -32,9 +32,7 @@ import subprocess
 import lsst.log as log
 
 
-#
-# This class is highly dependent on the output of the condor commands 
-# condor_submit and condor_q
+## Logger Manager base class
 #
 class LoggerManager:
     ## initialize

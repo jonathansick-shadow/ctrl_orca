@@ -1,6 +1,7 @@
 import lsst.pex.config as pexConfig
 from lsst.ctrl.orca.config.DirectoryConfig import DirectoryConfig
 
+## hardware configuration
 class HwConfig(pexConfig.Config):
     ## number of nodes requested
     nodeCount = pexConfig.Field("number of nodes",int)
@@ -13,12 +14,14 @@ class HwConfig(pexConfig.Config):
     ## maximum ram used node
     maxRamPerNode = pexConfig.Field("maximum RAM per node",float)
 
+## deployment configuration
 class DeployConfig(pexConfig.Config):
     ## domain name of nodes in this deployment
     defaultDomain = pexConfig.Field("default internet domain",str)
     ## node names requested
     nodes = pexConfig.ListField("node names",str)
 
+## platform configuration
 class PlatformConfig(pexConfig.Config):
     ## directory configuration
     dir = pexConfig.ConfigField("directory info",DirectoryConfig)

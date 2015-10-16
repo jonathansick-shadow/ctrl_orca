@@ -27,6 +27,7 @@ from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
 from lsst.ctrl.orca.WorkflowLauncher import WorkflowLauncher
 from lsst.ctrl.orca.GenericPipelineWorkflowMonitor import GenericPipelineWorkflowMonitor
 
+## generic pipeline workflow launcher
 class GenericPipelineWorkflowLauncher(WorkflowLauncher):
     ## initializer
     def __init__(self, cmds, prodConfig, wfConfig, runid, fileWaiter, pipelineNames):

@@ -27,6 +27,7 @@ import lsst.pex.config as pexConfig
 from lsst.ctrl.orca.multithreading import SharedData
 from lsst.ctrl.orca.DataAnnouncer import DataAnnouncer
 
+## workflow manager base class
 class WorkflowManager:
     ##
     # @brief Manage lifecycle of this workflow

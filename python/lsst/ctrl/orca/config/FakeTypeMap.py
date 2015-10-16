@@ -1,3 +1,4 @@
+## fake typemap
 class FakeTypeMap(dict):
    ## override __init__
    def __init__(self, configClass):

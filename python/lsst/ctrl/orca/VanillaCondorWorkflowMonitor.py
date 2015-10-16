@@ -80,6 +80,7 @@ class VanillaCondorWorkflowMonitor(WorkflowMonitor):
             self._wfMonitorThread = VanillaCondorWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, self.orcaTopic, runid)
 
 
+    ## monitor thread which watches for job office events and shutdown events from logger
     class _WorkflowMonitorThread(threading.Thread):
         ##
         # initialize the workflow monitor thread object
