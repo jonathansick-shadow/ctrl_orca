@@ -21,6 +21,7 @@
 #
 
 import re,os
+## replace $variables within a string
 class EnvString:
 
     ##
@@ -41,4 +42,5 @@ class EnvString:
                 raise RuntimeError("couldn't find "+i+" environment variable")
             retVal = p.sub(val,retVal,1)
         return retVal
+    ## static method to resolve string
     resolve = staticmethod(resolve)

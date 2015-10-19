@@ -58,7 +58,7 @@ class ProductionRunManager:
         self._locked = SharedData(False,
                                             {"running": False, "done": False})
 
-        # the run id for this production
+        ## the run id for this production
         self.runid = runid
 
         # once the workflows that make up this production is created we will
@@ -74,19 +74,23 @@ class ProductionRunManager:
         # the cached ProductionRunConfigurator instance
         self._productionRunConfigurator = None
 
+        ## the full path the configuration
         self.fullConfigFilePath = ""
         if os.path.isabs(configFileName) == True:
             self.fullConfigFilePath = configFileName
         else:
             self.fullConfigFilePath = os.path.join(os.path.realpath('.'), configFileName)
 
-        # create config file - but don't dereference yet
+        ## create Production configuration
         self.config = ProductionConfig()
+        # load the production config object
         self.config.load(self.fullConfigFilePath)
 
 
-        # determine the repository
+        ## the repository location
         self.repository = repository
+
+        # determine repository location
         if not self.repository:
             self.repository = self.config.production.repositoryDirectory
         if not self.repository:
@@ -393,7 +397,9 @@ class ProductionRunManager:
             return None
         return self._workflowManagers[name]
 
+    ## shutdown thread
     class _ShutdownThread(threading.Thread):
+        ## initialize the shutdown thread
         def __init__(self, parent, runid, pollingIntv=0.2, listenTimeout=10):
             threading.Thread.__init__(self)
             self.setDaemon(True)
@@ -409,6 +415,8 @@ class ProductionRunManager:
             selector = "RUNID = '%s'" % self._runid
             self._evsys.createReceiver(brokerhost, self._topic, selector)
 
+        ## listen for the shutdown event at regular intervals, and shutdown
+        # when the event is received.
         def run(self):
             log.debug("listening for shutdown event at %s s intervals" % self._pollintv)
 
@@ -431,9 +439,13 @@ class ProductionRunManager:
         self._sdthread = ProductionRunManager._ShutdownThread(self, self.runid)
         self._sdthread.start()
 
+    ##
+    # @returns the shutdown thread for this production
     def getShutdownThread(self):
         return self._sdthread
 
+    ##
+    # thread join the shutdown thread for this production
     def joinShutdownThread(self):
         if self._sdthread is not None:
             self._sdthread.join()

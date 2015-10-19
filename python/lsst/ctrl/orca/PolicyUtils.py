@@ -25,6 +25,7 @@ import sets
 import os.path
 import lsst.pex.policy as pol
 
+## @deprecated policy file utilities
 class PolicyUtils:
 
     ##
@@ -68,6 +69,7 @@ class PolicyUtils:
                     #else:
                     #  name is a regular value
 
+    ## return all file names from a policy set
     getAllFilenames = staticmethod(getAllFilenames)
 
 if __name__ == "__main__":

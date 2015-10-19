@@ -27,6 +27,7 @@ import lsst.log as log
 from lsst.ctrl.orca.db.MySQLConfigurator import MySQLConfigurator
 from lsst.ctrl.orca.config.AuthConfig import AuthConfig
 
+## @deprecated DC3Configurator
 class DC3Configurator:
     def __init__(self, runid, dbConfig, prodConfig=None, wfConfig=None):
         """
@@ -35,32 +36,47 @@ class DC3Configurator:
         @param dbConfig  the database config
         """
         log.debug("DC3Configurator:__init__")
+        ## schema type
         self.type = "mysql"
+        ## run id
         self.runid = runid
+        ## database configuraition
         self.dbConfig = dbConfig
+        ## delegate method to call at end of run
         self.delegate = None
+        ## the per-Production database
         self.perProductionRunDatabase = None
 
+        ## the name of the platform list in the database provenance
         self.platformName = ""
+        ## production configuration
         self.prodConfig = prodConfig
         if self.prodConfig == None:
             self.platformName = "production"
+        ## workflow configuration
         self.wfConfig = wfConfig
 
         #
         # extract the databaseConfig.database policy to get required
         # parameters from it.
 
+        ## the database host name
         self.dbHostName = dbConfig.system.authInfo.host
+        ## the database port number
         self.dbPort = dbConfig.system.authInfo.port
+        ## global database name
         globalDbName = dbConfig.configuration["production"].globalDbName
+        ## data challenge version
         dcVersion = dbConfig.configuration["production"].dcVersion
+        ## data challenge database name
         dcDbName = dbConfig.configuration["production"].dcDbName
+        ## minimum percent database space required
         minPercDiskSpaceReq = dbConfig.configuration["production"].minPercDiskSpaceReq
         userRunLife = dbConfig.configuration["production"].userRunLife
 
         self.delegate = MySQLConfigurator(self.dbHostName, self.dbPort, globalDbName, dcVersion, dcDbName, minPercDiskSpaceReq, userRunLife)
 
+    ## setup for a new run 
     def setup(self, provSetup):
         log.debug("DC3Configurator:setup")
 
@@ -87,6 +103,7 @@ class DC3Configurator:
         #provSetup.addWorkflowRecordCmd("PipelineProvenanceRecorder.py", arglist)
         # end TODO
 
+    ## @return a dictory containing the "host", "port", "runid" and "dbrun" (database)
     def getDBInfo(self):
         dbInfo = {} 
         dbInfo["host"] = self.dbHostName
@@ -95,6 +112,7 @@ class DC3Configurator:
         dbInfo["dbrun"] = self.perProductionRunDatabase
         return dbInfo
 
+    ## internal configuration
     def setupInternal(self):
         log.debug("DC3Configurator:setupInternal")
 
@@ -102,11 +120,13 @@ class DC3Configurator:
         dbNames = self.prepareForNewRun(self.runid)
         return dbNames
 
+    ## validate configuration
     def checkConfiguration(self, val):
         log.debug("DC3Configurator:checkConfiguration")
         # TODO: use val when implemented
         self.checkConfigurationInternal()
 
+    ## validate configuration
     def checkConfigurationInternal(self):
         log.debug("DC3Configurator:checkConfigurationInternal")
         #
@@ -126,14 +146,17 @@ class DC3Configurator:
         #
         self.initAuthInfo(self.dbConfig)
 
+    ## return a URL to the database host, including port number
     def getHostURL(self):
         schema = self.type.lower()
         retVal = schema+"://"+self.dbHost+":"+str(self.dbPort)
         return retVal
 
+    ## get database user
     def getUser(self):
         return self.dbUser
 
+    ## check to see that the file is accessible only to the user
     def checkUserOnlyPermissions(self, checkFile):
         mode = os.stat(checkFile)[stat.ST_MODE]
 
@@ -146,9 +169,11 @@ class DC3Configurator:
         if (mode & getattr(stat, "S_IRWXO")) != 0:
             raise RuntimeError(errorText)
 
+    ## prepare the database for a new run
     def prepareForNewRun(self, runName, runType='u'):
         return self.delegate.prepareForNewRun(runName, self.dbUser, self.dbPassword, runType)
 
+    ## call the delegate
     def runFinished(self, dbName):
         self.delegate(dbName)
 
@@ -199,9 +224,13 @@ class DC3Configurator:
             #print "auth = ",auth
             if (auth.host == host) and (auth.port == port):
                 log.debug("using host %s at port %d" % (host, port))
+                ## database host name
                 self.dbHost = auth.host
+                ## database server port number
                 self.dbPort = auth.port
+                ## database user name
                 self.dbUser = auth.user
+                ## database authentication 
                 self.dbPassword = auth.password
                 return
         raise RuntimeError("couldn't find any matching authorization for host %s and port %d " % (host, port))

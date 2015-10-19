@@ -30,6 +30,9 @@ from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
 from lsst.ctrl.orca.multithreading import SharedData
 
+##
+# @deprecated VanillaCondorWorkflowMonitor
+#
 class VanillaCondorWorkflowMonitor(WorkflowMonitor):
     ##
     # @brief in charge of monitoring and/or controlling the progress of a
@@ -45,29 +48,42 @@ class VanillaCondorWorkflowMonitor(WorkflowMonitor):
         log.debug("VanillaCondorWorkflowMonitor:__init__")
         self._statusListeners = []
         # make a copy of this liste, since we'll be removing things.
+
+        ## named pipelines
         self.pipelineNames = pipelineNames[:] 
 
+        ## PID of all logger processes
         self.loggerPIDs = []
         for lm in loggerManagers:
             self.loggerPIDs.append(lm.getPID())
+        ## all logger manager objects
         self.loggerManagers = loggerManagers
 
         self._eventBrokerHost = eventBrokerHost
         self._shutdownTopic = shutdownTopic
+        ## ctrl_events monitoring topic
         self.orcaTopic = "orca.monitor"
+        ## run id for this workflow
         self.runid = runid
 
         self._wfMonitorThread = None
+        ## event system object where all transmitters & receivers are registered
         self.eventSystem = events.EventSystem.getDefaultEventSystem()
+        ## the id of where the events originate.
         self.originatorId = self.eventSystem.createOriginatorId()
+        ## indicates whether the last logger event been seen
         self.bSentLastLoggerEvent = False
+        ## indicates whether a job office event has been sent
         self.bSentJobOfficeEvent = False
 
         with self._locked:
             self._wfMonitorThread = VanillaCondorWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, self.orcaTopic, runid)
 
 
+    ## monitor thread which watches for job office events and shutdown events from logger
     class _WorkflowMonitorThread(threading.Thread):
+        ##
+        # initialize the workflow monitor thread object
         def __init__(self, parent, eventBrokerHost, shutdownTopic, eventTopic, runid):
             threading.Thread.__init__(self)
             self.setDaemon(True)
@@ -80,6 +96,8 @@ class VanillaCondorWorkflowMonitor(WorkflowMonitor):
             self._Logreceiver = events.EventReceiver(self._eventBrokerHost, "LoggerStatus", selector)
             self._jobOfficeReceiver = events.EventReceiver(self._eventBrokerHost, "JobOfficeStatus", selector)
 
+        ##
+        # process  events at regular intervals
         def run(self):
             log.debug("VanillaCondorWorkflowMonitor Thread started")
             sleepInterval = 5
@@ -112,11 +130,16 @@ class VanillaCondorWorkflowMonitor(WorkflowMonitor):
                     sleepInterval = 5
 
 
+    ##
+    # Start Monitor Thread running
     def startMonitorThread(self, runid):
         with self._locked:
             self._wfMonitorThread.start()
             self._locked.running = True
 
+    ##
+    # watch for event from the job office, and if it indicates the job is
+    # completed, stop the workflow
     def handleJobOfficeEvent(self, event):
         log.debug("VanillaCondorWorkflowMonitor:handleJobOfficeEvent")
         if event.getType() == events.EventTypes.STATUS:
@@ -130,6 +153,8 @@ class VanillaCondorWorkflowMonitor(WorkflowMonitor):
         return
 
 
+    ##
+    # handle incoming events from the pipeline and loggers
     def handleEvent(self, event):
         log.debug("VanillaCondorWorkflowMonitor:handleEvent called")
 

@@ -21,26 +21,19 @@
 #
 
 ##
-#
-#
-#
-#
-# NOTE: This is here as a placeholder, and should be integrated with 
-# db/Dc3aDatabaseConfigurator
-#
-#
-#
-#
-# @brief
+# @deprecated DatabaseConfigurator
 #
 class DatabaseConfigurator:
+    ## initialize
     def __init__(self, runid, config):
+        ## run id
         self.runid = runid
+        ## database configuration
         self.config = config
         return
 
     ##
-    # @brief
+    # set the database configurator up
     #
     def setDatabase(self, provSetup):
 

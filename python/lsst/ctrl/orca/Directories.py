@@ -72,14 +72,19 @@ class Directories(object):
 
     ## 
     # @brief determine the directories from the config input
-    # @param dirPolicy   the "dir" config containing the 
+    # @param dirConfig   the "dir" config
     # @param shortName   the short name of the pipeline
     # @param runId       the run ID for the pipeline run (default: "no-id")
     def __init__(self, dirConfig, shortName, runId="no-id"):
+        ## directory config
         self.config = dirConfig
+        ## run id
         self.runid = runId
+        ## alias for this pipeline
         self.shortname = shortName
+        ## data pattern
         self.patdata = { "runid": self.runid, "shortname": self.shortname }
+        ## default root directory
         self.defroot = None
 
     ## 

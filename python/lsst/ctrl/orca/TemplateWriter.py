@@ -25,17 +25,19 @@ import sys
 import re
 import socket
 
-#
+##
 # This class takes template files and substitutes the values for the given
 # keys, writing a new file generated from the template.
 #
 class TemplateWriter:
+    ## initializer
     def __init__(self):
+        ## local values that are always set
         self.orcaValues = dict()
         self.orcaValues["ORCA_LOCAL_HOSTNAME"] = socket.gethostname()
         return
 
-    #
+    ##
     # given a input template, take the keys from the key/values in the config
     # object and substitute the values, and write those to the output file.
     #

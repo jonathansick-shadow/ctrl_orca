@@ -29,19 +29,30 @@ from lsst.ctrl.orca.WorkflowLauncher import WorkflowLauncher
 from lsst.ctrl.orca.CondorJobs import CondorJobs
 from lsst.ctrl.orca.VanillaCondorWorkflowMonitor import VanillaCondorWorkflowMonitor
 
+## 
+# @deprecated VanillaCondorWorkflowLauncher
+#
 class VanillaCondorWorkflowLauncher(WorkflowLauncher):
     ##
-    # @brief
+    # initializes the workflow launcher for HTCondor Vanilla Universe
     #
     def __init__(self, jobs, localScratch, condorGlideinFile, prodConfig, wfConfig, runid, filewaiter, pipelineNames):
         log.debug("VanillaCondorWorkflowLauncher:__init__")
+        ## list of jobs being run
         self.jobs = jobs
+        ## location of local scratch directory
         self.localScratch = localScratch
+        ## location of condor glide in file
         self.condorGlideinFile = condorGlideinFile
+        ## production configuration
         self.prodConfig = prodConfig
+        ## workflow configuration
         self.wfConfig = wfConfig
+        ## run id for this workflow
         self.runid = runid
+        ## object which watches files to show up
         self.filewaiter = filewaiter
+        ## named pipelines
         self.pipelineNames = pipelineNames
 
     ##
@@ -61,6 +72,7 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
         eventBrokerHost = self.prodConfig.production.eventBrokerHost
         shutdownTopic = self.wfConfig.shutdownTopic
 
+        ## the specialized monitor this workflow
         self.workflowMonitor = VanillaCondorWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, self.pipelineNames, loggerManagers)
         if statusListener != None:
             self.workflowMonitor.addStatusListener(statusListener)
@@ -126,7 +138,7 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
         return self.workflowMonitor
 
     ##
-    #
+    # write a job file containing the launched HTCondor job number
     #
     def writeJobFile(self, jobNumber, jobFile):
         log.debug("VanillaCondorWorkflowLauncher:writeJobFile: writing %s" % jobFile)

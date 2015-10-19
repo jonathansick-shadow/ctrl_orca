@@ -42,27 +42,44 @@ from lsst.ctrl.orca.FileWaiter import FileWaiter
 # CondorWorkflowConfigurator 
 #
 class CondorWorkflowConfigurator(WorkflowConfigurator):
+    ## initialize
     def __init__(self, runid, repository, prodConfig, wfConfig, wfName):
         log.debug("CondorWorkflowConfigurator:__init__")
 
+        ## run id
         self.runid = runid
+        ## repository directory
         self.repository = repository
+        ## production configuration
         self.prodConfig = prodConfig
+        ## workflow configuration
         self.wfConfig = wfConfig
+        ## workflow name
         self.wfName = wfName
 
+        ## logging verbosity of workflow
         self.wfVerbosity = None
 
+        ## @deprecated directories
         self.dirs = None
+        ## directories
         self.directories = None
+        ## @deprecated nodes used in this production
         self.nodes = None
+        ## @deprecated number of nodes
         self.numNodes = None
+        ## @deprecated names of the log file
         self.logFileNames = []
+        ## names of the pipelines
         self.pipelineNames = []
 
+        ## @deprecated list of directories
         self.directoryList = {}
+        ## @deprecated initial working directory
         self.initialWorkDir = None
+        ## @deprecated first initial working directory 
         self.firstRemoteWorkDir = None
+        ## default root for the production
         self.defaultRoot = wfConfig.platform.dir.defaultRoot
         
     ##
@@ -88,12 +105,14 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
         log.debug("CondorWorkflowConfigurator:configure")
 
         localConfig = wfConfig.configuration["condor"]
+        ## local scratch directory
         self.localScratch = localConfig.condorData.localScratch
 
         platformConfig = wfConfig.platform
         taskConfigs = wfConfig.task
 
 
+        ## local staging directory
         self.localStagingDir = os.path.join(self.localScratch, self.runid)
         os.makedirs(self.localStagingDir)
 
@@ -111,6 +130,7 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
         # out what this might mean.
         for taskName in taskConfigs:
             task = taskConfigs[taskName]
+            ## script directory
             self.scriptDir = task.scriptDir
             
             # save initial directory we were called from so we can get back
@@ -228,7 +248,7 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
         workflowLauncher = CondorWorkflowLauncher(self.prodConfig, self.wfConfig, self.runid, self.localStagingDir, task.dagGenerator.dagName+".diamond.dag", wfConfig.monitor)
         return workflowLauncher
 
-    # TODO - XXX - these next two should probably be combined
+    ## write the HTCondor prescript script
     def writePreScript(self, outputFileName, template, keywords):
         pairs = {}
         for value in keywords:
@@ -239,6 +259,7 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
         writer = TemplateWriter()
         writer.rewrite(template, outputFileName, pairs)
 
+    ## write the HTCondor script that is used to execute the job
     def writeJobScript(self, outputFileName, template, keywords, scriptName = None):
         pairs = {}
         for value in keywords:
@@ -251,6 +272,7 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
         writer = TemplateWriter()
         writer.rewrite(template, outputFileName, pairs)
 
+    ## write the HTCondor glide-in file
     def writeGlideinFile(self, glideinConfig):
         template = glideinConfig.template
         inputFile = EnvString.resolve(template.inputFile)
@@ -268,25 +290,20 @@ class CondorWorkflowConfigurator(WorkflowConfigurator):
         writer.rewrite(inputFile, template.outputFile, pairs)
           
 
+    ## get the workflow name
     def getWorkflowName(self):
         return self.wfName
 
 
-    ##
-    # @brief 
-    #
+    ## @deprecated
     def deploySetup(self, provSetup, wfConfig, platformConfig, pipelineConfigGroup):
         log.debug("CondorWorkflowConfigurator:deploySetup")
 
-    ##
-    # @brief create the platform.dir directories
-    #
+    ## @deprecated create the platform.dir directories
     def createDirs(self, localStagingDir, platformDirConfig):
         log.debug("CondorWorkflowConfigurator:createDirs")
 
-    ##
-    # @brief set up this workflow's database
-    #
+    ## @deprecated set up this workflow's database
     def setupDatabase(self):
         log.debug("CondorWorkflowConfigurator:setupDatabase")
 

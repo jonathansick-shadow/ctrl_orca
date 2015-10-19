@@ -37,22 +37,36 @@ from lsst.ctrl.orca.GenericFileWaiter import GenericFileWaiter
 # GenericPipelineWorkflowConfigurator 
 #
 class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
+    ## initializer
     def __init__(self, runid, repository, prodConfig, wfConfig, wfName):
         log.debug("GenericPipelineWorkflowConfigurator:__init__")
+        ## run id for this workflow
         self.runid = runid
+        ## production configuration
         self.prodConfig = prodConfig
+        ## workflow configuration
         self.wfConfig = wfConfig
+        ## workflow name
         self.wfName = wfName
+        ## repository location
         self.repository = repository
 
+        ## workflow logging verbosity level
         self.wfVerbosity = None
 
+        ## nodes used in this workflow
         self.nodes = None
+        ## directories specified
         self.directories = None
+        ## @deprecated directories specified
         self.dirs = None
+        ## the default directory used at the beginning of the run
         self.defaultRunDir = None
+        ## list of log files
         self.logFileNames = []
+        ## list of pipeline names
         self.pipelineNames = []
+        ## host name of the event broker
         self.eventBrokerHost = None
 
     ##
@@ -79,6 +93,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
 
         platformConfig = wfConfig.platform
 
+        ## default domain to which we're deploying
         self.defaultDomain = platformConfig.deploy.defaultDomain
         pipelineConfig = wfConfig.pipeline
         print "pipelineConfig = ",pipelineConfig
@@ -122,7 +137,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         print "self.expandNodeHost",self.expandNodeHost
         print "node",node
         nodes = map(self.expandNodeHost, node)
-        # by convention, the master node is the first node in the list
+        ## by convention, the master node is the first node in the list
         # we use this later to launch things, so strip out the info past ":", if it's there.
         self.masterNode = nodes[0]
         colon = self.masterNode.find(':')
@@ -130,12 +145,15 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
             self.masterNode = self.masterNode[0:colon]
         return nodes
 
+    ## @return the name of this workflow
     def getWorkflowName(self):
         return self.workflow
     
+    ## @return the number of nodes to acquire
     def getNodeCount(self):
         return len(self.nodes)
 
+    ## deploy any required data specified in the configuration
     def deployData(self, wfConfig):
         log.debug("GenericPipelineWorkflowConfigurator:deployData")
 
@@ -165,7 +183,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
 
 
     ##
-    # @brief 
+    # deploy the setup information for this workflow
     #
     def deploySetup(self, provSetup, wfConfig, platformConfig, pipelineConfigGroup):
         log.debug("GenericPipelineWorkflowConfigurator:deploySetup")
@@ -235,6 +253,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         setupPath = definitionConfig.framework.environment
         if setupPath:
             setupPath = EnvString.resolve(setupPath)        
+        ## the script used for seting up the environment
         self.script = setupPath
 
         if orca.envscript is None:
@@ -351,6 +370,7 @@ class GenericPipelineWorkflowConfigurator(WorkflowConfigurator):
         dirName = pipelineConfig
         self.directories = Directories(dirConfig, dirName, self.runid)
         self.dirs = self.directories.getDirs()
+        ## default root directory for the platform
         self.defaultRootDir = self.directories.getDefaultRootDir()
 
         for name in self.dirs.names():

@@ -72,6 +72,7 @@ class MultiIssueConfigurationError(ConfigurationError):
         """
         return list(self._probs)
 
+    ## overrides __str__ for custom message
     def __str__(self):
         if len(self._probs) < 1:
             return "Unspecified configuration problems encountered"
@@ -80,6 +81,7 @@ class MultiIssueConfigurationError(ConfigurationError):
         else:
             return ConfigurationError.__str__(self)
 
+    ## overrides __repr__ for custom message
     def __repr__(self):
         return "MultiIssueConfigurationError: " + str(self)
 

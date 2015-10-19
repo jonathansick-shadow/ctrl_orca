@@ -24,14 +24,22 @@ import os
 import lsst.log as log
 from lsst.ctrl.orca.EnvString import EnvString
 
+##
+# @deprecated DataAnnouncer
+# this class is used to send events with available data
 class DataAnnouncer:
 
+    ## initialize
     def __init__(self, runid, prodConfig, wfConfig, logger = None):
         log.debug("DataAnnouncer: __init__")
+        ## run id
         self.runid = runid
+        ## production configuration
         self.prodConfig = prodConfig
+        ## workflow configuration
         self.wfConfig = wfConfig
-
+    
+    ## send events announcing data to consumers
     def announce(self):
         log.debug("DataAnnouncer: announce")
         broker = self.prodConfig.production.eventBrokerHost

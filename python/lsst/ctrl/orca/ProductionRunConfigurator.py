@@ -31,25 +31,32 @@ import lsst.pex.config as pexConfig
 from lsst.ctrl.provenance.ProvenanceSetup import ProvenanceSetup
 import lsst.pex.exceptions as pexEx
 
+##
+# @brief create a basic production run.
+# Note that all ProductionRunConfigurator subclasses must support this
+# constructor signature.
 class ProductionRunConfigurator:
-    ##
-    # @brief create a basic production run.
-    # Note that all ProductionRunConfigurator subclasses must support this
-    # constructor signature.
+    ## initialize
     def __init__(self, runid, configFile, repository=None, workflowVerbosity=None):
 
         log.debug("ProductionRunConfigurator:__init__")
 
+        ## run id for this production
         self.runid = runid
+
         self._prodConfigFile = configFile
 
+        ## production configuration
         self.prodConfig = ProductionConfig()
         self.prodConfig.load(configFile)
 
+        ## location of the repostiry
         self.repository = repository
+        ## verbosity level for this workflow
         self.workflowVerbosity = workflowVerbosity
         self._provSetup = None
 
+        ## provenance dictionary
         self.provenanceDict = {}
         self._wfnames = None
 
@@ -59,10 +66,13 @@ class ProductionRunConfigurator:
         # logger managers
         self._loggerManagers = []
 
+        ## hostname of the event broker
         self.eventBrokerHost = None
 
         # these are config settings which can be overriden from what they
         # are in the workflow policies.
+
+        ## dictionary of configuration override values
         self.configOverrides = dict()
         production = self.prodConfig.production
         if production.eventBrokerHost != None:
@@ -149,6 +159,8 @@ class ProductionRunConfigurator:
 
         return workflowManagers
 
+    ##
+    # @return list of logger managers
     def getLoggerManagers(self):
         return self._loggerManagers
 

@@ -30,6 +30,8 @@ from lsst.ctrl.orca.EnvString import EnvString
 from lsst.ctrl.orca.WorkflowMonitor import WorkflowMonitor
 from lsst.ctrl.orca.multithreading import SharedData
 
+## @deprecated generic pipeline workflow monitor
+# watches workflow and waits for information from job office and shutdown indication from logger
 class GenericPipelineWorkflowMonitor(WorkflowMonitor):
     ##
     # @brief in charge of monitoring and/or controlling the progress of a
@@ -44,35 +46,38 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
 
         log.debug("GenericPipelineWorkflowMonitor:__init__")
         self._statusListeners = []
+        ## the pipelines to execute
         self.pipelineNames = pipelineNames[:] # make a copy of this list, since we'll be removing things
 
+        ## list of logger process ids
         self.loggerPIDs = []
         for lm in loggerManagers:
             self.loggerPIDs.append(lm.getPID())
+        ## list of logger managers
         self.loggerManagers = loggerManagers
 
         self._eventBrokerHost = eventBrokerHost
         self._shutdownTopic = shutdownTopic
+        ## the ctrl_events topic for orca status monitoring
         self.orcaTopic = "orca.monitor"
+        ## run id for this workflow
         self.runid = runid
 
         self._wfMonitorThread = None
+        ## the event system to which transmitters and receivers are registered
         self.eventSystem = events.EventSystem.getDefaultEventSystem()
+        ## originator id of used to identify events from this process
         self.originatorId = self.eventSystem.createOriginatorId()
+        ## status of whether the last logger event has been sent
         self.bSentLastLoggerEvent = False
+        ## status of whether a job office event has been sent
         self.bSentJobOfficeEvent = False
 
         with self._locked:
             self._wfMonitorThread = GenericPipelineWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, self.orcaTopic, runid)
-        #print "about to start monitoring: "
-        #for pipe in self.pipelineNames:
-        #    print "pipeline: ",pipe
-        #for loggerPID in self.loggerPIDs:
-        #    print "logger at pid: ",loggerPID
-        #print "waiting."
-
-
+    ## seperate thread to monitor workflow messages from the logger and job office
     class _WorkflowMonitorThread(threading.Thread):
+        ## initialize
         def __init__(self, parent, eventBrokerHost, shutdownTopic, eventTopic, runid):
             threading.Thread.__init__(self)
             self.setDaemon(True)
@@ -80,6 +85,7 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
             self._eventBrokerHost = eventBrokerHost
             self._shutdownTopic = shutdownTopic
             self._eventTopic = eventTopic
+            ## run id of this workflow
             self.runid = runid
 
             selector = "RUNID = '%s'" % runid
@@ -88,6 +94,7 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
             self._jobOfficeReceiver = events.EventReceiver(self._eventBrokerHost, "JobOfficeStatus", selector)
 
 
+        ## receive events from logger and job office
         def run(self):
             log.debug("GenericPipelineWorkflowMonitor Thread started")
             # we don't decide when we finish, someone else does.
@@ -110,12 +117,14 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
                         print "logger handled...and...done!"
                         return
 
+    ## start the monitor therad
     def startMonitorThread(self, runid):
         with self._locked:
             #self._wfMonitorThread = GenericPipelineWorkflowMonitor._WorkflowMonitorThread(self, self._eventBrokerHost, self._shutdownTopic, runid)
             self._wfMonitorThread.start()
             self._locked.running = True
 
+    ## check to see if job office sends a completion event
     def handleJobOfficeEvent(self, event):
         if event.getType() == events.EventTypes.STATUS:
             ps = event.getPropertySet()
@@ -125,6 +134,7 @@ class GenericPipelineWorkflowMonitor(WorkflowMonitor):
                 self.stopWorkflow(1)
         return
 
+    ## process incoming pipeline and logging events
     def handleEvent(self, event):
         log.debug("GenericPipelineWorkflowMonitor:handleEvent called")
 

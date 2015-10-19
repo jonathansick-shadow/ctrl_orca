@@ -31,17 +31,18 @@ import time
 import lsst.log as log
 
 
-#
+## CondorJobs - handles interaction with HTCondor
 # This class is highly dependent on the output of the condor commands 
 # condor_submit and condor_q
 #
 class CondorJobs:
+    ## initializer
     def __init__(self):
         log.debug("CondorJobs:__init__")
         return
 
 
-    # submit a condor file, and return the job number associated with it.
+    ## submit a condor file, and return the job number associated with it.
     # expected output:
     # Submitting job(s).
     # Logging submit event(s).
@@ -66,7 +67,7 @@ class CondorJobs:
     
     
     
-    # wait for a condor job to reach it's run state.
+    ## wait for a condor job to reach it's run state.
     # expected output:
     #-- Submitter: srp@lsst6.ncsa.uiuc.edu : <141.142.15.103:40900> : lsst6.ncsa.uiuc.edu
     # ID      OWNER            SUBMITTED     RUN_TIME ST PRI SIZE CMD               
@@ -130,6 +131,7 @@ class CondorJobs:
             time.sleep(1)
             secondsWaited = secondsWaited + 1
 
+    ## waits for all jobs to enter the run state
     def waitForAllJobsToRun(self, numList):
         log.debug("CondorJobs:waitForAllJobsToRun")
         queueExp = re.compile("\S+")
@@ -161,7 +163,7 @@ class CondorJobs:
             pop.close()
             time.sleep(1)
 
-    # submit a condor dag and return its cluster number
+    ## submit a condor dag and return its cluster number
     def condorSubmitDag(self, filename):
         log.debug("CondorJobs: submitCondorDag "+filename)
         # Just a note about why this was done this way...
@@ -195,6 +197,7 @@ class CondorJobs:
         stdoutdata, stderrdata = process.communicate()
         return -1
 
+    ## kill the HTCondor job with a this id
     def killCondorId(self, cid):
         log.debug("CondorJobs: killCondorId"+str(cid))
         cmd = "condor_rm "+str(cid)
@@ -207,6 +210,7 @@ class CondorJobs:
         # read the rest (if any) and terminate
         stdoutdata, stderrdata = process.communicate()
 
+    ## check to see if the job with id "cid" is still alive
     def isJobAlive(self,cid):
         jobNum = "%s.0" % cid
         queueExp = re.compile("\S+")

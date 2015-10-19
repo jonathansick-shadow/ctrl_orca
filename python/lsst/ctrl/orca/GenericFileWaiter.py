@@ -29,13 +29,17 @@ import time
 import lsst.log as log
 
 
-#
+## 
+# waits for files to come into existence
 #
 class GenericFileWaiter:
+    ## initialize
     def __init__(self, fileNames):
         log.debug("GenericFileWaiter:__init__")
+        ## list of file names
         self.fileNames = fileNames
 
+    ## wait for the first file in the list to come into existence
     def waitForFirstFile(self):
         log.debug("GenericFileWaiter:waitForFirstFile")
         print "waiting for log file to be created to confirm launch."
@@ -44,6 +48,7 @@ class GenericFileWaiter:
             time.sleep(1)
         return
 
+    ## wait for all files in the list to come into existence
     def waitForAllFiles(self):
         log.debug("GenericFileWaiter:waitForAllFiles")
 
