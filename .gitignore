@@ -14,3 +14,14 @@ doc/*.inc
 doc/doxygen.conf
 tests/.tests
 version.py
+bin/filewaiter.py
+bin/killcondor.py
+bin/Logger.py
+bin/orca.py
+bin/ProvenanceRecorder.py
+bin/sendStatus.py
+bin/shutlog.py
+bin/shutprod.py
+bin/shutwork.py
+bin/workerdone.py
+bin/writeNodeList.py
