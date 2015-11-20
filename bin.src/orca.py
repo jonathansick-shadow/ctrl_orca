@@ -24,8 +24,8 @@
 
 
 from __future__ import with_statement
-import re, sys, os, os.path, shutil, subprocess
-import optparse, traceback, time
+import os, os.path
+import optparse
 import lsst.ctrl.orca as orca
 import lsst.log as log
 import lsst.utils
@@ -88,7 +88,7 @@ if parser.opts.logconfig is None:
     package = lsst.utils.getPackageDir("ctrl_orca")
     configPath = os.path.join(package, "etc", "logging.py")
 else:
-    configPath = parse.opts.logconfig
+    configPath = parser.opts.logconfig
 log.configure(configPath)
 
 orca.verbosity = parser.opts.verbosity

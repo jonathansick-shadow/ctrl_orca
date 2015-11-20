@@ -20,16 +20,12 @@
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 
-import os
 from lsst.ctrl.orca.LoggerManager import LoggerManager
-from lsst.ctrl.orca.DatabaseConfigurator import DatabaseConfigurator
 from lsst.ctrl.orca.NamedClassFactory import NamedClassFactory
 from lsst.ctrl.orca.WorkflowManager import WorkflowManager
 from lsst.ctrl.orca.config.ProductionConfig import ProductionConfig
+from lsst.ctrl.orca.exceptions import MultiIssueConfigurationError
 import lsst.log as log
-import lsst.pex.config as pexConfig
-from lsst.ctrl.provenance.ProvenanceSetup import ProvenanceSetup
-import lsst.pex.exceptions as pexEx
 
 ##
 # @brief create a basic production run.
@@ -131,7 +127,9 @@ class ProductionRunConfigurator:
                     launch = loggerConfig.launch
                     loggerManager = None
                     if launch == True:
-                        loggerManager = LoggerManager(self.eventBrokerHost, dbInfo["host"], dbInfo["port"], self.runid, dbInfo["dbrun"])
+                        loggerManager = LoggerManager(self.eventBrokerHost, self.runid, dbInfo["host"], dbInfo["port"], dbInfo["dbrun"])
+                    else:
+                        loggerManager = LoggerManager(self.eventBrokerHost, self.runid)
                     if loggerManager is not None:
                         self._loggerManagers.append(loggerManager)
             self._databaseConfigurators.append(cfg)
