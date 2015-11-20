@@ -23,7 +23,6 @@
 #
 
 import os, sys
-import subprocess
 import optparse
 import lsst.pex.policy as pol
 
@@ -83,7 +82,6 @@ class CondorJobInfo:
             wfShortName = wfPolicy.get("shortName")
             pipelinePolicies = wfPolicy.getArray("pipeline")
             localScratch = self.getLocalScratch(wfPolicy)
-            wfScratchDir = os.path.join(localScratch, wfShortName)
             for policy in pipelinePolicies:
                 runCount = 1  # default to 1, if runCount doesn't exist
                 if policy.exists("runCount"):
@@ -127,13 +125,12 @@ class JobKiller:
         print "killJob: ",filename
         try :
             input = open(filename, 'r')
-        except Exception, e:
+        except Exception:
             # couldn't find that file, so pass
             return
         line = input.readline()
         line = line.strip('\n')
         cmd = ["condor_rm", line]
-        jobname = os.path.basename(filename).split('.')[0]
         
         pid = os.fork()
         if not pid:

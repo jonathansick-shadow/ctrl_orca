@@ -36,16 +36,19 @@ import lsst.log as log
 #
 class LoggerManager:
     ## initialize
-    def __init__(self, broker, dbHost, dbPort, runid, dbName):
+    def __init__(self, broker, runid, dbHost=None, dbPort=None, dbName=None):
         log.debug("LoggerManager:__init__")
+
         ## the event broker to listen on
         self.broker = broker
+
+        ## the run id of the logger messages to listen for
+        self.runid = runid
+
         ## the database host to connect to
         self.dbHost = dbHost
         ## the database port to connect to
         self.dbPort = dbPort
-        ## the run id of the logger messages to listen for
-        self.runid = runid
         ## the database name
         self.dbName = dbName
         ## the logger process
@@ -64,7 +67,11 @@ class LoggerManager:
             return
 
         directory = os.getenv("CTRL_ORCA_DIR")
-        cmd = "%s/bin/Logger.py %s %s %s %s %s" % (directory, self.broker, self.dbHost, self.dbPort, self.runid, self.dbName)
+        cmd = None
+        if self.dbHost is None:
+            cmd = "%s/bin/Logger.py --broker %s --runid %s" % (directory, self.broker, self.runid)
+        else:
+            cmd = "%s/bin/Logger.py --broker %s --host %s --port %s --runid %s --database %s" % (directory, self.broker, self.dbHost, self.dbPort, self.runid, self.dbName)
         log.debug("LoggerManager:cmd = %s " % cmd)
         self.process = subprocess.Popen(cmd, shell=True)
         return
