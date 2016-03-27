@@ -1,7 +1,7 @@
-# 
+#
 # LSST Data Management System
 # Copyright 2008, 2009, 2010 LSST Corporation.
-# 
+#
 # This product includes software developed by the
 # LSST Project (http://www.lsst.org/).
 #
@@ -9,18 +9,20 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received a copy of the LSST License Statement and 
-# the GNU General Public License along with this program.  If not, 
+#
+# You should have received a copy of the LSST License Statement and
+# the GNU General Public License along with this program.  If not,
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 
-import os, sys, subprocess
+import os
+import sys
+import subprocess
 import lsst.ctrl.orca as orca
 import lsst.log as log
 from lsst.ctrl.orca.EnvString import EnvString
@@ -29,30 +31,33 @@ from lsst.ctrl.orca.WorkflowLauncher import WorkflowLauncher
 from lsst.ctrl.orca.CondorJobs import CondorJobs
 from lsst.ctrl.orca.VanillaCondorWorkflowMonitor import VanillaCondorWorkflowMonitor
 
-## 
+##
 # @deprecated VanillaCondorWorkflowLauncher
 #
+
+
 class VanillaCondorWorkflowLauncher(WorkflowLauncher):
     ##
     # initializes the workflow launcher for HTCondor Vanilla Universe
     #
+
     def __init__(self, jobs, localScratch, condorGlideinFile, prodConfig, wfConfig, runid, filewaiter, pipelineNames):
         log.debug("VanillaCondorWorkflowLauncher:__init__")
-        ## list of jobs being run
+        # list of jobs being run
         self.jobs = jobs
-        ## location of local scratch directory
+        # location of local scratch directory
         self.localScratch = localScratch
-        ## location of condor glide in file
+        # location of condor glide in file
         self.condorGlideinFile = condorGlideinFile
-        ## production configuration
+        # production configuration
         self.prodConfig = prodConfig
-        ## workflow configuration
+        # workflow configuration
         self.wfConfig = wfConfig
-        ## run id for this workflow
+        # run id for this workflow
         self.runid = runid
-        ## object which watches files to show up
+        # object which watches files to show up
         self.filewaiter = filewaiter
-        ## named pipelines
+        # named pipelines
         self.pipelineNames = pipelineNames
 
     ##
@@ -72,8 +77,9 @@ class VanillaCondorWorkflowLauncher(WorkflowLauncher):
         eventBrokerHost = self.prodConfig.production.eventBrokerHost
         shutdownTopic = self.wfConfig.shutdownTopic
 
-        ## the specialized monitor this workflow
-        self.workflowMonitor = VanillaCondorWorkflowMonitor(eventBrokerHost, shutdownTopic, self.runid, self.pipelineNames, loggerManagers)
+        # the specialized monitor this workflow
+        self.workflowMonitor = VanillaCondorWorkflowMonitor(
+            eventBrokerHost, shutdownTopic, self.runid, self.pipelineNames, loggerManagers)
         if statusListener != None:
             self.workflowMonitor.addStatusListener(statusListener)
         self.workflowMonitor.startMonitorThread(self.runid)

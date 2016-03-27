@@ -1,7 +1,7 @@
-# 
+#
 # LSST Data Management System
 # Copyright 2008, 2009, 2010 LSST Corporation.
-# 
+#
 # This product includes software developed by the
 # LSST Project (http://www.lsst.org/).
 #
@@ -9,16 +9,17 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received a copy of the LSST License Statement and 
-# the GNU General Public License along with this program.  If not, 
+#
+# You should have received a copy of the LSST License Statement and
+# the GNU General Public License along with this program.  If not,
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
+
 
 class ConfigurationError(RuntimeError):
     """
@@ -27,10 +28,11 @@ class ConfigurationError(RuntimeError):
     """
     pass
 
+
 class MultiIssueConfigurationError(ConfigurationError):
     """
     a configuration error that can report on multiple problems.
-    
+
     The intented pattern of use for this class is that it is
     created before any problems are found.  As they are found,
     calls are made to addProblem().  Finally, after all possible
@@ -72,7 +74,7 @@ class MultiIssueConfigurationError(ConfigurationError):
         """
         return list(self._probs)
 
-    ## overrides __str__ for custom message
+    # overrides __str__ for custom message
     def __str__(self):
         if len(self._probs) < 1:
             return "Unspecified configuration problems encountered"
@@ -81,7 +83,7 @@ class MultiIssueConfigurationError(ConfigurationError):
         else:
             return ConfigurationError.__str__(self)
 
-    ## overrides __repr__ for custom message
+    # overrides __repr__ for custom message
     def __repr__(self):
         return "MultiIssueConfigurationError: " + str(self)
 

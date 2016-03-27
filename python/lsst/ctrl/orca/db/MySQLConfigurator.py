@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-# 
+#
 # LSST Data Management System
 # Copyright 2008, 2009, 2010 LSST Corporation.
-# 
+#
 # This product includes software developed by the
 # LSST Project (http://www.lsst.org/).
 #
@@ -11,14 +11,14 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received a copy of the LSST License Statement and 
-# the GNU General Public License along with this program.  If not, 
+#
+# You should have received a copy of the LSST License Statement and
+# the GNU General Public License along with this program.  If not,
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 
@@ -41,22 +41,22 @@ class MySQLConfigurator(MySQLBase):
     allows to register run in global database.
     """
 
-    ## initializer
+    # initializer
     def __init__(self, dbHostName, portNo, globalDbName,
                  dcVersion, dcDb, minPercDiskSpaceReq, userRunLife):
         MySQLBase.__init__(self, dbHostName, portNo)
 
-        ## the global database
+        # the global database
         self.globalDbName = globalDbName
-        ## data challenge version
+        # data challenge version
         self.dcVersion = dcVersion
-        ## data challenge database name
+        # data challenge database name
         self.dcDbName = dcDb
-        ## the $CAT_DIR/sql directory
+        # the $CAT_DIR/sql directory
         self.sqlDir = os.path.join(os.environ["CAT_DIR"], "sql")
-        ## minimum percent disk space required
+        # minimum percent disk space required
         self.minPercDiskSpaceReq = minPercDiskSpaceReq
-        ## @deprecated user run lifetime
+        # @deprecated user run lifetime
         self.userRunLife = userRunLife
 
         if self.globalDbName == "":
@@ -65,7 +65,6 @@ class MySQLConfigurator(MySQLBase):
             raise RuntimeError("Invalid (empty) dcVersion name")
         if not os.path.exists(self.sqlDir):
             raise RuntimeError("Directory '%s' not found" % self.sqlDir)
-
 
     def checkStatus(self, userName, userPassword, clientMachine):
         """
@@ -101,12 +100,11 @@ class MySQLConfigurator(MySQLBase):
               "user='%s'" % (userName)
         row = self.execCommand1(cmd)
         self.disconnect()
-        if (row is not None) and (str(row[0])=="Y"):
+        if (row is not None) and (str(row[0]) == "Y"):
             return
         # uc = "'%s:%s'" % (userName, clientMachine)
         uc = userName
         raise RuntimeError("Database authorization failure for %s" % uc)
-
 
     def prepareForNewRun(self, runName, userName, userPassword, runType='u'):
         """
@@ -119,7 +117,7 @@ class MySQLConfigurator(MySQLBase):
         "mysql://hostName:port/databaseName"
         """
         if (runType != 'p' and runType != 'u'):
-            raise RuntimeError("Invalid runType '%c', expected 'u' or 'p'" % \
+            raise RuntimeError("Invalid runType '%c', expected 'u' or 'p'" %
                                runType)
         if runName == "":
             raise RuntimeError("Invalid (empty) runName")
@@ -147,11 +145,11 @@ class MySQLConfigurator(MySQLBase):
         #    self.disconnect()
         #    raise RuntimeError(
         #        "Not enough disk space available in mysql " +
-        #        "datadir, required %i%%, available %i%%" % 
+        #        "datadir, required %i%%, available %i%%" %
         #        (self.minPercDiskSpaceReq, percDiskSpaceAvail))
 
         if runType == 'p':
-            runLife = 1000 # ensure this run "never expire"
+            runLife = 1000  # ensure this run "never expire"
             # TODO: check if userName is authorized to start production run
         else:
             runLife = self.userRunLife
@@ -177,7 +175,6 @@ class MySQLConfigurator(MySQLBase):
 
         return (runDbName, self.dcDbName)
 
-
     def runFinished(self, dbName):
         """
         Should be called after the run finished. This 
@@ -187,4 +184,4 @@ class MySQLConfigurator(MySQLBase):
         """
 
         #self.connect(userName, userPassword, self.globalDbName)
-        #self.disconnect()
+        # self.disconnect()
